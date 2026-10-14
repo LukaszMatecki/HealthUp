@@ -4,18 +4,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.vector.ImageVector
 
-enum class ThemeMode(val title: String, val description: String) {
-    CYBER_DARK("Cyber Eko (Ciemny)", "Głęboka zieleń z dynamicznymi akcentami"),
-    NEON_CYAN("Neon Cyan", "Chłodny błękit i futurystyczny styl"),
-    SOLAR_AMBER("Słoneczny Bursztyn", "Ciepła energia słoneczna i złoto"),
-    LIGHT_ECO("Eko Dzień (Jasny)", "Czytelny, jasny motyw parkowy"),
-    AMOLED_BLACK("AMOLED True Black", "Maksymalna oszczędność baterii")
-}
-
-enum class GridDestination(val title: String, val subtitle: String, val icon: ImageVector) {
-    LIGHTING("Oświetlenie Parków", "Latarnie miejskie w Parku na Zdrowiu i Poniatowskim", Icons.Default.Lightbulb),
-    BIKE_CHARGING("Stacje Łódzkiego Roweru", "Zasilanie stacji i ładowarek e-rowerów MPK", Icons.Default.ElectricBike),
-    SCHOOL_HUBS("Zielone Szkoły Łodzi", "Eko-pracownie i huby edukacyjne", Icons.Default.School)
+enum class AppThemeMode(val title: String, val subtitle: String) {
+    SYSTEM("Systemowy", "Dostosowuje się automatycznie do ustawień urządzenia"),
+    DARK("Ciemny", "Elegancki, minimalistyczny ciemny motyw z zielonym akcentem"),
+    LIGHT("Jasny", "Przejrzysty, jasny motyw o wysokim kontraście")
 }
 
 data class WorkoutSessionRecord(
@@ -50,19 +42,13 @@ data class NotificationItem(
 )
 
 data class AppSettings(
-    val themeMode: ThemeMode = ThemeMode.CYBER_DARK,
-    val kineticGlowEnabled: Boolean = true,
+    val themeMode: AppThemeMode = AppThemeMode.SYSTEM,
     val soundEffectsEnabled: Boolean = true,
     val hapticFeedbackEnabled: Boolean = true,
     val autoPauseWhenIdle: Boolean = true,
-    val bluetoothAutoConnect: Boolean = true,
     val targetSessionWh: Int = 100,
     val homeDistrict: String = "Polesie",
-    val gridDestination: GridDestination = GridDestination.LIGHTING,
-    val dailyReminders: Boolean = true,
-    val peakHoursAlerts: Boolean = true,
-    val anonymousLeaderboard: Boolean = false,
-    val compactCards: Boolean = false
+    val dailyReminders: Boolean = true
 )
 
 data class UserStats(
@@ -75,7 +61,8 @@ data class UserStats(
     val userDistrict: String = "Polesie (Park na Zdrowiu)",
     val avatarId: Int = 0,
     val level: Int = 4,
-    val levelTitle: String = "Łódzki Aktywista Kinetyczny",
+    val levelTitle: String = "Aktywista Kinetyczny",
+    val weeklyEnergyWh: List<Double> = listOf(65.0, 110.0, 95.0, 140.0, 180.0, 120.0, 130.0), // Pn..Nd
     val recentWorkouts: List<WorkoutSessionRecord> = emptyList()
 )
 
@@ -91,6 +78,8 @@ data class KineticStation(
     val qrCodeId: String = "LDZ-VOLT-QR-001",
     val mapCoordinatesX: Float = 0.5f,
     val mapCoordinatesY: Float = 0.5f,
+    val latitude: Double = 51.7592,
+    val longitude: Double = 19.4560,
     val isOnline: Boolean = true
 )
 
@@ -108,14 +97,6 @@ enum class DeviceType(val displayName: String) {
             SWING -> Icons.Default.Attractions
         }
 }
-
-data class CityGoal(
-    val title: String,
-    val targetKWh: Double,
-    val currentKWh: Double,
-    val description: String,
-    val location: String = "Park na Zdrowiu, Łódź"
-)
 
 enum class RewardCategory(val displayName: String) {
     ALL("Wszystkie"),

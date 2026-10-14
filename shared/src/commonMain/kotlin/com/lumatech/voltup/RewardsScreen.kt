@@ -2,11 +2,13 @@ package com.lumatech.voltup
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -20,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.Preview
 
 @Composable
 fun RewardsScreen(
@@ -32,304 +35,215 @@ fun RewardsScreen(
     var selectedCategory by remember { mutableStateOf(RewardCategory.ALL) }
     var searchQuery by remember { mutableStateOf("") }
     var selectedRewardForDialog by remember { mutableStateOf<Reward?>(null) }
-    var copiedCodeSnackbar by remember { mutableStateOf<String?>(null) }
-    var filterOnlyActiveCodes by remember { mutableStateOf(false) }
 
     val filteredRewards = remember(selectedCategory, searchQuery) {
         MockData.sampleRewards.filter { reward ->
             val matchesCategory = selectedCategory == RewardCategory.ALL || reward.category == selectedCategory
             val matchesQuery = searchQuery.isBlank() ||
                     reward.title.contains(searchQuery, ignoreCase = true) ||
-                    reward.partner.contains(searchQuery, ignoreCase = true) ||
-                    reward.description.contains(searchQuery, ignoreCase = true)
+                    reward.partner.contains(searchQuery, ignoreCase = true)
             matchesCategory && matchesQuery
         }
     }
 
-    val displayRedeemed = remember(redeemedRewards, filterOnlyActiveCodes) {
-        if (filterOnlyActiveCodes) redeemedRewards.filter { !it.isUsed }
-        else redeemedRewards
-    }
+    val primaryColor = MaterialTheme.colorScheme.primary
 
-    Scaffold(
-        snackbarHost = {
-            copiedCodeSnackbar?.let { msg ->
-                Snackbar(
-                    modifier = Modifier.padding(16.dp),
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = Color.Black
-                ) {
-                    Text(text = msg, fontWeight = FontWeight.Bold)
-                }
-            }
-        },
-        containerColor = Color.Transparent
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .statusBarsPadding()
-                .padding(top = 16.dp)
-        ) {
-            // Header
-            Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-                Text(
-                    text = "KORZYŚCI DLA ŁODZIAN",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.5.sp
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Katalog Nagród",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Bolt,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = "$currentPoints pkt",
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontSize = 13.sp
-                            )
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Tab Selector
-            TabRow(
-                selectedTabIndex = activeSubTab,
-                containerColor = Color.Transparent,
-                contentColor = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 20.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .padding(top = 16.dp)
+    ) {
+        // Minimalist Header
+        Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+            Text(
+                text = "KORZYŚCI MIEJSKIE",
+                style = MaterialTheme.typography.labelSmall,
+                color = primaryColor,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.2.sp
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Tab(
-                    selected = activeSubTab == 0,
-                    onClick = { activeSubTab = 0 },
-                    text = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(imageVector = Icons.Default.CardGiftcard, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Text("Dostępne Nagrody", fontWeight = FontWeight.Bold)
-                        }
-                    }
-                )
-                Tab(
-                    selected = activeSubTab == 1,
-                    onClick = { activeSubTab = 1 },
-                    text = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(imageVector = Icons.Default.ConfirmationNumber, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Text("Moje Kody (${redeemedRewards.size})", fontWeight = FontWeight.Bold)
-                        }
-                    }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            if (activeSubTab == 0) {
-                // Search
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp),
-                    placeholder = { Text("Szukaj nagrody, biletu, partnera...") },
-                    leadingIcon = {
-                        Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { searchQuery = "" }) {
-                                Icon(imageVector = Icons.Default.Close, contentDescription = null)
-                            }
-                        }
-                    },
-                    shape = RoundedCornerShape(16.dp),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
+                Text(
+                    text = "Nagrody",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
 
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Kategorie
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
-                    items(RewardCategory.entries) { category ->
-                        val isSelected = category == selectedCategory
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { selectedCategory = category },
-                            label = {
-                                Text(
-                                    text = category.displayName,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                )
-                            },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                selectedLabelColor = Color.Black,
-                                containerColor = MaterialTheme.colorScheme.surface,
-                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Bolt,
+                            contentDescription = null,
+                            tint = primaryColor,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = "$currentPoints pkt",
+                            fontWeight = FontWeight.Bold,
+                            color = primaryColor,
+                            fontSize = 13.sp
                         )
                     }
                 }
+            }
+        }
 
-                Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
-                // Lista Nagród
-                if (filteredRewards.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(imageVector = Icons.Default.SearchOff, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(44.dp))
-                            Text("Brak nagród dla podanych filtrów", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                } else {
-                    LazyColumn(
-                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp),
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        items(filteredRewards) { reward ->
-                            RewardCard(
-                                reward = reward,
-                                canAfford = currentPoints >= reward.costPoints,
-                                onClaimClick = { selectedRewardForDialog = reward }
-                            )
-                        }
-                    }
-                }
-            } else {
-                // Moje Kody Tab
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "TWOJE AKTYWNE BONY I KODY",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+        // Subtabs
+        TabRow(
+            selectedTabIndex = activeSubTab,
+            containerColor = Color.Transparent,
+            contentColor = primaryColor,
+            modifier = Modifier.padding(horizontal = 20.dp),
+            divider = { HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)) }
+        ) {
+            Tab(
+                selected = activeSubTab == 0,
+                onClick = { activeSubTab = 0 },
+                text = { Text("Katalog", fontWeight = FontWeight.SemiBold, fontSize = 14.sp) }
+            )
+            Tab(
+                selected = activeSubTab == 1,
+                onClick = { activeSubTab = 1 },
+                text = { Text("Moje Kody (${redeemedRewards.size})", fontWeight = FontWeight.SemiBold, fontSize = 14.sp) }
+            )
+        }
 
+        Spacer(modifier = Modifier.height(12.dp))
+
+        if (activeSubTab == 0) {
+            // Category Chips
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                items(RewardCategory.entries) { category ->
+                    val isSelected = category == selectedCategory
                     FilterChip(
-                        selected = filterOnlyActiveCodes,
-                        onClick = { filterOnlyActiveCodes = !filterOnlyActiveCodes },
-                        label = { Text("Tylko niewykorzystane", fontSize = 11.sp) },
+                        selected = isSelected,
+                        onClick = { selectedCategory = category },
+                        label = { Text(category.displayName, fontSize = 12.sp) },
+                        shape = RoundedCornerShape(10.dp),
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedContainerColor = primaryColor,
                             selectedLabelColor = Color.Black
                         )
                     )
                 }
+            }
 
-                Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-                if (displayRedeemed.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(40.dp),
-                        contentAlignment = Alignment.Center
+            // Rewards List
+            LazyColumn(
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(filteredRewards) { reward ->
+                    val canAfford = currentPoints >= reward.costPoints
+                    SleekRewardCard(
+                        reward = reward,
+                        canAfford = canAfford,
+                        onClaimClick = { selectedRewardForDialog = reward }
+                    )
+                }
+                item {
+                    Spacer(modifier = Modifier.height(80.dp))
+                }
+            }
+        } else {
+            // Moje Bony View
+            if (redeemedRewards.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ConfirmationNumber,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(56.dp)
-                            )
-                            Text(
-                                text = "Brak bonów w tej zakładce",
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = "Wybierz nagrodę z katalogu i wymień swoje wygenerowane VoltPoints na realne korzyści w Łodzi!",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 20.dp)
-                            )
-                            Button(
-                                onClick = { activeSubTab = 0 },
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = Color.Black)
-                            ) {
-                                Text("Przejdź do katalogu", fontWeight = FontWeight.Bold)
-                            }
-                        }
+                        Icon(
+                            imageVector = Icons.Default.ConfirmationNumber,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Text(
+                            text = "Brak odebranych bonów",
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "Wymień wygenerowane punkty na zniżki MPK i wejściówki EC1 w katalogu.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-                } else {
-                    LazyColumn(
-                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp),
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        items(displayRedeemed) { redeemed ->
-                            RedeemedRewardCard(
-                                redeemed = redeemed,
-                                onCopyCode = { code ->
-                                    copiedCodeSnackbar = "Kod $code skopiowany do schowka!"
-                                },
-                                onToggleUsed = { onToggleRewardUsed(redeemed) }
-                            )
-                        }
+                }
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 6.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(redeemedRewards) { item ->
+                        SleekRedeemedCard(
+                            redeemed = item,
+                            onCopy = { code ->
+                                SnackbarHelper.show("Kod $code skopiowany do schowka!")
+                            },
+                            onToggleUsed = { onToggleRewardUsed(item) }
+                        )
+                    }
+                    item {
+                        Spacer(modifier = Modifier.height(80.dp))
                     }
                 }
             }
         }
     }
 
-    // Modal dialog z potwierdzeniem odbioru nagrody
+    // Modal dialog z odbiorem
     selectedRewardForDialog?.let { reward ->
         val canAfford = currentPoints >= reward.costPoints
         AlertDialog(
             onDismissRequest = { selectedRewardForDialog = null },
+            title = {
+                Text(reward.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Partner: ${reward.partner}", fontWeight = FontWeight.SemiBold, color = primaryColor)
+                    Text(reward.description, style = MaterialTheme.typography.bodyMedium)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Koszt:", style = MaterialTheme.typography.bodySmall)
+                        Text("${reward.costPoints} VoltPoints", fontWeight = FontWeight.Bold, color = primaryColor)
+                    }
+                    if (!canAfford) {
+                        Text(
+                            text = "Brakuje Ci ${reward.costPoints - currentPoints} pkt do odbioru tej nagrody.",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            },
             confirmButton = {
                 if (canAfford) {
                     Button(
@@ -337,117 +251,47 @@ fun RewardsScreen(
                             onRedeemReward(reward)
                             selectedRewardForDialog = null
                             activeSubTab = 1
-                            copiedCodeSnackbar = "Odebrano ${reward.title}! Kod czeka w zakładce Moje Kody."
+                            SnackbarHelper.show("Odebrano ${reward.title}!")
                         },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = Color.Black
-                        )
+                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = Color.Black),
+                        shape = RoundedCornerShape(10.dp)
                     ) {
-                        Text("ODBIERZ ZA ${reward.costPoints} PKT", fontWeight = FontWeight.Black)
+                        Text("Wymień punkty", fontWeight = FontWeight.Bold)
                     }
                 }
             },
             dismissButton = {
                 TextButton(onClick = { selectedRewardForDialog = null }) {
-                    Text("Zamknij", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            },
-            title = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Icon(
-                        imageVector = reward.icon,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = reward.title,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        text = "Partner: ${reward.partner}",
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(text = reward.description, style = MaterialTheme.typography.bodyMedium)
-                    HorizontalDivider()
-                    if (canAfford) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Koszt:", style = MaterialTheme.typography.bodySmall)
-                            Text("${reward.costPoints} VoltPoints", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Pozostanie po wymianie:", style = MaterialTheme.typography.bodySmall)
-                            Text("${currentPoints - reward.costPoints} VoltPoints", fontWeight = FontWeight.Bold)
-                        }
-                        Text(
-                            text = "Po zatwierdzeniu wygenerujemy unikalny kod zniżkowy do okazania w punkcie lub aplikacji MPK.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            color = MaterialTheme.colorScheme.error.copy(alpha = 0.15f),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text(
-                                text = "Brakuje Ci jeszcze ${reward.costPoints - currentPoints} VoltPoints! Poćwicz na stacji kinetycznej w Łodzi, aby odblokować tę nagrodę.",
-                                modifier = Modifier.padding(10.dp),
-                                color = MaterialTheme.colorScheme.error,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    }
+                    Text("Anuluj")
                 }
             }
         )
     }
-
-    LaunchedEffect(copiedCodeSnackbar) {
-        if (copiedCodeSnackbar != null) {
-            kotlinx.coroutines.delay(3000)
-            copiedCodeSnackbar = null
-        }
-    }
 }
 
 @Composable
-fun RewardCard(
+fun SleekRewardCard(
     reward: Reward,
     canAfford: Boolean,
     onClaimClick: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(54.dp)
-                    .clip(RoundedCornerShape(16.dp))
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(12.dp))
                     .background(
                         if (canAfford) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
                         else MaterialTheme.colorScheme.surfaceVariant
@@ -458,7 +302,7 @@ fun RewardCard(
                     imageVector = reward.icon,
                     contentDescription = null,
                     tint = if (canAfford) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(22.dp)
                 )
             }
 
@@ -466,24 +310,20 @@ fun RewardCard(
                 Text(
                     text = reward.partner.uppercase(),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.Bold
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = reward.title,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "${reward.costPoints} VoltPoints",
-                        color = if (canAfford) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 13.sp
-                    )
-                }
+                Text(
+                    text = "${reward.costPoints} pkt",
+                    color = if (canAfford) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp
+                )
             }
 
             Button(
@@ -491,17 +331,15 @@ fun RewardCard(
                 enabled = canAfford,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = Color.Black,
-                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    contentColor = Color.Black
                 ),
-                shape = RoundedCornerShape(12.dp),
-                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                shape = RoundedCornerShape(10.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
             ) {
                 Text(
-                    text = if (canAfford) "ODBIERZ" else "BRAK PKT",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Black
+                    text = if (canAfford) "Odbierz" else "Brak pkt",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
@@ -509,75 +347,50 @@ fun RewardCard(
 }
 
 @Composable
-fun RedeemedRewardCard(
+fun SleekRedeemedCard(
     redeemed: RedeemedReward,
-    onCopyCode: (String) -> Unit,
+    onCopy: (String) -> Unit,
     onToggleUsed: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (redeemed.isUsed) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-            else MaterialTheme.colorScheme.surface
-        ),
-        border = if (!redeemed.isUsed) androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)) else null
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
     ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = redeemed.reward.icon,
-                        contentDescription = null,
-                        tint = if (redeemed.isUsed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Column {
-                        Text(
-                            text = redeemed.reward.title,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
-                        Text(
-                            text = "${redeemed.reward.partner} • ${redeemed.redeemedDate}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                Column {
+                    Text(redeemed.reward.title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text(redeemed.reward.partner, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
 
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = if (redeemed.isUsed) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                    color = if (redeemed.isUsed) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
                 ) {
                     Text(
-                        text = if (redeemed.isUsed) "WYKORZYSTANY" else "AKTYWNY",
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        text = if (redeemed.isUsed) "Wykorzystany" else "Aktywny",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                         color = if (redeemed.isUsed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 10.sp
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
 
-            // Digital Barcode Simulation
+            // Minimalist Barcode
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(44.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                    .height(36.dp)
+                    .clip(RoundedCornerShape(6.dp))
                     .background(Color.White)
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .padding(horizontal = 12.dp, vertical = 4.dp)
             ) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     val barWidths = listOf(2f, 4f, 1f, 3f, 5f, 2f, 1f, 4f, 2f, 6f, 3f, 1f, 4f, 2f, 3f, 5f, 1f, 2f, 4f, 1f, 5f, 2f, 3f, 1f, 4f, 2f)
@@ -596,47 +409,39 @@ fun RedeemedRewardCard(
                 }
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text(
-                        text = "KOD DO OKAZANIA",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = redeemed.discountCode,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 18.sp,
-                        color = if (redeemed.isUsed) MaterialTheme.colorScheme.onSurfaceVariant else EnergyYellow
-                    )
-                }
+                Text(
+                    text = redeemed.discountCode,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = EnergyYellow
+                )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    IconButton(
-                        onClick = { onCopyCode(redeemed.discountCode) },
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = Color.Black
-                        )
-                    ) {
-                        Icon(imageVector = Icons.Default.ContentCopy, contentDescription = "Kopiuj kod")
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    IconButton(onClick = { onCopy(redeemed.discountCode) }, modifier = Modifier.size(32.dp)) {
+                        Icon(imageVector = Icons.Default.ContentCopy, contentDescription = "Kopiuj", modifier = Modifier.size(16.dp))
                     }
-
-                    OutlinedButton(
-                        onClick = onToggleUsed,
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                    ) {
+                    TextButton(onClick = onToggleUsed, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)) {
                         Text(if (redeemed.isUsed) "Przywróć" else "Oznacz zużyty", fontSize = 11.sp)
                     }
                 }
             }
         }
+    }
+}
+
+@Preview
+@Composable
+fun RewardsScreenPreview() {
+    VoltUpTheme(AppThemeMode.DARK) {
+        RewardsScreen(
+            currentPoints = 1240,
+            redeemedRewards = emptyList(),
+            onRedeemReward = {}
+        )
     }
 }

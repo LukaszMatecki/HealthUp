@@ -1,145 +1,166 @@
 package com.lumatech.voltup
 
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.Preview
 
-// VoltUp Cyber-Eco Palette (Default Dark)
+// Minimalist Electric Palette
 val ElectricVoltGreen = Color(0xFF00E676)
-val BrightLime = Color(0xFFAEEA00)
-val DarkEnergyBackground = Color(0xFF0D1317)
-val CardSurfaceDark = Color(0xFF162127)
-val CardSurfaceVariant = Color(0xFF1E2D35)
 val EnergyYellow = Color(0xFFFFD600)
-val TextPrimary = Color(0xFFF1F5F9)
-val TextSecondary = Color(0xFF94A3B8)
-val AccentCyan = Color(0xFF00E5FF)
-val ElectricOrange = Color(0xFFFF7043)
+val DarkBackground = Color(0xFF0E1116)
+val DarkSurface = Color(0xFF181C23)
+val DarkSurfaceVariant = Color(0xFF222731)
+val DarkTextPrimary = Color(0xFFF1F5F9)
+val DarkTextSecondary = Color(0xFF94A3B8)
 
-// Neon Cyan Palette
-val CyanPrimary = Color(0xFF00E5FF)
-val CyanBackground = Color(0xFF08121E)
-val CyanSurface = Color(0xFF101F2E)
-val CyanSurfaceVariant = Color(0xFF182B3E)
+val LightBackground = Color(0xFFF8FAFC)
+val LightSurface = Color(0xFFFFFFFF)
+val LightSurfaceVariant = Color(0xFFEDF2F7)
+val LightPrimary = Color(0xFF00A35B)
+val LightTextPrimary = Color(0xFF0F172A)
+val LightTextSecondary = Color(0xFF64748B)
 
-// Solar Amber Palette
-val SolarPrimary = Color(0xFFFFB300)
-val SolarSecondary = Color(0xFFFF6D00)
-val SolarBackground = Color(0xFF14100C)
-val SolarSurface = Color(0xFF211A14)
-val SolarSurfaceVariant = Color(0xFF2E241C)
-
-// AMOLED Black Palette
-val AmoledBackground = Color(0xFF000000)
-val AmoledSurface = Color(0xFF0C0C0C)
-val AmoledSurfaceVariant = Color(0xFF161616)
-
-// Eco Light Palette
-val EcoLightPrimary = Color(0xFF008947)
-val EcoLightSecondary = Color(0xFF00B0FF)
-val EcoLightBackground = Color(0xFFF1F5F5)
-val EcoLightSurface = Color(0xFFFFFFFF)
-val EcoLightSurfaceVariant = Color(0xFFE2EBE8)
-val EcoLightTextPrimary = Color(0xFF0F172A)
-val EcoLightTextSecondary = Color(0xFF475569)
-
-private val CyberDarkColorScheme = darkColorScheme(
+private val VoltUpDarkColorScheme = darkColorScheme(
     primary = ElectricVoltGreen,
     onPrimary = Color.Black,
-    primaryContainer = CardSurfaceDark,
+    primaryContainer = DarkSurfaceVariant,
     onPrimaryContainer = ElectricVoltGreen,
-    secondary = BrightLime,
+    secondary = Color(0xFF38BDF8),
     onSecondary = Color.Black,
-    background = DarkEnergyBackground,
-    surface = CardSurfaceDark,
-    surfaceVariant = CardSurfaceVariant,
-    onBackground = TextPrimary,
-    onSurface = TextPrimary,
-    onSurfaceVariant = TextSecondary,
+    background = DarkBackground,
+    surface = DarkSurface,
+    surfaceVariant = DarkSurfaceVariant,
+    onBackground = DarkTextPrimary,
+    onSurface = DarkTextPrimary,
+    onSurfaceVariant = DarkTextSecondary,
+    outline = Color(0xFF2A313C),
     tertiary = EnergyYellow
 )
 
-private val NeonCyanColorScheme = darkColorScheme(
-    primary = CyanPrimary,
-    onPrimary = Color.Black,
-    primaryContainer = CyanSurface,
-    onPrimaryContainer = CyanPrimary,
-    secondary = AccentCyan,
-    onSecondary = Color.Black,
-    background = CyanBackground,
-    surface = CyanSurface,
-    surfaceVariant = CyanSurfaceVariant,
-    onBackground = TextPrimary,
-    onSurface = TextPrimary,
-    onSurfaceVariant = TextSecondary,
-    tertiary = EnergyYellow
-)
-
-private val SolarAmberColorScheme = darkColorScheme(
-    primary = SolarPrimary,
-    onPrimary = Color.Black,
-    primaryContainer = SolarSurface,
-    onPrimaryContainer = SolarPrimary,
-    secondary = SolarSecondary,
-    onSecondary = Color.Black,
-    background = SolarBackground,
-    surface = SolarSurface,
-    surfaceVariant = SolarSurfaceVariant,
-    onBackground = TextPrimary,
-    onSurface = TextPrimary,
-    onSurfaceVariant = TextSecondary,
-    tertiary = EnergyYellow
-)
-
-private val AmoledColorScheme = darkColorScheme(
-    primary = ElectricVoltGreen,
-    onPrimary = Color.Black,
-    primaryContainer = AmoledSurface,
-    onPrimaryContainer = ElectricVoltGreen,
-    secondary = BrightLime,
-    onSecondary = Color.Black,
-    background = AmoledBackground,
-    surface = AmoledSurface,
-    surfaceVariant = AmoledSurfaceVariant,
-    onBackground = TextPrimary,
-    onSurface = TextPrimary,
-    onSurfaceVariant = TextSecondary,
-    tertiary = EnergyYellow
-)
-
-private val EcoLightColorScheme = lightColorScheme(
-    primary = EcoLightPrimary,
+private val VoltUpLightColorScheme = lightColorScheme(
+    primary = LightPrimary,
     onPrimary = Color.White,
-    primaryContainer = EcoLightSurfaceVariant,
-    onPrimaryContainer = EcoLightPrimary,
-    secondary = EcoLightSecondary,
+    primaryContainer = Color(0xFFE8F5E9),
+    onPrimaryContainer = LightPrimary,
+    secondary = Color(0xFF0284C7),
     onSecondary = Color.White,
-    background = EcoLightBackground,
-    surface = EcoLightSurface,
-    surfaceVariant = EcoLightSurfaceVariant,
-    onBackground = EcoLightTextPrimary,
-    onSurface = EcoLightTextPrimary,
-    onSurfaceVariant = EcoLightTextSecondary,
+    background = LightBackground,
+    surface = LightSurface,
+    surfaceVariant = LightSurfaceVariant,
+    onBackground = LightTextPrimary,
+    onSurface = LightTextPrimary,
+    onSurfaceVariant = LightTextSecondary,
+    outline = Color(0xFFE2E8F0),
     tertiary = EnergyYellow
+)
+
+// Sleek, modern typography with crisp letter-spacing and hierarchy
+val VoltUpTypography = Typography(
+    headlineLarge = TextStyle(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.Bold,
+        fontSize = 30.sp,
+        letterSpacing = (-0.5).sp,
+        lineHeight = 36.sp
+    ),
+    headlineMedium = TextStyle(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.Bold,
+        fontSize = 24.sp,
+        letterSpacing = (-0.3).sp,
+        lineHeight = 30.sp
+    ),
+    headlineSmall = TextStyle(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.Bold,
+        fontSize = 20.sp,
+        letterSpacing = (-0.2).sp,
+        lineHeight = 26.sp
+    ),
+    titleLarge = TextStyle(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 18.sp,
+        letterSpacing = 0.sp,
+        lineHeight = 24.sp
+    ),
+    titleMedium = TextStyle(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 16.sp,
+        letterSpacing = 0.sp,
+        lineHeight = 22.sp
+    ),
+    bodyLarge = TextStyle(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.Normal,
+        fontSize = 15.sp,
+        letterSpacing = 0.1.sp,
+        lineHeight = 22.sp
+    ),
+    bodyMedium = TextStyle(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.Normal,
+        fontSize = 14.sp,
+        letterSpacing = 0.1.sp,
+        lineHeight = 20.sp
+    ),
+    bodySmall = TextStyle(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.Normal,
+        fontSize = 12.sp,
+        letterSpacing = 0.1.sp,
+        lineHeight = 16.sp
+    ),
+    labelLarge = TextStyle(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.Bold,
+        fontSize = 13.sp,
+        letterSpacing = 0.8.sp,
+        lineHeight = 18.sp
+    ),
+    labelSmall = TextStyle(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.Medium,
+        fontSize = 11.sp,
+        letterSpacing = 0.4.sp,
+        lineHeight = 14.sp
+    )
 )
 
 @Composable
 fun VoltUpTheme(
-    themeMode: ThemeMode = ThemeMode.CYBER_DARK,
+    themeMode: AppThemeMode = AppThemeMode.SYSTEM,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when (themeMode) {
-        ThemeMode.CYBER_DARK -> CyberDarkColorScheme
-        ThemeMode.NEON_CYAN -> NeonCyanColorScheme
-        ThemeMode.SOLAR_AMBER -> SolarAmberColorScheme
-        ThemeMode.LIGHT_ECO -> EcoLightColorScheme
-        ThemeMode.AMOLED_BLACK -> AmoledColorScheme
+    val systemInDark = isSystemInDarkTheme()
+    val isDark = when (themeMode) {
+        AppThemeMode.SYSTEM -> systemInDark
+        AppThemeMode.DARK -> true
+        AppThemeMode.LIGHT -> false
     }
+
+    val colorScheme = if (isDark) VoltUpDarkColorScheme else VoltUpLightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,
+        typography = VoltUpTypography,
         content = content
     )
+}
+
+@Preview
+@Composable
+fun VoltUpThemePreview() {
+    VoltUpTheme(AppThemeMode.DARK) {
+        Surface {
+            Text("VoltUp Preview", style = MaterialTheme.typography.headlineMedium)
+        }
+    }
 }
