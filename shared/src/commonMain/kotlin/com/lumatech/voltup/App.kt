@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -18,18 +19,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
-import kotlin.time.Duration.Companion.seconds
-import kotlinx.coroutines.delay
 
 enum class MainTab(val label: String) {
     HOME("Pulpit"),
@@ -49,24 +45,92 @@ enum class MainTab(val label: String) {
 sealed interface Screen {
     data object Main : Screen
     data class ActiveWorkout(val station: KineticStation) : Screen
+    data object Settings : Screen
 }
 
 @Composable
 fun App() {
-    VoltUpTheme {
-        var currentScreen by remember { mutableStateOf<Screen>(Screen.Main) }
-        var currentTab by remember { mutableStateOf(MainTab.HOME) }
-        var userStats by remember { mutableStateOf(UserStats()) }
-        var challenges by remember { mutableStateOf(MockData.sampleChallenges) }
-        var redeemedRewards by remember { mutableStateOf(emptyList<RedeemedReward>()) }
-        var showQrScannerModal by remember { mutableStateOf(false) }
+    var appSettings by remember { mutableStateOf(AppSettings()) }
+    var currentScreen by remember { mutableStateOf<Screen>(Screen.Main) }
+    var currentTab by remember { mutableStateOf(MainTab.HOME) }
+    var userStats by remember {
+        mutableStateOf(
+            UserStats(
+                recentWorkouts = MockData.sampleRecentWorkouts
+            )
+        )
+    }
+    var challenges by remember { mutableStateOf(MockData.sampleChallenges) }
+    var badges by remember { mutableStateOf(MockData.sampleBadges) }
+    var redeemedRewards by remember { mutableStateOf(emptyList<RedeemedReward>()) }
+    var notifications by remember { mutableStateOf(MockData.sampleNotifications) }
+    var cityGoalProgress by remember { mutableStateOf(0.78f) }
+    var showQrScannerModal by remember { mutableStateOf(false) }
+    var showNotificationsModal by remember { mutableStateOf(false) }
 
+    VoltUpTheme(themeMode = appSettings.themeMode) {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
             AnimatedContent(targetState = currentScreen) { screen ->
                 when (screen) {
+                    is Screen.Settings -> {
+                        SettingsScreen(
+                            settings = appSettings,
+                            onSettingsChanged = { newSettings ->
+                                appSettings = newSettings
+                                userStats = userStats.copy(
+                                    userDistrict = newSettings.homeDistrict
+                                )
+                            },
+                            onNavigateBack = { currentScreen = Screen.Main },
+                            onClearHistory = {
+                                userStats = userStats.copy(recentWorkouts = emptyList())
+                            },
+                            onResetDefaults = {
+                                appSettings = AppSettings()
+                            }
+                        )
+                    }
+
+                    is Screen.ActiveWorkout -> {
+                        WorkoutScreen(
+                            station = screen.station,
+                            targetWh = appSettings.targetSessionWh,
+                            soundEnabled = appSettings.soundEffectsEnabled,
+                            hapticEnabled = appSettings.hapticFeedbackEnabled,
+                            onFinishWorkout = { earnedWh, earnedPoints, workoutRecord ->
+                                userStats = userStats.copy(
+                                    points = userStats.points + earnedPoints,
+                                    totalEnergyWh = userStats.totalEnergyWh + earnedWh,
+                                    co2SavedKg = userStats.co2SavedKg + (earnedWh * 0.0007),
+                                    recentWorkouts = listOf(workoutRecord) + userStats.recentWorkouts
+                                )
+                                // Update challenges
+                                challenges = challenges.map { challenge ->
+                                    if (!challenge.isCompleted) {
+                                        val newProgress = (challenge.currentProgress + (earnedWh / 200.0).toFloat()).coerceAtMost(1.0f)
+                                        challenge.copy(
+                                            currentProgress = newProgress,
+                                            isCompleted = newProgress >= 1.0f
+                                        )
+                                    } else challenge
+                                }
+                                // Update badges
+                                if (earnedWh >= 100) {
+                                    badges = badges.map {
+                                        if (it.id == "B4") it.copy(isUnlocked = true) else it
+                                    }
+                                }
+                                currentScreen = Screen.Main
+                            },
+                            onCancel = {
+                                currentScreen = Screen.Main
+                            }
+                        )
+                    }
+
                     is Screen.Main -> {
                         Scaffold(
                             bottomBar = {
@@ -83,18 +147,18 @@ fun App() {
                                                 Icon(
                                                     imageVector = tab.icon,
                                                     contentDescription = tab.label,
-                                                    tint = if (isSelected) ElectricVoltGreen else MaterialTheme.colorScheme.onSurfaceVariant
+                                                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             },
                                             label = {
                                                 Text(
                                                     text = tab.label,
                                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                                    color = if (isSelected) ElectricVoltGreen else MaterialTheme.colorScheme.onSurfaceVariant
+                                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             },
                                             colors = NavigationBarItemDefaults.colors(
-                                                indicatorColor = ElectricVoltGreen.copy(alpha = 0.2f)
+                                                indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                                             )
                                         )
                                     }
@@ -106,24 +170,34 @@ fun App() {
                                     MainTab.HOME -> {
                                         DashboardScreen(
                                             stats = userStats,
-                                            onOpenQrScanner = {
-                                                showQrScannerModal = true
-                                            },
+                                            cityGoalProgress = cityGoalProgress,
+                                            unreadNotificationsCount = notifications.count { !it.isRead },
+                                            onOpenNotifications = { showNotificationsModal = true },
+                                            onOpenSettings = { currentScreen = Screen.Settings },
+                                            onOpenQrScanner = { showQrScannerModal = true },
                                             onStartWorkout = { station ->
                                                 currentScreen = Screen.ActiveWorkout(station)
                                             },
-                                            onGoToMap = {
-                                                currentTab = MainTab.MAP
+                                            onGoToMap = { currentTab = MainTab.MAP },
+                                            onGoToRewards = { currentTab = MainTab.REWARDS },
+                                            onContributeToCityGoal = {
+                                                cityGoalProgress = (cityGoalProgress + 0.04f).coerceAtMost(1.0f)
+                                                userStats = userStats.copy(
+                                                    points = (userStats.points + 25)
+                                                )
                                             }
                                         )
                                     }
+
                                     MainTab.MAP -> {
                                         StationsMapScreen(
+                                            stations = MockData.sampleStations,
                                             onSelectStationToWorkout = { station ->
                                                 currentScreen = Screen.ActiveWorkout(station)
                                             }
                                         )
                                     }
+
                                     MainTab.REWARDS -> {
                                         RewardsScreen(
                                             currentPoints = userStats.points,
@@ -138,13 +212,21 @@ fun App() {
                                                     redeemedDate = "Dzisiaj, 14:20"
                                                 )
                                                 redeemedRewards = listOf(newRedeemed) + redeemedRewards
+                                            },
+                                            onToggleRewardUsed = { target ->
+                                                redeemedRewards = redeemedRewards.map {
+                                                    if (it.discountCode == target.discountCode) it.copy(isUsed = !it.isUsed)
+                                                    else it
+                                                }
                                             }
                                         )
                                     }
+
                                     MainTab.PROFILE -> {
                                         ProfileScreen(
                                             stats = userStats,
                                             challenges = challenges,
+                                            badges = badges,
                                             onClaimChallenge = { challenge ->
                                                 userStats = userStats.copy(
                                                     points = userStats.points + challenge.rewardPoints
@@ -152,6 +234,17 @@ fun App() {
                                                 challenges = challenges.map {
                                                     if (it.id == challenge.id) it.copy(isClaimed = true) else it
                                                 }
+                                            },
+                                            onUpdateUserProfile = { newName, newDistrict, newAvatarId ->
+                                                userStats = userStats.copy(
+                                                    userName = newName,
+                                                    userDistrict = newDistrict,
+                                                    avatarId = newAvatarId
+                                                )
+                                                appSettings = appSettings.copy(homeDistrict = newDistrict)
+                                            },
+                                            onOpenSettings = {
+                                                currentScreen = Screen.Settings
                                             }
                                         )
                                     }
@@ -159,42 +252,27 @@ fun App() {
                             }
                         }
                     }
-                    is Screen.ActiveWorkout -> {
-                        WorkoutScreen(
-                            station = screen.station,
-                            onFinishWorkout = { earnedWh, earnedPoints ->
-                                userStats = userStats.copy(
-                                    points = userStats.points + earnedPoints,
-                                    totalEnergyWh = userStats.totalEnergyWh + earnedWh,
-                                    co2SavedKg = userStats.co2SavedKg + (earnedWh * 0.0007)
-                                )
-                                // Update challenge progress
-                                challenges = challenges.map { challenge ->
-                                    if (!challenge.isCompleted) {
-                                        val newProgress = (challenge.currentProgress + (earnedWh / 200.0).toFloat()).coerceAtMost(1.0f)
-                                        challenge.copy(
-                                            currentProgress = newProgress,
-                                            isCompleted = newProgress >= 1.0f
-                                        )
-                                    } else challenge
-                                }
-                                currentScreen = Screen.Main
-                            },
-                            onCancel = {
-                                currentScreen = Screen.Main
-                            }
-                        )
-                    }
                 }
             }
 
-            // QR Scanner Dialog
+            // QR Scanner Modal
             if (showQrScannerModal) {
                 QrScannerModal(
                     onDismiss = { showQrScannerModal = false },
                     onStationDetected = { station ->
                         showQrScannerModal = false
                         currentScreen = Screen.ActiveWorkout(station)
+                    }
+                )
+            }
+
+            // Notifications Modal
+            if (showNotificationsModal) {
+                NotificationsModal(
+                    notifications = notifications,
+                    onDismiss = { showNotificationsModal = false },
+                    onMarkAllAsRead = {
+                        notifications = notifications.map { it.copy(isRead = true) }
                     }
                 )
             }
@@ -205,11 +283,18 @@ fun App() {
 @Composable
 fun DashboardScreen(
     stats: UserStats,
+    cityGoalProgress: Float,
+    unreadNotificationsCount: Int,
+    onOpenNotifications: () -> Unit,
+    onOpenSettings: () -> Unit,
     onOpenQrScanner: () -> Unit,
     onStartWorkout: (KineticStation) -> Unit,
-    onGoToMap: () -> Unit
+    onGoToMap: () -> Unit,
+    onGoToRewards: () -> Unit,
+    onContributeToCityGoal: () -> Unit
 ) {
     val scrollState = rememberScrollState()
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     Column(
         modifier = Modifier
@@ -219,7 +304,7 @@ fun DashboardScreen(
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        // Nagłówek
+        // Górny pasek nawigacyjny
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -233,37 +318,102 @@ fun DashboardScreen(
                     Icon(
                         imageVector = Icons.Default.Bolt,
                         contentDescription = null,
-                        tint = ElectricVoltGreen,
+                        tint = primaryColor,
                         modifier = Modifier.size(20.dp)
                     )
                     Text(
                         text = "VOLTUP ŁÓDŹ",
                         style = MaterialTheme.typography.labelLarge,
-                        color = ElectricVoltGreen,
+                        color = primaryColor,
                         letterSpacing = 2.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
                 Text(
-                    text = "Cześć, Łodzianinie!",
+                    text = "Cześć, ${stats.userName.split(" ").firstOrNull() ?: "Łodzianinie"}!",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.onBackground
                 )
             }
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = "#${stats.cityContributionRank}",
-                    color = EnergyYellow,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
+                // Notifications icon
+                BadgedBox(
+                    badge = {
+                        if (unreadNotificationsCount > 0) {
+                            Badge(containerColor = EnergyYellow, contentColor = Color.Black) {
+                                Text("$unreadNotificationsCount", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                ) {
+                    IconButton(
+                        onClick = onOpenNotifications,
+                        colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Icon(imageVector = Icons.Default.Notifications, contentDescription = "Powiadomienia")
+                    }
+                }
+
+                // Settings icon
+                IconButton(
+                    onClick = onOpenSettings,
+                    colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Icon(imageVector = Icons.Default.Settings, contentDescription = "Ustawienia")
+                }
+            }
+        }
+
+        // Real-Time City Grid Energy Pulse Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(primaryColor)
                 )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "SIEĆ MIEJSKA ŁODZI DZISIAJ",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "28.4 kWh wygenerowane przez 86 mieszkańców",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = primaryColor.copy(alpha = 0.15f)
+                ) {
+                    Text(
+                        text = "ONLINE ⚡",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        color = primaryColor,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 10.sp
+                    )
+                }
             }
         }
 
@@ -281,7 +431,7 @@ fun DashboardScreen(
                     .background(
                         Brush.radialGradient(
                             colors = listOf(
-                                ElectricVoltGreen.copy(alpha = 0.15f),
+                                primaryColor.copy(alpha = 0.15f),
                                 Color.Transparent
                             ),
                             radius = 600f
@@ -318,7 +468,7 @@ fun DashboardScreen(
                                     text = "${stats.points}",
                                     fontSize = 38.sp,
                                     fontWeight = FontWeight.Black,
-                                    color = ElectricVoltGreen
+                                    color = primaryColor
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
@@ -331,17 +481,22 @@ fun DashboardScreen(
                             }
                         }
 
-                        Surface(
+                        Button(
+                            onClick = onGoToRewards,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = EnergyYellow,
+                                contentColor = Color.Black
+                            ),
                             shape = RoundedCornerShape(12.dp),
-                            color = EnergyYellow.copy(alpha = 0.15f)
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                         ) {
-                            Text(
-                                text = "Zniżki MPK",
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                color = EnergyYellow,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(imageVector = Icons.Default.ConfirmationNumber, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Text("BONY MPK", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                            }
                         }
                     }
 
@@ -379,7 +534,7 @@ fun DashboardScreen(
                 .fillMaxWidth()
                 .height(64.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = ElectricVoltGreen,
+                containerColor = primaryColor,
                 contentColor = Color.Black
             ),
             shape = RoundedCornerShape(18.dp)
@@ -434,8 +589,8 @@ fun DashboardScreen(
                         )
                     }
                     Text(
-                        text = "78%",
-                        color = ElectricVoltGreen,
+                        text = "${(cityGoalProgress * 100).toInt()}%",
+                        color = primaryColor,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -445,19 +600,79 @@ fun DashboardScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 LinearProgressIndicator(
-                    progress = { 0.78f },
+                    progress = { cityGoalProgress },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(8.dp)
                         .clip(RoundedCornerShape(4.dp)),
-                    color = ElectricVoltGreen,
+                    color = primaryColor,
                     trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
-                Text(
-                    text = "3 900 kWh / 5 000 kWh",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${((cityGoalProgress * 5000)).toInt()} kWh / 5 000 kWh",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    TextButton(
+                        onClick = onContributeToCityGoal,
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.ElectricBolt, contentDescription = null, tint = primaryColor, modifier = Modifier.size(14.dp))
+                            Text("Wesprzyj cel (+25 pkt)", fontSize = 11.sp, color = primaryColor, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Ostatnia sesja treningowa podgląd
+        if (stats.recentWorkouts.isNotEmpty()) {
+            val lastWorkout = stats.recentWorkouts.first()
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                shape = RoundedCornerShape(18.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(primaryColor.copy(alpha = 0.2f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(imageVector = Icons.Default.History, contentDescription = null, tint = primaryColor)
+                        }
+                        Column {
+                            Text("Ostatni Trening", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(lastWorkout.stationName, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        }
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("+${lastWorkout.earnedPoints} pkt", fontWeight = FontWeight.Black, color = EnergyYellow)
+                        Text("${lastWorkout.generatedWh.formatOneDecimal()} Wh", style = MaterialTheme.typography.labelSmall, color = primaryColor)
+                    }
+                }
             }
         }
 
@@ -476,7 +691,7 @@ fun DashboardScreen(
             TextButton(onClick = onGoToMap) {
                 Text(
                     text = "Zobacz mapę ➔",
-                    color = ElectricVoltGreen,
+                    color = primaryColor,
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp
                 )
@@ -498,7 +713,7 @@ fun StatItem(label: String, value: String, icon: ImageVector) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = ElectricVoltGreen,
+            tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(20.dp)
         )
         Spacer(modifier = Modifier.height(2.dp))
@@ -541,7 +756,7 @@ fun StationPreviewItem(
                 Icon(
                     imageVector = station.type.icon,
                     contentDescription = null,
-                    tint = ElectricVoltGreen,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
                 )
                 Column {
@@ -559,7 +774,7 @@ fun StationPreviewItem(
             }
             Text(
                 text = "ĆWICZ ➔",
-                color = ElectricVoltGreen,
+                color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold,
                 fontSize = 12.sp
             )
@@ -568,10 +783,84 @@ fun StationPreviewItem(
 }
 
 @Composable
+fun NotificationsModal(
+    notifications: List<NotificationItem>,
+    onDismiss: () -> Unit,
+    onMarkAllAsRead: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text("Powiadomienia", fontWeight = FontWeight.Bold)
+                }
+                TextButton(onClick = onMarkAllAsRead) {
+                    Text("Odczytaj", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                notifications.forEach { item ->
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = if (item.isRead) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = null,
+                                tint = if (item.isRead) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(item.title, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text(item.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(item.timeAgo, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss) {
+                Text("Zamknij")
+            }
+        }
+    )
+}
+
+@Composable
 fun QrScannerModal(
     onDismiss: () -> Unit,
     onStationDetected: (KineticStation) -> Unit
 ) {
+    var manualCodeInput by remember { mutableStateOf("") }
+    var isFlashlightOn by remember { mutableStateOf(false) }
+
     val infiniteTransition = rememberInfiniteTransition()
     val scannerLineOffset by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -581,6 +870,8 @@ fun QrScannerModal(
             repeatMode = RepeatMode.Reverse
         )
     )
+
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -592,51 +883,60 @@ fun QrScannerModal(
         },
         title = {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.QrCodeScanner,
-                    contentDescription = null,
-                    tint = ElectricVoltGreen
-                )
-                Text("Skaner QR Urządzeń", fontWeight = FontWeight.Bold)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.QrCodeScanner,
+                        contentDescription = null,
+                        tint = primaryColor
+                    )
+                    Text("Skaner QR Stacji", fontWeight = FontWeight.Bold)
+                }
+
+                IconButton(onClick = { isFlashlightOn = !isFlashlightOn }) {
+                    Icon(
+                        imageVector = if (isFlashlightOn) Icons.Default.FlashOn else Icons.Default.FlashOff,
+                        contentDescription = "Latarka",
+                        tint = if (isFlashlightOn) EnergyYellow else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         },
         text = {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 // Kamera Viewfinder z animowanym celownikiem laserowym
                 Box(
                     modifier = Modifier
-                        .size(220.dp)
+                        .size(200.dp)
                         .clip(RoundedCornerShape(20.dp))
-                        .background(Color.Black)
+                        .background(if (isFlashlightOn) Color(0xFF333333) else Color.Black)
                         .padding(16.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Canvas(modifier = Modifier.fillMaxSize()) {
                         val stroke = 3.dp.toPx()
                         val cornerLen = 24.dp.toPx()
+                        val color = primaryColor
 
-                        // Celownik narozny
-                        val color = ElectricVoltGreen
-
-                        // Top Left
+                        // Celownik narożny
                         drawLine(color, Offset(0f, 0f), Offset(cornerLen, 0f), stroke)
                         drawLine(color, Offset(0f, 0f), Offset(0f, cornerLen), stroke)
 
-                        // Top Right
                         drawLine(color, Offset(size.width, 0f), Offset(size.width - cornerLen, 0f), stroke)
                         drawLine(color, Offset(size.width, 0f), Offset(size.width, cornerLen), stroke)
 
-                        // Bottom Left
                         drawLine(color, Offset(0f, size.height), Offset(cornerLen, size.height), stroke)
                         drawLine(color, Offset(0f, size.height), Offset(0f, size.height - cornerLen), stroke)
 
-                        // Bottom Right
                         drawLine(color, Offset(size.width, size.height), Offset(size.width - cornerLen, size.height), stroke)
                         drawLine(color, Offset(size.width, size.height), Offset(size.width, size.height - cornerLen), stroke)
 
@@ -657,16 +957,39 @@ fun QrScannerModal(
                         Icon(
                             imageVector = Icons.Default.CameraAlt,
                             contentDescription = null,
-                            tint = ElectricVoltGreen.copy(alpha = 0.6f),
+                            tint = primaryColor.copy(alpha = 0.7f),
                             modifier = Modifier.size(36.dp)
                         )
                         Text(
-                            text = "Nakieruj aparat na kod QR",
+                            text = if (isFlashlightOn) "Latarka aktywna" else "Nakieruj na kod QR stacji",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.7f)
+                            color = Color.White.copy(alpha = 0.8f)
                         )
                     }
                 }
+
+                // Ręczny kod QR input
+                OutlinedTextField(
+                    value = manualCodeInput,
+                    onValueChange = { manualCodeInput = it },
+                    placeholder = { Text("Wpisz kod ręcznie, np. QR-PONT-01", fontSize = 12.sp) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
+                    trailingIcon = {
+                        if (manualCodeInput.isNotBlank()) {
+                            IconButton(onClick = {
+                                val found = MockData.sampleStations.find {
+                                    it.qrCodeId.equals(manualCodeInput.trim(), ignoreCase = true) ||
+                                            it.id.equals(manualCodeInput.trim(), ignoreCase = true)
+                                } ?: MockData.sampleStations.first()
+                                onStationDetected(found)
+                            }) {
+                                Icon(imageVector = Icons.Default.ArrowForward, contentDescription = null, tint = primaryColor)
+                            }
+                        }
+                    }
+                )
 
                 Text(
                     text = "LUB WYBIERZ STACJĘ TESTOWĄ:",
@@ -676,7 +999,7 @@ fun QrScannerModal(
                 )
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MockData.sampleStations.forEach { station ->
+                    MockData.sampleStations.take(3).forEach { station ->
                         OutlinedButton(
                             onClick = { onStationDetected(station) },
                             modifier = Modifier.fillMaxWidth(),
@@ -694,7 +1017,7 @@ fun QrScannerModal(
                                     Icon(
                                         imageVector = station.type.icon,
                                         contentDescription = null,
-                                        tint = ElectricVoltGreen,
+                                        tint = primaryColor,
                                         modifier = Modifier.size(18.dp)
                                     )
                                     Text(station.name, fontWeight = FontWeight.Bold, fontSize = 13.sp)
@@ -707,288 +1030,6 @@ fun QrScannerModal(
             }
         }
     )
-}
-
-@Composable
-fun WorkoutScreen(
-    station: KineticStation,
-    onFinishWorkout: (earnedWh: Double, earnedPoints: Int) -> Unit,
-    onCancel: () -> Unit
-) {
-    var secondsElapsed by remember { mutableStateOf(0) }
-    var resistanceLevel by remember { mutableStateOf(5) } // Opór 1 - 10
-    var isPaused by remember { mutableStateOf(false) }
-    var currentWatts by remember { mutableStateOf(65) }
-    var totalGeneratedWh by remember { mutableStateOf(0.0) }
-
-    LaunchedEffect(isPaused, resistanceLevel) {
-        while (!isPaused) {
-            delay(1.seconds)
-            secondsElapsed++
-            // Waty zależą od oporu!
-            val baseWatts = resistanceLevel * 14
-            currentWatts = (baseWatts - 8..baseWatts + 12).random().coerceAtLeast(10)
-            val whPerSecond = currentWatts / 3600.0
-            totalGeneratedWh += whPerSecond
-        }
-    }
-
-    val earnedPoints = (totalGeneratedWh * 10).roundToInt()
-
-    val infiniteTransition = rememberInfiniteTransition()
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 0.95f,
-        targetValue = 1.05f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(800, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        )
-    )
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .padding(20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
-        // Górny status
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = ElectricVoltGreen.copy(alpha = 0.2f),
-                border = androidx.compose.foundation.BorderStroke(1.dp, ElectricVoltGreen)
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.FiberManualRecord,
-                        contentDescription = null,
-                        tint = if (isPaused) EnergyYellow else ElectricVoltGreen,
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Text(
-                        text = if (isPaused) "WSTRZYMANO: ${station.name.uppercase()}" else "SESJA AKTYWNA: ${station.name.uppercase()}",
-                        color = ElectricVoltGreen,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp
-                    )
-                }
-            }
-            Text(
-                text = station.location,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        // Wskaźnik zegarowy (Canvas)
-        Box(
-            modifier = Modifier.size(240.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val strokeWidth = 14.dp.toPx()
-                val radius = (size.minDimension - strokeWidth) / 2
-                val center = Offset(size.width / 2, size.height / 2)
-
-                drawCircle(
-                    color = Color(0xFF1E2D35),
-                    radius = radius,
-                    center = center,
-                    style = Stroke(width = strokeWidth)
-                )
-
-                val sweepAngle = ((currentWatts.toFloat() / 150f) * 280f).coerceIn(10f, 280f)
-                drawArc(
-                    brush = Brush.sweepGradient(
-                        colors = listOf(ElectricVoltGreen, EnergyYellow, ElectricVoltGreen)
-                    ),
-                    startAngle = 130f,
-                    sweepAngle = if (isPaused) 10f else sweepAngle,
-                    useCenter = false,
-                    topLeft = Offset(center.x - radius, center.y - radius),
-                    size = Size(radius * 2, radius * 2),
-                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
-                )
-            }
-
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = if (isPaused) "PAUZA" else "$currentWatts",
-                    fontSize = if (isPaused) 32.sp else (52 * pulseScale).sp,
-                    fontWeight = FontWeight.Black,
-                    color = ElectricVoltGreen
-                )
-                Text(
-                    text = "MOC GENEROWANA (W)",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        // Kontrola oporu / Poziomu trudności
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Speed,
-                        contentDescription = null,
-                        tint = EnergyYellow,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Text(
-                        text = "Opór Urządzenia: Lvl $resistanceLevel",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp
-                    )
-                }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    IconButton(
-                        onClick = { if (resistanceLevel > 1) resistanceLevel-- },
-                        colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                    ) {
-                        Icon(imageVector = Icons.Default.Remove, contentDescription = "Zmniejsz opór")
-                    }
-
-                    IconButton(
-                        onClick = { if (resistanceLevel < 10) resistanceLevel++ },
-                        colors = IconButtonDefaults.iconButtonColors(containerColor = ElectricVoltGreen, contentColor = Color.Black)
-                    ) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = "Zwiększ opór")
-                    }
-                }
-            }
-        }
-
-        // Statystyki
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(20.dp))
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceAround
-        ) {
-            WorkoutStat(
-                label = "Czas trwania",
-                value = secondsElapsed.formatSeconds(),
-                icon = Icons.Default.Timer
-            )
-            WorkoutStat(
-                label = "Energia",
-                value = "${totalGeneratedWh.formatOneDecimal()} Wh",
-                icon = Icons.Default.FlashOn
-            )
-            WorkoutStat(
-                label = "VoltPoints",
-                value = "+$earnedPoints",
-                icon = Icons.Default.Stars
-            )
-        }
-
-        // Przyciski akcji
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                OutlinedButton(
-                    onClick = { isPaused = !isPaused },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Icon(
-                        imageVector = if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
-                        contentDescription = null
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(text = if (isPaused) "WZNÓW" else "PAUZA", fontWeight = FontWeight.Bold)
-                }
-
-                Button(
-                    onClick = {
-                        onFinishWorkout(totalGeneratedWh, earnedPoints)
-                    },
-                    modifier = Modifier.weight(2f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = ElectricVoltGreen,
-                        contentColor = Color.Black
-                    ),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Text(
-                        text = "ZAKOŃCZ I ODBIERZ",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp
-                    )
-                }
-            }
-
-            TextButton(
-                onClick = onCancel,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "Anuluj sesję",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun WorkoutStat(label: String, value: String, icon: ImageVector) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = ElectricVoltGreen,
-            modifier = Modifier.size(18.dp)
-        )
-        Text(
-            text = value,
-            fontWeight = FontWeight.ExtraBold,
-            fontSize = 18.sp,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
 }
 
 fun Int.formatSeconds(): String {
