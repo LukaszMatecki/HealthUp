@@ -23,8 +23,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -33,7 +36,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 
-// Niestandardowy kształt kuponu z zaokrąglonymi wycięciami (scallops)
+// Niestandardowy kształt kuponu z zaokrąglonymi wycięciami
 class TicketShape(
     private val cornerRadius: Float = 40f,
     private val cutoutRadius: Float = 24f,
@@ -46,35 +49,22 @@ class TicketShape(
             val x = size.width * splitRatio
 
             moveTo(r, 0f)
-            // Górna krawędź do wycięcia
             lineTo(x - cutout, 0f)
-            // Górne wycięcie
             arcTo(Rect(x - cutout, -cutout, x + cutout, cutout), 180f, -180f, false)
-            // Górna krawędź po wycięciu
             lineTo(size.width - r, 0f)
-            // Prawy górny róg
             arcTo(Rect(size.width - 2 * r, 0f, size.width, 2 * r), 270f, 90f, false)
 
-            // Prawa krawędź z opcjonalnym wycięciem (jak na referencji)
             val rightCutout = cutout * 0.8f
             lineTo(size.width, (size.height / 2f) - rightCutout)
             arcTo(Rect(size.width - rightCutout, (size.height / 2f) - rightCutout, size.width + rightCutout, (size.height / 2f) + rightCutout), 270f, -180f, false)
 
             lineTo(size.width, size.height - r)
-            // Prawy dolny róg
             arcTo(Rect(size.width - 2 * r, size.height - 2 * r, size.width, size.height), 0f, 90f, false)
-
-            // Dolna krawędź do wycięcia
             lineTo(x + cutout, size.height)
-            // Dolne wycięcie
             arcTo(Rect(x - cutout, size.height - cutout, x + cutout, size.height + cutout), 0f, -180f, false)
-            // Dolna krawędź do końca
             lineTo(r, size.height)
-            // Lewy dolny róg
             arcTo(Rect(0f, size.height - 2 * r, 2 * r, size.height), 90f, 90f, false)
-            // Lewa krawędź
             lineTo(0f, r)
-            // Lewy górny róg
             arcTo(Rect(0f, 0f, 2 * r, 2 * r), 180f, 90f, false)
             close()
         }
@@ -92,6 +82,7 @@ fun RewardsScreen(
     var activeSubTab by remember { mutableStateOf(0) }
     var selectedCategory by remember { mutableStateOf(RewardCategory.ALL) }
     var selectedRewardDetail by remember { mutableStateOf<Reward?>(null) }
+    var isViewingOwnedReward by remember { mutableStateOf(false) }
 
     val filteredRewards = remember(selectedCategory) {
         MockData.sampleRewards.filter { reward ->
@@ -111,6 +102,7 @@ fun RewardsScreen(
             RewardDetailScreen(
                 reward = detailReward,
                 currentPoints = currentPoints,
+                isOwned = isViewingOwnedReward,
                 onRedeem = {
                     onRedeemReward(detailReward)
                     selectedRewardDetail = null
@@ -135,7 +127,12 @@ fun RewardsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Nagrody",
+                        text = buildAnnotatedString {
+                            append("Nagrody ")
+                            withStyle(SpanStyle(color = primaryColor, fontWeight = FontWeight.Black)) {
+                                append("VoltUp")
+                            }
+                        },
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
@@ -206,11 +203,10 @@ fun RewardsScreen(
                 }
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-
                 Spacer(modifier = Modifier.height(20.dp))
 
                 if (activeSubTab == 0) {
-                    // Filtry
+                    // Zakładka: Katalog
                     LazyRow(
                         contentPadding = PaddingValues(horizontal = 24.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -233,7 +229,6 @@ fun RewardsScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Lista Nagród (Przestrzenne kupony)
                     LazyColumn(
                         contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -244,19 +239,21 @@ fun RewardsScreen(
                             CouponCard(
                                 title = reward.title,
                                 partner = reward.partner,
-                                subtitle = "Ważne: ${reward.validityMinutes} min",
+                                subtitle = "",
                                 mainValue = "${reward.costPoints}",
                                 valueLabel = "PKT",
                                 isAffordableOrActive = canAfford,
-                                actionText = "Wybierz",
                                 icon = reward.icon,
-                                onClick = { selectedRewardDetail = reward }
+                                onClick = {
+                                    selectedRewardDetail = reward
+                                    isViewingOwnedReward = false
+                                }
                             )
                         }
                         item { Spacer(modifier = Modifier.height(100.dp)) }
                     }
                 } else {
-                    // Zakładka Moje Kody
+                    // Zakładka: Moje Kody
                     if (redeemedRewards.isEmpty()) {
                         Box(modifier = Modifier.fillMaxSize().padding(48.dp), contentAlignment = Alignment.Center) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -288,21 +285,24 @@ fun RewardsScreen(
                                 CouponCard(
                                     title = item.reward.title,
                                     partner = item.reward.partner,
-                                    subtitle = when {
-                                        isExpired -> "Wygasły"
-                                        item.isActivated -> "KOD: ${item.discountCode}"
-                                        else -> "Oczekuje na aktywację"
-                                    },
+                                    subtitle = if (isExpired) "Wygasły" else if (item.isActivated) "KOD: ${item.discountCode}" else "Kliknij na bilet by aktywować",
                                     mainValue = when {
                                         isExpired -> "0:00"
                                         item.isActivated -> "${remainingSeconds / 60}:${(remainingSeconds % 60).toString().padStart(2, '0')}"
-                                        else -> "GOTOWY"
+                                        else -> "AKTYWUJ"
                                     },
                                     valueLabel = if (item.isActivated && !isExpired) "POZOSTAŁO" else "",
                                     isAffordableOrActive = !isExpired,
-                                    actionText = if (item.isActivated) "Szczegóły" else "Aktywuj",
                                     icon = if (item.isActivated && !isExpired) Icons.Default.QrCode else item.reward.icon,
-                                    onClick = { if (!item.isActivated) onActivateReward(item) }
+                                    onClick = {
+                                        if (!item.isActivated) {
+                                            onActivateReward(item)
+                                        } else {
+                                            // Gdy aktywny - pokazujemy szczegóły
+                                            selectedRewardDetail = item.reward
+                                            isViewingOwnedReward = true
+                                        }
+                                    }
                                 )
                             }
                             item { Spacer(modifier = Modifier.height(100.dp)) }
@@ -314,7 +314,7 @@ fun RewardsScreen(
     }
 }
 
-// Główny, w pełni odwzorowany komponent Kuponu (Coupon Design)
+// Główny komponent Kuponu (Odświeżony - Pastelowy i Czysty)
 @Composable
 fun CouponCard(
     title: String,
@@ -323,19 +323,22 @@ fun CouponCard(
     mainValue: String,
     valueLabel: String,
     isAffordableOrActive: Boolean,
-    actionText: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     onClick: () -> Unit
 ) {
-    val gradientColor1 = if (isAffordableOrActive) Color(0xFF00C853) else Color(0xFF9E9E9E)
-    val gradientColor2 = if (isAffordableOrActive) Color(0xFF009624) else Color(0xFF616161)
+    // Pastelowe, jasne gradienty i ciemny tekst
+    val gradientColor1 = if (isAffordableOrActive) Color(0xFFE8F5E9) else Color(0xFFF5F5F5) // Pastelowa zieleń / Jasny szary
+    val gradientColor2 = if (isAffordableOrActive) Color(0xFFC8E6C9) else Color(0xFFE0E0E0) // Ciemniejsza pastelowa zieleń / Szary
 
-    val splitRatio = 0.68f // Proporcja podziału na lewo i prawo
+    val textColor = Color(0xFF1A1D20) // Ciemny, elegancki kolor tekstu
+    val textLightColor = Color(0xFF4A4D50) // Szarawy kolor dla mniejszych tekstów
+
+    val splitRatio = 0.7f // Podział 70% lewo / 30% prawo
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(150.dp) // Zwiększona wysokość, dodająca "oddechu"
+            .height(140.dp) // Zwiększona wysokość, by tekst swobodnie się mieścił
             .clip(TicketShape(splitRatio = splitRatio))
             .background(Brush.linearGradient(listOf(gradientColor1, gradientColor2)))
             .clickable(enabled = isAffordableOrActive, onClick = onClick)
@@ -347,48 +350,53 @@ fun CouponCard(
                     .fillMaxHeight()
                     .fillMaxWidth(splitRatio)
                     .padding(start = 24.dp, top = 20.dp, bottom = 20.dp, end = 16.dp),
-                verticalArrangement = Arrangement.SpaceBetween
+                verticalArrangement = Arrangement.Center
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(32.dp)
                             .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.2f)),
+                            .background(Color.White.copy(alpha = 0.5f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                        Icon(icon, contentDescription = null, tint = textColor, modifier = Modifier.size(16.dp))
                     }
                     Text(
                         text = partner.uppercase(),
-                        color = Color.White.copy(alpha = 0.9f),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
+                        color = textLightColor,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
                         letterSpacing = 1.sp
                     )
                 }
 
+                Spacer(modifier = Modifier.height(10.dp))
+
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         text = title,
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        maxLines = 1
+                        color = textColor,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold, // Mniejsza grubość
+                        maxLines = 2
                     )
-                    Text(
-                        text = subtitle,
-                        color = Color.White.copy(alpha = 0.8f),
-                        fontSize = 13.sp
-                    )
+                    if (subtitle.isNotEmpty()) {
+                        Text(
+                            text = subtitle,
+                            color = textLightColor,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
             }
 
-            // PIONOWA PRZERYWANA LINIA (Canvas oddzielający)
+            // PIONOWA PRZERYWANA LINIA
             Box(modifier = Modifier.fillMaxHeight().width(2.dp), contentAlignment = Alignment.Center) {
                 Canvas(modifier = Modifier.fillMaxHeight()) {
                     drawLine(
-                        color = Color.White.copy(alpha = 0.4f),
+                        color = Color.Black.copy(alpha = 0.15f),
                         start = Offset(0f, 16.dp.toPx()),
                         end = Offset(0f, size.height - 16.dp.toPx()),
                         pathEffect = PathEffect.dashPathEffect(floatArrayOf(15f, 15f), 0f),
@@ -397,54 +405,41 @@ fun CouponCard(
                 }
             }
 
-            // PRAWA STRONA (Wartość i Akcja)
+            // PRAWA STRONA (Główna wartość bez przycisku)
             Column(
                 modifier = Modifier
                     .fillMaxHeight()
                     .weight(1f)
-                    .padding(start = 16.dp, top = 24.dp, bottom = 24.dp, end = 20.dp),
-                verticalArrangement = Arrangement.SpaceBetween,
+                    .padding(start = 12.dp, top = 16.dp, bottom = 16.dp, end = 16.dp),
+                verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                if (mainValue.isNotEmpty()) {
                     Text(
                         text = mainValue,
-                        color = Color.White,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Black
+                        color = textColor,
+                        // Jeśli wyświetlamy słowo "AKTYWUJ", robimy to odrobinę mniejszą czcionką niż same cyfry punktów
+                        fontSize = if (mainValue.length > 5) 16.sp else 22.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        textAlign = TextAlign.Center
                     )
                     if (valueLabel.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = valueLabel,
-                            color = Color.White.copy(alpha = 0.8f),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
+                            color = textLightColor,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
-                }
-
-                Surface(
-                    shape = CircleShape,
-                    color = Color.White,
-                    modifier = Modifier.fillMaxWidth(0.9f)
-                ) {
-                    Text(
-                        text = actionText,
-                        modifier = Modifier.padding(vertical = 8.dp),
-                        textAlign = TextAlign.Center,
-                        color = gradientColor2,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
                 }
             }
         }
     }
 }
 
-// Reszta komponentów pomocniczych
 @Composable
-fun RewardDetailScreen(reward: Reward, currentPoints: Int, onRedeem: () -> Unit, onBack: () -> Unit) {
+fun RewardDetailScreen(reward: Reward, currentPoints: Int, isOwned: Boolean, onRedeem: () -> Unit, onBack: () -> Unit) {
     val canAfford = currentPoints >= reward.costPoints
     val primaryColor = MaterialTheme.colorScheme.primary
 
@@ -494,13 +489,17 @@ fun RewardDetailScreen(reward: Reward, currentPoints: Int, onRedeem: () -> Unit,
         Spacer(modifier = Modifier.weight(1f))
 
         Button(
-            onClick = onRedeem,
-            enabled = canAfford,
+            onClick = if (isOwned) onBack else onRedeem,
+            enabled = isOwned || canAfford,
             modifier = Modifier.fillMaxWidth().height(56.dp),
             colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = MaterialTheme.colorScheme.onPrimary, disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant, disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant),
             shape = CircleShape
         ) {
-            Text(if (canAfford) "Odbierz za ${reward.costPoints} pkt" else "Brakuje punktów", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text(
+                text = if (isOwned) "Zamknij szczegóły" else if (canAfford) "Odbierz za ${reward.costPoints} pkt" else "Brakuje punktów",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
         }
         Spacer(modifier = Modifier.height(20.dp))
     }
@@ -521,7 +520,7 @@ fun SleekRewardFilterChip(text: String, isSelected: Boolean, onClick: () -> Unit
 @Preview
 @Composable
 fun RewardsScreenPreview() {
-    VoltUpTheme(AppThemeMode.DARK) {
+    VoltUpTheme(AppThemeMode.LIGHT) {
         RewardsScreen(currentPoints = 1240, redeemedRewards = emptyList(), onRedeemReward = {})
     }
 }

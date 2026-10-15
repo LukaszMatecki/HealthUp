@@ -299,29 +299,36 @@ fun VoltUpBottomBar(
                 .offset(y = (-16).dp),
             contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .size(62.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .shadow(elevation = 4.dp, shape = CircleShape),
-                contentAlignment = Alignment.Center
+            Surface(
+                modifier = Modifier.size(62.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = 4.dp
             ) {
                 Box(
-                    modifier = Modifier
-                        .size(52.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary)
-                        .shadow(elevation = 8.dp, shape = CircleShape)
-                        .clickable(onClick = onQrClick),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.QrCodeScanner,
-                        contentDescription = "Skanuj QR",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(26.dp)
-                    )
+                    Surface(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clickable(onClick = onQrClick),
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary,
+                        shadowElevation = 4.dp
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.QrCodeScanner,
+                                contentDescription = "Skanuj QR",
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(26.dp)
+                            )
+                        }
+                    }
                 }
             }
         }

@@ -4,8 +4,8 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -22,18 +22,17 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlin.math.PI
 import kotlin.math.roundToInt
-import kotlin.math.sin
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.delay
 import androidx.compose.ui.tooling.preview.Preview
+
+
 
 @Composable
 fun WorkoutScreen(
@@ -46,10 +45,13 @@ fun WorkoutScreen(
     var isPaused by remember { mutableStateOf(false) }
     var currentWatts by remember { mutableStateOf(65) }
     var currentRpm by remember { mutableStateOf(60) }
+    var currentHeartRate by remember { mutableStateOf(85) }
     var totalGeneratedWh by remember { mutableStateOf(0.0) }
+
     var showCompletionModal by remember { mutableStateOf(false) }
     var showCancelConfirmModal by remember { mutableStateOf(false) }
 
+    val energyHistory = remember { mutableStateListOf<Float>(0f) }
     val scrollState = rememberScrollState()
 
     CommonBackHandler(enabled = true) {
@@ -61,51 +63,64 @@ fun WorkoutScreen(
             delay(1.seconds)
             secondsElapsed++
 
-            val baseWatts = resistanceLevel * 14
-            val randomDelta = (-4..6).random()
+            val baseWatts = resistanceLevel * 16
+            val randomDelta = (-5..8).random()
             currentWatts = (baseWatts + randomDelta).coerceAtLeast(10)
-            currentRpm = (52 + (resistanceLevel * 2) + (-2..3).random()).coerceIn(40, 95)
+            currentRpm = (50 + (resistanceLevel * 2) + (-3..4).random()).coerceIn(40, 100)
+
+            // Symulacja pulsu
+            val targetHr = 80 + (resistanceLevel * 6) + (currentRpm / 2)
+            currentHeartRate = (targetHr + (-2..2).random()).coerceIn(70, 185)
 
             val whPerSecond = currentWatts / 3600.0
             totalGeneratedWh += whPerSecond
+
+            energyHistory.add(totalGeneratedWh.toFloat())
+            if (energyHistory.size > 60) {
+                energyHistory.removeAt(0)
+            }
+        }
+    }
+
+    LaunchedEffect(isPaused) {
+        if (isPaused) {
+            currentWatts = 0
+            currentRpm = 0
+            while (isPaused) {
+                delay(1.seconds)
+                secondsElapsed++
+                currentHeartRate = (currentHeartRate - 1).coerceAtLeast(70) // Puls powoli spada na pauzie
+                energyHistory.add(totalGeneratedWh.toFloat())
+                if (energyHistory.size > 60) energyHistory.removeAt(0)
+            }
         }
     }
 
     val earnedPoints = (totalGeneratedWh * 1.0).roundToInt().coerceAtLeast(1)
     val co2Saved = totalGeneratedWh * 0.0007
     val caloriesBurned = (totalGeneratedWh * 0.7 + (secondsElapsed * 0.08)).roundToInt()
+    val distanceKm = (secondsElapsed * 0.0065) + (totalGeneratedWh * 0.012)
 
     val primaryColor = MaterialTheme.colorScheme.primary
     val surfaceVariantColor = MaterialTheme.colorScheme.surfaceVariant
     val warningColor = Color(0xFFF59E0B)
-    val caloriesColor = Color(0xFFFF6B6B)
+    val cancelRedColor = Color(0xFFEF4444)
+    val caloriesColor = Color(0xFFFF4757)
 
-    // Płynna wartość Watów dla animacji na wykresach
+    // Gradienty kółek statystyk
+    val energyGradient = listOf(Color(0xFFFFB75E), Color(0xFFED8F03))
+    val resistanceGradient = listOf(Color(0xFF38EF7D), Color(0xFF11998E))
+    val rpmGradient = listOf(Color(0xFF56CCF2), Color(0xFF2F80ED))
+
     val animatedWatts by animateIntAsState(
-        targetValue = if (isPaused) 0 else currentWatts,
+        targetValue = currentWatts,
         animationSpec = tween(800),
         label = "watts"
     )
-
-    // Znormalizowana wartość mocy (0f - 1f) dla fali i łuku
-    val powerRatio by animateFloatAsState(
-        targetValue = (animatedWatts.toFloat() / 150f).coerceIn(0f, 1f),
-        animationSpec = tween(1200),
-        label = "powerRatio"
-    )
-
-    val sweepAngle = if (isPaused) 10f else (powerRatio * 280f).coerceAtLeast(10f)
-
-    // Zdecydowanie wolniejsza animacja falowania
-    val infiniteTransition = rememberInfiniteTransition(label = "energyWave")
-    val wavePhase by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = (2 * PI).toFloat(),
-        animationSpec = infiniteRepeatable(
-            animation = tween(6000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "wavePhase"
+    val sweepAngle by animateFloatAsState(
+        targetValue = if (isPaused) 10f else ((animatedWatts.toFloat() / 150f) * 280f).coerceIn(10f, 280f),
+        animationSpec = tween(800),
+        label = "sweep"
     )
 
     Scaffold(
@@ -122,7 +137,7 @@ fun WorkoutScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Nagłówek
+            // Nagłówek Stacji
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -170,374 +185,376 @@ fun WorkoutScreen(
                 }
             }
 
-            // GŁÓWNY WYKRES MOCY
-            Box(
-                modifier = Modifier
-                    .size(280.dp)
-                    .padding(vertical = 10.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val strokeWidth = 14.dp.toPx()
-                    val radius = (size.minDimension - strokeWidth) / 2
-                    val center = Offset(size.width / 2, size.height / 2)
-                    val topLeftOffset = Offset(center.x - radius, center.y - radius)
-
-                    drawArc(
-                        color = surfaceVariantColor.copy(alpha = 0.5f),
-                        startAngle = 130f,
-                        sweepAngle = 280f,
-                        useCenter = false,
-                        topLeft = topLeftOffset,
-                        size = Size(radius * 2, radius * 2),
-                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
-                    )
-
-                    drawArc(
-                        color = if (isPaused) warningColor else primaryColor,
-                        startAngle = 130f,
-                        sweepAngle = sweepAngle,
-                        useCenter = false,
-                        topLeft = topLeftOffset,
-                        size = Size(radius * 2, radius * 2),
-                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
-                    )
-                }
-
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = if (isPaused) "PAUZA" else animatedWatts.toString(),
-                        fontSize = if (isPaused) 42.sp else 76.sp,
-                        fontWeight = FontWeight.Light,
-                        color = if (isPaused) warningColor else MaterialTheme.colorScheme.onBackground,
-                        letterSpacing = (-2).sp
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = if (isPaused) "TRENING WSTRZYMANY" else "WATY (MOC)",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 2.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    if (!isPaused) {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Surface(
-                            shape = CircleShape,
-                            color = primaryColor.copy(alpha = 0.1f)
-                        ) {
-                            Text(
-                                text = "$currentRpm RPM",
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = primaryColor
-                            )
-                        }
-                    }
-                }
-            }
-
-            // DASHBOARD STATYSTYK
-            Column(
+            // GŁÓWNY MIERNIK MOCY ORAZ PRZYCISKI AKCJI PO PRAWEJ STRONIE
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // WIERZ 1: Kalorie + Energia
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                // Główny zegar Mocy
+                Box(
+                    modifier = Modifier
+                        .size(230.dp)
+                        .padding(vertical = 6.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    // KALORIE KARTA
-                    Card(
-                        modifier = Modifier.weight(1f).aspectRatio(0.9f),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp).fillMaxSize(),
-                            verticalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Box(
-                                    modifier = Modifier.size(32.dp).clip(CircleShape).background(caloriesColor.copy(alpha = 0.15f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(Icons.Default.LocalFireDepartment, contentDescription = null, tint = caloriesColor, modifier = Modifier.size(18.dp))
-                                }
-                                Text("Kalorie", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val strokeWidth = 16.dp.toPx()
+                        val radius = (size.minDimension - strokeWidth) / 2f
+                        val center = Offset(size.width / 2, size.height / 2)
+                        val topLeftOffset = Offset(center.x - radius, center.y - radius)
 
-                            Column {
-                                Text(
-                                    text = "$caloriesBurned",
-                                    fontSize = 32.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text("kcal", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
+                        // Tło paska
+                        drawArc(
+                            color = surfaceVariantColor.copy(alpha = 0.4f),
+                            startAngle = 130f,
+                            sweepAngle = 280f,
+                            useCenter = false,
+                            topLeft = topLeftOffset,
+                            size = Size(radius * 2, radius * 2),
+                            style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                        )
 
-                            // Gęsty wykres słupkowy (Wiele cienkich i kilka grubych kresek)
-                            Row(
-                                modifier = Modifier.fillMaxWidth().height(28.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.Bottom
-                            ) {
-                                val fractions = listOf(
-                                    0.3f, 0.15f, 0.2f, 0.1f, 0.45f, 0.2f, 0.25f, 0.15f,
-                                    0.6f, 0.3f, 0.25f, 0.2f, 0.75f, 0.35f, 0.4f, 0.25f,
-                                    0.85f, 0.4f, 0.5f, 0.3f, 0.95f, 0.45f, 0.55f, 0.35f, 1.0f
-                                )
-                                fractions.forEachIndexed { idx, frac ->
-                                    val isMain = idx % 4 == 0
-                                    Box(
-                                        modifier = Modifier
-                                            .width(if (isMain) 4.dp else 1.5.dp)
-                                            .fillMaxHeight(frac)
-                                            .clip(CircleShape)
-                                            .background(if (idx == fractions.lastIndex) caloriesColor else MaterialTheme.colorScheme.surfaceVariant)
-                                    )
-                                }
-                            }
-                        }
+                        // Aktywny pasek Mocy
+                        drawArc(
+                            color = if (isPaused) warningColor else primaryColor,
+                            startAngle = 130f,
+                            sweepAngle = sweepAngle,
+                            useCenter = false,
+                            topLeft = topLeftOffset,
+                            size = Size(radius * 2, radius * 2),
+                            style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                        )
                     }
 
-                    // ENERGIA KARTA (Zależna od Watów)
-                    Card(
-                        modifier = Modifier.weight(1f).aspectRatio(0.9f),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            Column(
-                                modifier = Modifier.padding(16.dp).fillMaxSize(),
-                                verticalArrangement = Arrangement.Top
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Box(
-                                        modifier = Modifier.size(32.dp).clip(CircleShape).background(warningColor.copy(alpha = 0.15f)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(Icons.Default.Bolt, contentDescription = null, tint = warningColor, modifier = Modifier.size(18.dp))
-                                    }
-                                    Text("Energia", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Text(
-                                    text = totalGeneratedWh.formatOneDecimal(),
-                                    fontSize = 32.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text("Wh", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-
-                            // Reagująca fala na dole
-                            Canvas(modifier = Modifier.fillMaxSize().align(Alignment.BottomCenter)) {
-                                val w = size.width
-                                val h = size.height
-
-                                // Amplituda i położenie Y zależą od powerRatio (Waty)
-                                val amplitude = h * 0.05f + (powerRatio * h * 0.1f)
-                                val midY = h * 0.85f - (powerRatio * h * 0.4f)
-                                val frequency = (2 * PI / w).toFloat() * 1.5f
-
-                                val wavePath = Path().apply {
-                                    moveTo(0f, midY + sin(wavePhase) * amplitude)
-                                    for (x in 0..w.toInt() step 5) {
-                                        val y = midY + sin(frequency * x + wavePhase) * amplitude
-                                        lineTo(x.toFloat(), y)
-                                    }
-                                }
-
-                                val fillPath = Path().apply {
-                                    addPath(wavePath)
-                                    lineTo(w, h)
-                                    lineTo(0f, h)
-                                    close()
-                                }
-
-                                drawPath(
-                                    path = fillPath,
-                                    brush = Brush.verticalGradient(
-                                        colors = listOf(warningColor.copy(alpha = 0.35f), Color.Transparent),
-                                        startY = midY - amplitude,
-                                        endY = h
-                                    )
-                                )
-                                drawPath(
-                                    path = wavePath,
-                                    color = warningColor,
-                                    style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // WIERZ 2: Czas i Punkty
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Card(
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text("Czas sesji", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(secondsElapsed.formatSeconds(), fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
-                        }
-                    }
-
-                    Card(
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text("VoltPoints", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text("+$earnedPoints", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = primaryColor)
-                        }
-                    }
-                }
-            }
-
-            // REGULACJA OPORU
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp).fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
                         Text(
-                            text = "Opór urządzenia",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            text = if (isPaused) "PAUZA" else animatedWatts.toString(),
+                            fontSize = if (isPaused) 36.sp else 64.sp,
+                            fontWeight = FontWeight.Light,
+                            color = if (isPaused) warningColor else MaterialTheme.colorScheme.onBackground,
+                            letterSpacing = (-2).sp,
+                            modifier = if (isPaused) Modifier.clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { isPaused = false } else Modifier
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "Poziom $resistanceLevel z 10",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium,
+                            text = if (isPaused) "KLIKNIJ BY WZNOWIĆ" else "WATY (MOC)",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 2.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                }
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                        IconButton(
-                            onClick = { if (resistanceLevel > 1) resistanceLevel-- },
-                            modifier = Modifier.size(44.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                        ) {
-                            Icon(Icons.Default.Remove, contentDescription = "Zmniejsz", modifier = Modifier.size(22.dp))
+                // Przyciski akcji (Bez tła)
+                Column(
+                    modifier = Modifier.padding(end = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // 1. Ikonka Pauza / Wznów
+                    Surface(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clickable { isPaused = !isPaused },
+                        shape = CircleShape,
+                        color = if (isPaused) warningColor.copy(alpha = 0.2f) else surfaceVariantColor.copy(alpha = 0.4f),
+                        border = BorderStroke(1.dp, if (isPaused) warningColor else surfaceVariantColor)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
+                                contentDescription = if (isPaused) "Wznów" else "Pauza",
+                                tint = if (isPaused) warningColor else MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(24.dp)
+                            )
                         }
-                        IconButton(
-                            onClick = { if (resistanceLevel < 10) resistanceLevel++ },
-                            modifier = Modifier.size(44.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = "Zwiększ", modifier = Modifier.size(22.dp))
+                    }
+
+                    // 2. Ikonka Zakończ sesję
+                    Surface(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clickable { showCompletionModal = true },
+                        shape = CircleShape,
+                        color = primaryColor,
+                        shadowElevation = 4.dp
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = "Zakończ sesję",
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
+
+                    // 3. Ikonka Anuluj
+                    Surface(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clickable { showCancelConfirmModal = true },
+                        shape = CircleShape,
+                        color = cancelRedColor.copy(alpha = 0.15f),
+                        border = BorderStroke(1.dp, cancelRedColor.copy(alpha = 0.5f))
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Stop,
+                                contentDescription = "Anuluj",
+                                tint = cancelRedColor,
+                                modifier = Modifier.size(24.dp)
+                            )
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // PRZYCISKI AKCJI (Usunięto wyspę, wrzucone natywnie do scrolla)
-            Column(
+            // Pigułki Kalorie i Czas (Mniejsze, z patternem)
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Pigułka Kcal
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .clip(CircleShape)
+                        .background(Brush.linearGradient(listOf(Color(0xFFFFE4E6), Color(0xFFFECDD3))))
+                ) {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        drawCircle(color = Color.White.copy(alpha = 0.4f), radius = 60f, center = Offset(size.width, 0f))
+                        drawCircle(color = Color.White.copy(alpha = 0.2f), radius = 40f, center = Offset(20f, size.height))
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(Icons.Default.LocalFireDepartment, contentDescription = null, tint = Color(0xFFE11D48), modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("$caloriesBurned Kcal", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF9F1239))
+                    }
+                }
+
+                // Pigułka Czasu
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .clip(CircleShape)
+                        .background(Brush.linearGradient(listOf(Color(0xFFE0E7FF), Color(0xFFC7D2FE))))
+                ) {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        drawCircle(color = Color.White.copy(alpha = 0.4f), radius = 60f, center = Offset(0f, 0f))
+                        drawCircle(color = Color.White.copy(alpha = 0.2f), radius = 50f, center = Offset(size.width - 20f, size.height))
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(Icons.Default.Schedule, contentDescription = null, tint = Color(0xFF4338CA), modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(secondsElapsed.formatSeconds(), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF312E81))
+                    }
+                }
+            }
+
+            // KARTA TŁA DLA 3 ZEGARÓW (Odsuniętych od siebie)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(32.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, surfaceVariantColor.copy(alpha = 0.4f))
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 20.dp, horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Surface(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .clickable { isPaused = !isPaused },
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant)
+                    // Zegar 1: Energia
+                    MiniRingGauge(
+                        progress = (totalGeneratedWh / 5.0).toFloat().coerceIn(0f, 1f),
+                        gradientColors = energyGradient,
+                        title = "Energia"
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(text = totalGeneratedWh.formatOneDecimal(), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
+                            Text(text = "Wh", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+
+                    // Zegar 2: Opór (z + i - w środku)
+                    MiniRingGauge(
+                        progress = resistanceLevel / 10f,
+                        gradientColors = resistanceGradient,
+                        title = "Opór"
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                            modifier = Modifier.fillMaxSize()
                         ) {
                             Icon(
-                                imageVector = if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.size(22.dp)
+                                Icons.Default.Add,
+                                contentDescription = "+",
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .clip(CircleShape)
+                                    .clickable { if (resistanceLevel < 10) resistanceLevel++ },
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = if (isPaused) "Wznów" else "Pauza",
-                                fontWeight = FontWeight.Bold,
+                                text = "$resistanceLevel",
+                                fontWeight = FontWeight.Black,
+                                fontSize = 22.sp,
                                 color = MaterialTheme.colorScheme.onSurface,
-                                fontSize = 16.sp
+                                modifier = Modifier.padding(vertical = 0.dp)
+                            )
+                            Icon(
+                                Icons.Default.Remove,
+                                contentDescription = "-",
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .clip(CircleShape)
+                                    .clickable { if (resistanceLevel > 1) resistanceLevel-- },
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
 
-                    Button(
-                        onClick = { showCompletionModal = true },
-                        modifier = Modifier
-                            .weight(1.3f)
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = primaryColor,
-                            contentColor = Color.White
-                        ),
-                        shape = RoundedCornerShape(16.dp)
+                    // Zegar 3: RPM
+                    MiniRingGauge(
+                        progress = currentRpm / 100f,
+                        gradientColors = rpmGradient,
+                        title = "Prędkość"
                     ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(text = currentRpm.toString(), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
+                            Text(text = "RPM", fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+
+            // Statystyki pod spodem: Pionowy VoltPoints + Dwa Poziome Prostokąty (Dystans, Tętno)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(160.dp), // Wymuszamy stałą wysokość by ładnie się zrównały
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Lewa: Pionowy VoltPoints (Znacznie większa czcionka)
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, surfaceVariantColor.copy(alpha = 0.5f))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .fillMaxSize(),
+                        verticalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(warningColor.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Stars, contentDescription = null, tint = warningColor, modifier = Modifier.size(22.dp))
+                            }
+                            Text(
+                                text = "+$earnedPoints",
+                                fontSize = 50.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = primaryColor,
+                                letterSpacing = (-1).sp
+                            )
+                        }
                         Text(
-                            text = "Zakończ sesję",
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 16.sp,
-                            letterSpacing = 0.5.sp
+                            text = "VoltPoints",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
 
-                // Całkowicie czerwony, mocny przycisk anulowania
-                Button(
-                    onClick = { showCancelConfirmModal = true },
+                // Prawa: Kolumna 2 poziomych kafelków (Dystans, Tętno)
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                        contentColor = Color.White
-                    ),
-                    shape = RoundedCornerShape(16.dp)
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text(
-                        text = "Anuluj trening bez zapisu",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.5.sp
-                    )
+                    // Dystans
+                    Card(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, surfaceVariantColor.copy(alpha = 0.5f))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp)
+                                .fillMaxSize(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(verticalArrangement = Arrangement.Center) {
+                                Text("Dystans", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("${distanceKm.formatOneDecimal()} km", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
+                            }
+                            Icon(Icons.Default.DirectionsBike, contentDescription = null, tint = rpmGradient[0], modifier = Modifier.size(24.dp))
+                        }
+                    }
+                    // Tętno
+                    Card(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, surfaceVariantColor.copy(alpha = 0.5f))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp)
+                                .fillMaxSize(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(verticalArrangement = Arrangement.Center) {
+                                Text("Tętno", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("$currentHeartRate BPM", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
+                            }
+                            Icon(Icons.Default.Favorite, contentDescription = null, tint = caloriesColor, modifier = Modifier.size(24.dp))
+                        }
+                    }
                 }
             }
         }
@@ -639,10 +656,47 @@ fun WorkoutScreen(
     }
 }
 
+// Ulepszony komponent pomocniczy dla zegarów z gradientami i dynamicznym środkiem
+@Composable
+fun MiniRingGauge(
+    progress: Float,
+    gradientColors: List<Color>,
+    title: String,
+    centerContent: @Composable () -> Unit
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(modifier = Modifier.size(80.dp), contentAlignment = Alignment.Center) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val strokeWidth = 7.dp.toPx()
+                // Szare tło (lekko barwione kolorem głównym)
+                drawArc(
+                    color = gradientColors.last().copy(alpha = 0.15f),
+                    startAngle = -90f,
+                    sweepAngle = 360f,
+                    useCenter = false,
+                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                )
+                // Wypełniony postęp z gradientem
+                drawArc(
+                    brush = Brush.linearGradient(colors = gradientColors),
+                    startAngle = -90f,
+                    sweepAngle = 360f * progress,
+                    useCenter = false,
+                    style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                )
+            }
+            // Zawartość wewnątrz pierścienia
+            centerContent()
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+        Text(text = title, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+    }
+}
+
 @Preview
 @Composable
 fun WorkoutScreenPreview() {
-    VoltUpTheme(AppThemeMode.DARK) {
+    VoltUpTheme(AppThemeMode.LIGHT) {
         WorkoutScreen(
             station = MockData.sampleStations.first(),
             onFinishWorkout = { _, _, _ -> },
