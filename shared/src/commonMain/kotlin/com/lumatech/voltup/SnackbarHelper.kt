@@ -3,8 +3,8 @@ package com.lumatech.voltup
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -14,10 +14,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 
 enum class SnackbarType {
@@ -30,7 +29,7 @@ enum class SnackbarType {
 data class SnackbarMessage(
     val id: Long,
     val text: String,
-    val type: SnackbarType
+    val type: SnackbarType,
 )
 
 object SnackbarHelper {
@@ -49,13 +48,13 @@ object SnackbarHelper {
 
 @Composable
 fun VoltUpSnackbarHost(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val currentMsg = SnackbarHelper.message.value
 
     LaunchedEffect(currentMsg?.id) {
         if (currentMsg != null) {
-            delay(3500)
+            delay(3500.milliseconds)
             if (SnackbarHelper.message.value?.id == currentMsg.id) {
                 SnackbarHelper.dismiss()
             }
@@ -66,8 +65,8 @@ fun VoltUpSnackbarHost(
         modifier = modifier
             .fillMaxWidth()
             .statusBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        contentAlignment = Alignment.TopCenter
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        contentAlignment = Alignment.TopCenter,
     ) {
         AnimatedVisibility(
             visible = currentMsg != null,
@@ -82,7 +81,7 @@ fun VoltUpSnackbarHost(
         ) {
             if (currentMsg != null) {
                 val accentColor = when (currentMsg.type) {
-                    SnackbarType.SUCCESS -> MaterialTheme.colorScheme.primary
+                    SnackbarType.SUCCESS -> ElectricVoltGreen
                     SnackbarType.INFO -> MaterialTheme.colorScheme.secondary
                     SnackbarType.WARNING -> EnergyYellow
                     SnackbarType.ERROR -> MaterialTheme.colorScheme.error
@@ -98,23 +97,30 @@ fun VoltUpSnackbarHost(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .shadow(elevation = 16.dp, shape = RoundedCornerShape(16.dp))
-                        .clip(RoundedCornerShape(16.dp)),
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    border = androidx.compose.foundation.BorderStroke(1.2.dp, accentColor.copy(alpha = 0.5f))
+                        .shadow(elevation = 12.dp, shape = RoundedCornerShape(18.dp)),
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.surface
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        // Kolorowy pasek akcentowy na krawędzi bez ramki
+                        Box(
+                            modifier = Modifier
+                                .width(4.dp)
+                                .height(28.dp)
+                                .clip(CircleShape)
+                                .background(accentColor)
+                        )
+
                         Box(
                             modifier = Modifier
                                 .size(32.dp)
-                                .clip(RoundedCornerShape(8.dp))
+                                .clip(RoundedCornerShape(10.dp))
                                 .background(accentColor.copy(alpha = 0.15f)),
                             contentAlignment = Alignment.Center
                         ) {
@@ -142,7 +148,7 @@ fun VoltUpSnackbarHost(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Zamknij",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(14.dp)
+                                modifier = Modifier.size(16.dp)
                             )
                         }
                     }

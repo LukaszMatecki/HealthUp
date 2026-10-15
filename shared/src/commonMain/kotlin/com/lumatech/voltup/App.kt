@@ -1,6 +1,7 @@
 package com.lumatech.voltup
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,7 +18,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -25,6 +28,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
@@ -84,7 +88,7 @@ fun App() {
                 modifier = Modifier.fillMaxSize(),
                 color = MaterialTheme.colorScheme.background
             ) {
-                AnimatedContent(targetState = currentScreen) { screen ->
+                AnimatedContent(targetState = currentScreen, label = "ScreenTransition") { screen ->
                     when (screen) {
                         is Screen.Settings -> {
                             SettingsScreen(
@@ -115,8 +119,6 @@ fun App() {
                         is Screen.ActiveWorkout -> {
                             WorkoutScreen(
                                 station = screen.station,
-                                targetWh = 100,
-                                soundEnabled = appSettings.soundEffectsEnabled,
                                 onFinishWorkout = { earnedWh, earnedPoints, workoutRecord ->
                                     userStats = userStats.copy(
                                         points = userStats.points + earnedPoints,
@@ -191,7 +193,7 @@ fun App() {
                                                         if (it.discountCode == target.discountCode) {
                                                             it.copy(
                                                                 isActivated = true,
-                                                                activatedTimestamp = System.currentTimeMillis()
+                                                                activatedTimestamp = 1L
                                                             )
                                                         } else it
                                                     }
@@ -244,23 +246,26 @@ fun VoltUpBottomBar(
     onTabSelected: (MainTab) -> Unit,
     onQrClick: () -> Unit
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.background,
-        shadowElevation = 0.dp
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding(),
+        contentAlignment = Alignment.BottomCenter
     ) {
-        Column {
-            HorizontalDivider(
-                thickness = 0.5.dp,
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
-            )
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(68.dp)
+                .shadow(elevation = 16.dp, shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)),
+            shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(top = 8.dp, bottom = 4.dp),
-                verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.SpaceEvenly
+                    .fillMaxSize()
+                    .padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceAround
             ) {
                 BottomNavItem(
                     tab = MainTab.HOME,
@@ -273,35 +278,7 @@ fun VoltUpBottomBar(
                     onClick = { onTabSelected(MainTab.MAP) }
                 )
 
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable(onClick = onQrClick)
-                        .padding(horizontal = 12.dp, vertical = 2.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.QrCodeScanner,
-                            contentDescription = "Skanuj",
-                            tint = Color.Black,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(3.dp))
-                    Text(
-                        text = "Skanuj",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
+                Spacer(modifier = Modifier.width(56.dp))
 
                 BottomNavItem(
                     tab = MainTab.REWARDS,
@@ -315,6 +292,39 @@ fun VoltUpBottomBar(
                 )
             }
         }
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .offset(y = (-16).dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(62.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .shadow(elevation = 4.dp, shape = CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary)
+                        .shadow(elevation = 8.dp, shape = CircleShape)
+                        .clickable(onClick = onQrClick),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.QrCodeScanner,
+                        contentDescription = "Skanuj QR",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -324,27 +334,28 @@ fun BottomNavItem(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
+    val activeColor = MaterialTheme.colorScheme.primary
+    val inactiveColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+
     Column(
         modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 2.dp),
+            .padding(horizontal = 14.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(
             imageVector = tab.icon,
             contentDescription = tab.label,
-            tint = if (isSelected) MaterialTheme.colorScheme.primary
-                   else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+            tint = if (isSelected) activeColor else inactiveColor,
             modifier = Modifier.size(22.dp)
         )
-        Spacer(modifier = Modifier.height(3.dp))
+        Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = tab.label,
-            fontSize = 10.sp,
-            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (isSelected) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
+            fontSize = 11.sp,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+            color = if (isSelected) activeColor else inactiveColor
         )
     }
 }
@@ -364,46 +375,55 @@ fun DashboardScreen(
             .fillMaxSize()
             .statusBarsPadding()
             .verticalScroll(scrollState)
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        // Minimalist Header: Just VOLTUP and settings icon
+        // Nowoczesny nagłówek z odpowiednią typografią
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "VOLTUP",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp,
-                color = MaterialTheme.colorScheme.onBackground
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "Łódź ",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "VoltUp",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Light,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
 
             IconButton(
                 onClick = onOpenSettings,
-                modifier = Modifier.size(38.dp),
-                colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                modifier = Modifier.size(40.dp),
+                colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             ) {
                 Icon(
                     imageVector = Icons.Default.Settings,
                     contentDescription = "Ustawienia",
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
 
-        // Portfel Punktów VoltPoints (Designerski, minimalistyczny układ)
+        // Karta Portfela (Clean UI)
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
         ) {
             Column(
-                modifier = Modifier.padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                modifier = Modifier.padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -412,47 +432,48 @@ fun DashboardScreen(
                 ) {
                     Column {
                         Text(
-                            text = "PORTFEL",
+                            text = "TWÓJ PORTFEL",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             letterSpacing = 1.sp
                         )
+                        Spacer(modifier = Modifier.height(4.dp))
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(
                                 text = "${stats.points}",
-                                fontSize = 36.sp,
-                                fontWeight = FontWeight.Bold,
+                                fontSize = 40.sp,
+                                fontWeight = FontWeight.ExtraBold,
                                 color = primaryColor
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "VoltPoints",
                                 fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium,
+                                fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(bottom = 6.dp)
+                                modifier = Modifier.padding(bottom = 8.dp)
                             )
                         }
                     }
 
+                    // Znacznie poprawiona widoczność miejsca w rankingu
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = EnergyYellow.copy(alpha = 0.15f)
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer
                     ) {
                         Text(
                             text = "Miejsce #${stats.cityContributionRank}",
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            color = EnergyYellow,
-                            fontSize = 11.sp,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
                 }
 
-                // Rozdzielone designerskie kafelki statystyk
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     DesignerMetricBox(
                         label = "Wygenerowano",
@@ -464,128 +485,155 @@ fun DashboardScreen(
                         value = "${stats.co2SavedKg.formatOneDecimal()} kg",
                         modifier = Modifier.weight(1f)
                     )
-                    DesignerMetricBox(
-                        label = "Latarnie",
-                        value = "${(stats.totalEnergyWh / 50.0).roundToInt()} h",
-                        modifier = Modifier.weight(1f)
-                    )
                 }
             }
         }
 
-        // WYKRES STATYSTYKI: SINUSOIDA, WIĘCEJ PRZESTRZENI, TYLKO "AKTYWNOŚĆ" I "+5%"
+        // Zmieniony wykres: Słupki + Sinusoida
         SinusoidActivityChartCard(
-            weeklyData = stats.weeklyEnergyWh,
+            weeklyData = listOf(80.0, 110.0, 95.0, 140.0, 180.0, 120.0, 115.0),
             primaryColor = primaryColor
         )
 
-        // Cel Społecznościowy (Uproszczony bez zbędnego tekstu)
+        // Cel Społecznościowy (Nowoczesny progress bar z odsunięciem)
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+            Column(modifier = Modifier.padding(24.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Cel: Park na Zdrowiu",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Column {
+                        Text(
+                            text = "CEL SPOŁECZNOŚCIOWY",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            letterSpacing = 1.sp
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Park na Zdrowiu",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                     Text(
                         text = "78%",
                         color = primaryColor,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 18.sp
                     )
                 }
-                LinearProgressIndicator(
-                    progress = { 0.78f },
+
+                Spacer(modifier = Modifier.height(24.dp)) // Odsunięcie paska postępu
+
+                // Własny, czysty i idealnie zaokrąglony pasek postępu
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(5.dp)
-                        .clip(RoundedCornerShape(3.dp)),
-                    color = primaryColor,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+                        .height(8.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.78f)
+                            .fillMaxHeight()
+                            .clip(CircleShape)
+                            .background(primaryColor)
+                    )
+                }
             }
         }
 
-        // Stacje w pobliżu (Uproszczone: tylko nazwa, odległość i skanuj kod)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        // Stacje w pobliżu (Sleek UI)
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
                 text = "W POBLIŻU",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                letterSpacing = 1.sp
+                letterSpacing = 1.sp,
+                modifier = Modifier.padding(top = 8.dp)
             )
-            TextButton(
-                onClick = onGoToMap,
-                contentPadding = PaddingValues(0.dp)
-            ) {
-                Text(
-                    text = "Mapa ➔",
-                    color = primaryColor,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp
-                )
-            }
-        }
 
-        MockData.sampleStations.take(2).forEach { station ->
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onScanStation),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-            ) {
-                Row(
+            MockData.sampleStations.take(2).forEach { station ->
+                Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .clip(RoundedCornerShape(20.dp))
+                        .clickable(onClick = onScanStation),
+                    color = MaterialTheme.colorScheme.surface,
+                    shape = RoundedCornerShape(20.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                 ) {
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(primaryColor.copy(alpha = 0.12f)),
-                            contentAlignment = Alignment.Center
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(imageVector = station.type.icon, contentDescription = null, tint = primaryColor, modifier = Modifier.size(18.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(primaryColor.copy(alpha = 0.1f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = station.type.icon,
+                                    contentDescription = null,
+                                    tint = primaryColor,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                            Column {
+                                Text(
+                                    text = station.name,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = station.distance,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
-                        Column {
-                            Text(station.name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                            Text(station.distance, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                        Surface(
+                            shape = CircleShape,
+                            color = primaryColor.copy(alpha = 0.1f)
+                        ) {
+                            Icon(
+                                Icons.Default.QrCodeScanner,
+                                contentDescription = "Skanuj QR",
+                                tint = primaryColor,
+                                modifier = Modifier
+                                    .padding(10.dp)
+                                    .size(20.dp)
+                            )
                         }
                     }
-
-                    Icon(Icons.Default.QrCodeScanner, contentDescription = "Skanuj QR", tint = primaryColor, modifier = Modifier.size(18.dp))
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(70.dp))
+        Spacer(modifier = Modifier.height(80.dp))
     }
 }
 
@@ -593,19 +641,20 @@ fun DashboardScreen(
 fun DesignerMetricBox(label: String, value: String, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
             horizontalAlignment = Alignment.Start
         ) {
             Text(
                 text = value,
                 fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
+                fontSize = 16.sp,
                 color = MaterialTheme.colorScheme.onSurface
             )
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
@@ -615,21 +664,25 @@ fun DesignerMetricBox(label: String, value: String, modifier: Modifier = Modifie
     }
 }
 
-// WYKRES: GŁADKA SINUSOIDA Z WIĘKSZĄ PRZESTRZENIĄ, TYLKO "AKTYWNOŚĆ" I PIGUŁKA "+5%"
 @Composable
 fun SinusoidActivityChartCard(
     weeklyData: List<Double>,
     primaryColor: Color
 ) {
+    val currentDayIndex = 4 // Index dla piątku, symulujący dzisiejszy dzień
+    val surfaceVariantColor = MaterialTheme.colorScheme.surfaceVariant
+    val surfaceColor = MaterialTheme.colorScheme.surface
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = surfaceColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, surfaceVariantColor.copy(alpha = 0.5f))
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier.padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -644,103 +697,133 @@ fun SinusoidActivityChartCard(
                     letterSpacing = 1.sp
                 )
 
-                // Minimalistyczna pigułka z "+5%"
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = primaryColor.copy(alpha = 0.15f)
                 ) {
                     Text(
                         text = "+5%",
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         color = primaryColor,
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
 
-            // Gładka krzywa Canvas z gradientowym wypełnieniem pod sinusoidą
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(110.dp)
-            ) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val maxVal = (weeklyData.maxOrNull() ?: 100.0).coerceAtLeast(80.0).toFloat()
-                    val points = weeklyData.mapIndexed { idx, v ->
-                        val x = (idx.toFloat() / (weeklyData.size - 1)) * size.width
-                        val y = size.height - (v.toFloat() / maxVal * (size.height - 20f)) - 10f
-                        Offset(x, y)
-                    }
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // Wykres z bloczkami i sinusoidą
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(130.dp)
+                ) {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val maxVal = (weeklyData.maxOrNull() ?: 100.0).coerceAtLeast(80.0).toFloat()
 
-                    if (points.size >= 2) {
-                        val path = Path()
-                        val fillPath = Path()
+                        val segmentWidth = size.width / weeklyData.size
+                        val barWidth = 14.dp.toPx()
 
-                        path.moveTo(points.first().x, points.first().y)
-                        fillPath.moveTo(points.first().x, size.height)
-                        fillPath.lineTo(points.first().x, points.first().y)
+                        // 1. Rysowanie bloczków
+                        weeklyData.forEachIndexed { idx, v ->
+                            val isToday = idx == currentDayIndex
+                            val barHeight = (v.toFloat() / maxVal * (size.height - 20f))
 
-                        for (i in 0 until points.size - 1) {
-                            val p0 = points[i]
-                            val p1 = points[i + 1]
-                            val controlPoint1 = Offset(p0.x + (p1.x - p0.x) / 2f, p0.y)
-                            val controlPoint2 = Offset(p0.x + (p1.x - p0.x) / 2f, p1.y)
+                            // Środek segmentu
+                            val centerX = (idx * segmentWidth) + (segmentWidth / 2f)
+                            val topLeftX = centerX - (barWidth / 2f)
+                            val topLeftY = size.height - barHeight
 
-                            path.cubicTo(controlPoint1.x, controlPoint1.y, controlPoint2.x, controlPoint2.y, p1.x, p1.y)
-                            fillPath.cubicTo(controlPoint1.x, controlPoint1.y, controlPoint2.x, controlPoint2.y, p1.x, p1.y)
+                            val barColor = if (isToday) primaryColor.copy(alpha = 0.3f) else surfaceVariantColor.copy(alpha = 0.4f)
+
+                            drawRoundRect(
+                                color = barColor,
+                                topLeft = Offset(topLeftX, topLeftY),
+                                size = Size(barWidth, barHeight),
+                                cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
+                            )
                         }
 
-                        fillPath.lineTo(points.last().x, size.height)
-                        fillPath.close()
+                        // 2. Rysowanie wygładzonej sinusoidy nad bloczkami
+                        val points = weeklyData.mapIndexed { idx, v ->
+                            val x = (idx * segmentWidth) + (segmentWidth / 2f)
+                            val y = size.height - (v.toFloat() / maxVal * (size.height - 20f)) - 10f
+                            Offset(x, y)
+                        }
 
-                        // Gradientowe wypełnienie pod krzywą
-                        drawPath(
-                            path = fillPath,
-                            brush = Brush.verticalGradient(
-                                colors = listOf(primaryColor.copy(alpha = 0.25f), Color.Transparent),
-                                startY = 0f,
-                                endY = size.height
+                        if (points.size >= 2) {
+                            val path = Path()
+                            val fillPath = Path()
+
+                            path.moveTo(points.first().x, points.first().y)
+                            fillPath.moveTo(points.first().x, size.height)
+                            fillPath.lineTo(points.first().x, points.first().y)
+
+                            for (i in 0 until points.size - 1) {
+                                val p0 = points[i]
+                                val p1 = points[i + 1]
+                                val controlPoint1 = Offset(p0.x + (p1.x - p0.x) / 2f, p0.y)
+                                val controlPoint2 = Offset(p0.x + (p1.x - p0.x) / 2f, p1.y)
+
+                                path.cubicTo(controlPoint1.x, controlPoint1.y, controlPoint2.x, controlPoint2.y, p1.x, p1.y)
+                                fillPath.cubicTo(controlPoint1.x, controlPoint1.y, controlPoint2.x, controlPoint2.y, p1.x, p1.y)
+                            }
+
+                            fillPath.lineTo(points.last().x, size.height)
+                            fillPath.close()
+
+                            drawPath(
+                                path = fillPath,
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(primaryColor.copy(alpha = 0.15f), Color.Transparent),
+                                    startY = 0f,
+                                    endY = size.height
+                                )
                             )
-                        )
 
-                        // Główna gładka linia sinusoidy
-                        drawPath(
-                            path = path,
-                            color = primaryColor,
-                            style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round)
-                        )
+                            drawPath(
+                                path = path,
+                                color = primaryColor,
+                                style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+                            )
 
-                        // Punkt na szczycie ostatniej wartości
-                        val lastPoint = points.last()
-                        drawCircle(
-                            color = primaryColor,
-                            radius = 4.dp.toPx(),
-                            center = lastPoint
-                        )
+                            // Podkreślenie dzisiejszego punktu na linii
+                            val todayPoint = points[currentDayIndex]
+                            drawCircle(
+                                color = surfaceColor,
+                                radius = 6.dp.toPx(),
+                                center = todayPoint
+                            )
+                            drawCircle(
+                                color = primaryColor,
+                                radius = 4.dp.toPx(),
+                                center = todayPoint
+                            )
+                        }
                     }
                 }
-            }
 
-            // Dni tygodnia
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                listOf("Pn", "Wt", "Śr", "Cz", "Pt", "Sb", "Nd").forEachIndexed { idx, d ->
-                    val isToday = idx == 4
-                    Text(
-                        text = d,
-                        fontSize = 11.sp,
-                        fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isToday) primaryColor else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Idealnie wyrównane dni tygodnia pod słupkami
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    val days = listOf("Pn", "Wt", "Śr", "Cz", "Pt", "Sb", "Nd")
+                    days.forEachIndexed { idx, d ->
+                        val isToday = idx == currentDayIndex
+                        Text(
+                            text = d,
+                            modifier = Modifier.weight(1f),
+                            textAlign = TextAlign.Center,
+                            fontSize = 12.sp,
+                            fontWeight = if (isToday) FontWeight.ExtraBold else FontWeight.Medium,
+                            color = if (isToday) primaryColor else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }
     }
 }
-
 
 fun Int.formatSeconds(): String {
     val mins = this / 60
@@ -757,17 +840,4 @@ fun Double.formatOneDecimal(): String {
 @Composable
 fun AppPreview() {
     App()
-}
-
-@Preview
-@Composable
-fun DashboardScreenPreview() {
-    VoltUpTheme(AppThemeMode.DARK) {
-        DashboardScreen(
-            stats = UserStats(),
-            onOpenSettings = {},
-            onGoToMap = {},
-            onScanStation = {}
-        )
-    }
 }

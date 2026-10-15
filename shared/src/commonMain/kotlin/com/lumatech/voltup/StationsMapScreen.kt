@@ -1,8 +1,6 @@
 package com.lumatech.voltup
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -49,45 +48,55 @@ fun StationsMapScreen(
             .statusBarsPadding()
             .padding(top = 16.dp)
     ) {
-        // Minimalist Header
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = 24.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Mapa",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "Mapa ",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "Stacji",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Light,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
 
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant
+                color = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Text(
-                    text = "${filteredStations.size} stacji",
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                    text = "${filteredStations.size} w pobliżu",
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
-        // Interaktywna Mapa ze statusem
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(220.dp)
-                .padding(horizontal = 20.dp)
-                .clip(RoundedCornerShape(18.dp))
-                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(18.dp))
+                .height(240.dp)
+                .padding(horizontal = 24.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(24.dp)
+                )
         ) {
             GoogleMapView(
                 modifier = Modifier.fillMaxSize(),
@@ -99,105 +108,68 @@ fun StationsMapScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
-        // Minimalist Search Bar
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-            placeholder = { Text("Szukaj stacji lub parku...", fontSize = 14.sp) },
+                .padding(horizontal = 24.dp),
+            placeholder = { Text("Szukaj stacji lub parku...", fontSize = 15.sp) },
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(20.dp)
                 )
             },
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
                     IconButton(onClick = { searchQuery = "" }) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = "Wyczyść", modifier = Modifier.size(16.dp))
+                        Icon(imageVector = Icons.Default.Close, contentDescription = "Wyczyść", modifier = Modifier.size(18.dp))
                     }
                 }
             },
-            shape = RoundedCornerShape(14.dp),
+            shape = CircleShape,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+                unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             ),
             singleLine = true
         )
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        // Kafelki sortowania / Filtry kategorii (Nowoczesne zaokrąglone pigułki)
         LazyRow(
-            contentPadding = PaddingValues(horizontal = 20.dp),
+            contentPadding = PaddingValues(horizontal = 24.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item {
                 val isAllSelected = selectedDeviceType == null
-                FilterChip(
-                    selected = isAllSelected,
-                    onClick = { selectedDeviceType = null },
-                    label = {
-                        Text(
-                            "Wszystkie",
-                            fontSize = 12.sp,
-                            fontWeight = if (isAllSelected) FontWeight.Bold else FontWeight.Normal
-                        )
-                    },
-                    shape = RoundedCornerShape(20.dp),
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primary,
-                        selectedLabelColor = Color.Black,
-                        containerColor = MaterialTheme.colorScheme.surface
-                    ),
-                    border = if (!isAllSelected) FilterChipDefaults.filterChipBorder(
-                        enabled = true,
-                        selected = false,
-                        borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
-                    ) else null
+                SleekFilterChip(
+                    text = "Wszystkie",
+                    isSelected = isAllSelected,
+                    onClick = { selectedDeviceType = null }
                 )
             }
             items(DeviceType.entries) { type ->
                 val isSelected = selectedDeviceType == type
-                FilterChip(
-                    selected = isSelected,
-                    onClick = { selectedDeviceType = if (isSelected) null else type },
-                    label = {
-                        Text(
-                            type.displayName,
-                            fontSize = 12.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                        )
-                    },
-                    shape = RoundedCornerShape(20.dp),
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primary,
-                        selectedLabelColor = Color.Black,
-                        containerColor = MaterialTheme.colorScheme.surface
-                    ),
-                    border = if (!isSelected) FilterChipDefaults.filterChipBorder(
-                        enabled = true,
-                        selected = false,
-                        borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
-                    ) else null
+                SleekFilterChip(
+                    text = type.displayName,
+                    isSelected = isSelected,
+                    onClick = { selectedDeviceType = if (isSelected) null else type }
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        // Station List
         LazyColumn(
-            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
+            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier.fillMaxSize()
         ) {
@@ -206,26 +178,31 @@ fun StationsMapScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .clip(RoundedCornerShape(20.dp))
                         .clickable { selectedStation = station },
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = if (isSelected) androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
-                    else androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                        else MaterialTheme.colorScheme.surface
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    // Zwykła, delikatna obwódka dla wszystkich elementów, brak pstrokatych kolorów
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(14.dp),
+                            .padding(horizontal = 16.dp, vertical = 12.dp), // Mniejsze paddingi pionowe
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(42.dp)
-                                .clip(RoundedCornerShape(10.dp))
+                                .size(40.dp) // Zmniejszona ikona
+                                .clip(CircleShape)
                                 .background(
                                     if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                                    else MaterialTheme.colorScheme.surfaceVariant
+                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
@@ -240,43 +217,75 @@ fun StationsMapScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = station.name,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "${station.location} • ${station.distance}",
-                                style = MaterialTheme.typography.bodySmall,
+                                style = MaterialTheme.typography.bodySmall, // Mniejszy font opisu
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
-                        // Bezpośrednie przejście do skanera QR bez zbędnego dialogu
-                        Button(
-                            onClick = { onSelectStationToScanQr(station) },
-                            shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = Color.Black
-                            ),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                            modifier = Modifier.height(34.dp)
+                        Surface(
+                            modifier = Modifier.clickable { onSelectStationToScanQr(station) },
+                            shape = CircleShape,
+                            // Wyróżnienie samego przycisku dla wybranego elementu
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer
                         ) {
                             Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), // Zmniejszony przycisk
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Icon(Icons.Default.QrCodeScanner, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Text("Skanuj", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Icon(
+                                    Icons.Default.QrCodeScanner,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = "Skanuj",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimaryContainer
+                                )
                             }
                         }
                     }
                 }
             }
             item {
-                Spacer(modifier = Modifier.height(80.dp))
+                Spacer(modifier = Modifier.height(90.dp))
             }
         }
+    }
+}
+
+@Composable
+fun SleekFilterChip(
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.clickable(onClick = onClick),
+        shape = CircleShape,
+        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            fontSize = 13.sp,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+        )
     }
 }
 
