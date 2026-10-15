@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,11 +25,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -36,7 +35,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 
-// Niestandardowy kształt kuponu z zaokrąglonymi wycięciami
 class TicketShape(
     private val cornerRadius: Float = 40f,
     private val cutoutRadius: Float = 24f,
@@ -79,7 +77,7 @@ fun RewardsScreen(
     onRedeemReward: (Reward) -> Unit,
     onActivateReward: (RedeemedReward) -> Unit = {}
 ) {
-    var activeSubTab by remember { mutableStateOf(0) }
+    var activeSubTab by remember { mutableIntStateOf(0) }
     var selectedCategory by remember { mutableStateOf(RewardCategory.ALL) }
     var selectedRewardDetail by remember { mutableStateOf<Reward?>(null) }
     var isViewingOwnedReward by remember { mutableStateOf(false) }
@@ -91,6 +89,20 @@ fun RewardsScreen(
     }
 
     val primaryColor = MaterialTheme.colorScheme.primary
+
+    val pagerState = rememberPagerState(initialPage = activeSubTab) { 2 }
+
+    LaunchedEffect(activeSubTab) {
+        if (pagerState.currentPage != activeSubTab) {
+            pagerState.animateScrollToPage(activeSubTab)
+        }
+    }
+
+    LaunchedEffect(pagerState.currentPage) {
+        if (activeSubTab != pagerState.currentPage) {
+            activeSubTab = pagerState.currentPage
+        }
+    }
 
     AnimatedContent(
         targetState = selectedRewardDetail,
@@ -118,7 +130,6 @@ fun RewardsScreen(
                     .statusBarsPadding()
                     .padding(top = 16.dp)
             ) {
-                // Nagłówek
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -127,12 +138,7 @@ fun RewardsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = buildAnnotatedString {
-                            append("Nagrody ")
-                            withStyle(SpanStyle(color = primaryColor, fontWeight = FontWeight.Black)) {
-                                append("VoltUp")
-                            }
-                        },
+                        text = "Nagrody VoltUp",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
@@ -165,7 +171,6 @@ fun RewardsScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Zakładki
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -205,107 +210,111 @@ fun RewardsScreen(
                 HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                 Spacer(modifier = Modifier.height(20.dp))
 
-                if (activeSubTab == 0) {
-                    // Zakładka: Katalog
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 24.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        item {
-                            SleekRewardFilterChip(
-                                text = "Wszystkie",
-                                isSelected = selectedCategory == RewardCategory.ALL,
-                                onClick = { selectedCategory = RewardCategory.ALL }
-                            )
-                        }
-                        items(RewardCategory.entries.filter { it != RewardCategory.ALL }) { category ->
-                            SleekRewardFilterChip(
-                                text = category.displayName,
-                                isSelected = selectedCategory == category,
-                                onClick = { selectedCategory = category }
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    LazyColumn(
-                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        items(filteredRewards, key = { it.id }) { reward ->
-                            val canAfford = currentPoints >= reward.costPoints
-                            CouponCard(
-                                title = reward.title,
-                                partner = reward.partner,
-                                subtitle = "",
-                                mainValue = "${reward.costPoints}",
-                                valueLabel = "PKT",
-                                isAffordableOrActive = canAfford,
-                                icon = reward.icon,
-                                onClick = {
-                                    selectedRewardDetail = reward
-                                    isViewingOwnedReward = false
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize()
+                ) { page ->
+                    if (page == 0) {
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 24.dp),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                item {
+                                    SleekRewardFilterChip(
+                                        text = "Wszystkie",
+                                        isSelected = selectedCategory == RewardCategory.ALL,
+                                        onClick = { selectedCategory = RewardCategory.ALL }
+                                    )
                                 }
-                            )
-                        }
-                        item { Spacer(modifier = Modifier.height(100.dp)) }
-                    }
-                } else {
-                    // Zakładka: Moje Kody
-                    if (redeemedRewards.isEmpty()) {
-                        Box(modifier = Modifier.fillMaxSize().padding(48.dp), contentAlignment = Alignment.Center) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                Icon(Icons.Default.ConfirmationNumber, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), modifier = Modifier.size(56.dp))
-                                Text("Brak aktywnych kuponów", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                                Text("Odbierz nagrodę z katalogu,\naby mieć do niej dostęp tutaj.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+                                items(RewardCategory.entries.filter { it != RewardCategory.ALL }) { category ->
+                                    SleekRewardFilterChip(
+                                        text = category.displayName,
+                                        isSelected = selectedCategory == category,
+                                        onClick = { selectedCategory = category }
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            LazyColumn(
+                                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                items(filteredRewards, key = { it.id }) { reward ->
+                                    val canAfford = currentPoints >= reward.costPoints
+                                    CouponCard(
+                                        title = reward.title,
+                                        partner = reward.partner,
+                                        subtitle = "",
+                                        mainValue = "${reward.costPoints}",
+                                        valueLabel = "PKT",
+                                        isAffordableOrActive = canAfford,
+                                        icon = reward.icon,
+                                        onClick = {
+                                            selectedRewardDetail = reward
+                                            isViewingOwnedReward = false
+                                        }
+                                    )
+                                }
+                                item { Spacer(modifier = Modifier.height(100.dp)) }
                             }
                         }
                     } else {
-                        LazyColumn(
-                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            items(redeemedRewards, key = { it.discountCode }) { item ->
-                                val totalSec = item.reward.validityMinutes * 60
-                                var remainingSeconds by remember(item.isActivated) { mutableStateOf(totalSec) }
-
-                                LaunchedEffect(item.isActivated) {
-                                    if (item.isActivated && remainingSeconds > 0) {
-                                        while (remainingSeconds > 0) {
-                                            delay(1000.milliseconds)
-                                            remainingSeconds--
-                                        }
-                                    }
+                        if (redeemedRewards.isEmpty()) {
+                            Box(modifier = Modifier.fillMaxSize().padding(48.dp), contentAlignment = Alignment.Center) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                    Icon(Icons.Default.ConfirmationNumber, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), modifier = Modifier.size(56.dp))
+                                    Text("Brak aktywnych kuponów", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                                    Text("Odbierz nagrodę z katalogu,\naby mieć do niej dostęp tutaj.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
                                 }
-                                val isExpired = item.isActivated && remainingSeconds <= 0
+                            }
+                        } else {
+                            LazyColumn(
+                                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                items(redeemedRewards, key = { it.discountCode }) { item ->
+                                    val totalSec = item.reward.validityMinutes * 60
+                                    var remainingSeconds by remember(item.isActivated) { mutableStateOf(totalSec) }
 
-                                CouponCard(
-                                    title = item.reward.title,
-                                    partner = item.reward.partner,
-                                    subtitle = if (isExpired) "Wygasły" else if (item.isActivated) "KOD: ${item.discountCode}" else "Kliknij na bilet by aktywować",
-                                    mainValue = when {
-                                        isExpired -> "0:00"
-                                        item.isActivated -> "${remainingSeconds / 60}:${(remainingSeconds % 60).toString().padStart(2, '0')}"
-                                        else -> "AKTYWUJ"
-                                    },
-                                    valueLabel = if (item.isActivated && !isExpired) "POZOSTAŁO" else "",
-                                    isAffordableOrActive = !isExpired,
-                                    icon = if (item.isActivated && !isExpired) Icons.Default.QrCode else item.reward.icon,
-                                    onClick = {
-                                        if (!item.isActivated) {
-                                            onActivateReward(item)
-                                        } else {
-                                            // Gdy aktywny - pokazujemy szczegóły
-                                            selectedRewardDetail = item.reward
-                                            isViewingOwnedReward = true
+                                    LaunchedEffect(item.isActivated) {
+                                        if (item.isActivated && remainingSeconds > 0) {
+                                            while (remainingSeconds > 0) {
+                                                delay(1000.milliseconds)
+                                                remainingSeconds--
+                                            }
                                         }
                                     }
-                                )
+                                    val isExpired = item.isActivated && remainingSeconds <= 0
+
+                                    CouponCard(
+                                        title = item.reward.title,
+                                        partner = item.reward.partner,
+                                        subtitle = if (isExpired) "Wygasły" else if (item.isActivated) "KOD: ${item.discountCode}" else "Kliknij na bilet by aktywować",
+                                        mainValue = when {
+                                            isExpired -> "0:00"
+                                            item.isActivated -> "${remainingSeconds / 60}:${(remainingSeconds % 60).toString().padStart(2, '0')}"
+                                            else -> "AKTYWUJ"
+                                        },
+                                        valueLabel = if (item.isActivated && !isExpired) "POZOSTAŁO" else "",
+                                        isAffordableOrActive = !isExpired,
+                                        icon = if (item.isActivated && !isExpired) Icons.Default.QrCode else item.reward.icon,
+                                        onClick = {
+                                            if (!item.isActivated) {
+                                                onActivateReward(item)
+                                            } else {
+                                                selectedRewardDetail = item.reward
+                                                isViewingOwnedReward = true
+                                            }
+                                        }
+                                    )
+                                }
+                                item { Spacer(modifier = Modifier.height(100.dp)) }
                             }
-                            item { Spacer(modifier = Modifier.height(100.dp)) }
                         }
                     }
                 }
@@ -314,7 +323,6 @@ fun RewardsScreen(
     }
 }
 
-// Główny komponent Kuponu (Odświeżony - Pastelowy i Czysty)
 @Composable
 fun CouponCard(
     title: String,
@@ -326,25 +334,23 @@ fun CouponCard(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     onClick: () -> Unit
 ) {
-    // Pastelowe, jasne gradienty i ciemny tekst
-    val gradientColor1 = if (isAffordableOrActive) Color(0xFFE8F5E9) else Color(0xFFF5F5F5) // Pastelowa zieleń / Jasny szary
-    val gradientColor2 = if (isAffordableOrActive) Color(0xFFC8E6C9) else Color(0xFFE0E0E0) // Ciemniejsza pastelowa zieleń / Szary
+    val gradientColor1 = if (isAffordableOrActive) Color(0xFFE8F5E9) else Color(0xFFF5F5F5)
+    val gradientColor2 = if (isAffordableOrActive) Color(0xFFC8E6C9) else Color(0xFFE0E0E0)
 
-    val textColor = Color(0xFF1A1D20) // Ciemny, elegancki kolor tekstu
-    val textLightColor = Color(0xFF4A4D50) // Szarawy kolor dla mniejszych tekstów
+    val textColor = Color(0xFF1A1D20)
+    val textLightColor = Color(0xFF4A4D50)
 
-    val splitRatio = 0.7f // Podział 70% lewo / 30% prawo
+    val splitRatio = 0.7f
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(140.dp) // Zwiększona wysokość, by tekst swobodnie się mieścił
+            .height(140.dp)
             .clip(TicketShape(splitRatio = splitRatio))
             .background(Brush.linearGradient(listOf(gradientColor1, gradientColor2)))
             .clickable(enabled = isAffordableOrActive, onClick = onClick)
     ) {
         Row(modifier = Modifier.fillMaxSize()) {
-            // LEWA STRONA (Szczegóły)
             Column(
                 modifier = Modifier
                     .fillMaxHeight()
@@ -378,7 +384,7 @@ fun CouponCard(
                         text = title,
                         color = textColor,
                         fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold, // Mniejsza grubość
+                        fontWeight = FontWeight.Bold,
                         maxLines = 2
                     )
                     if (subtitle.isNotEmpty()) {
@@ -392,7 +398,6 @@ fun CouponCard(
                 }
             }
 
-            // PIONOWA PRZERYWANA LINIA
             Box(modifier = Modifier.fillMaxHeight().width(2.dp), contentAlignment = Alignment.Center) {
                 Canvas(modifier = Modifier.fillMaxHeight()) {
                     drawLine(
@@ -405,7 +410,6 @@ fun CouponCard(
                 }
             }
 
-            // PRAWA STRONA (Główna wartość bez przycisku)
             Column(
                 modifier = Modifier
                     .fillMaxHeight()
@@ -418,7 +422,6 @@ fun CouponCard(
                     Text(
                         text = mainValue,
                         color = textColor,
-                        // Jeśli wyświetlamy słowo "AKTYWUJ", robimy to odrobinę mniejszą czcionką niż same cyfry punktów
                         fontSize = if (mainValue.length > 5) 16.sp else 22.sp,
                         fontWeight = FontWeight.ExtraBold,
                         textAlign = TextAlign.Center

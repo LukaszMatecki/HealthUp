@@ -6,6 +6,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,18 +19,23 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
@@ -42,7 +49,7 @@ enum class MainTab(val label: String) {
 
     val icon: ImageVector
         get() = when (this) {
-            HOME -> Icons.Default.Bolt
+            HOME -> Icons.Default.Dashboard
             MAP -> Icons.Default.Map
             REWARDS -> Icons.Default.CardGiftcard
             PROFILE -> Icons.Default.Person
@@ -54,6 +61,60 @@ sealed interface Screen {
     data class ActiveWorkout(val station: KineticStation) : Screen
     data object Settings : Screen
     data object QrScanner : Screen
+    data object Ranking : Screen
+    data object Achievements : Screen
+}
+
+class BottomBarWithNotchShape(
+    private val notchRadius: Dp = 40.dp,
+    private val notchDepth: Dp = 32.dp,
+    private val cornerRadius: Dp = 20.dp
+) : Shape {
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density
+    ): Outline {
+        val r = with(density) { cornerRadius.toPx() }
+        val nr = with(density) { notchRadius.toPx() }
+        val nd = with(density) { notchDepth.toPx() }
+        val cx = size.width / 2f
+
+        val path = Path().apply {
+            moveTo(0f, r)
+            arcTo(
+                rect = Rect(0f, 0f, 2 * r, 2 * r),
+                startAngleDegrees = 180f,
+                sweepAngleDegrees = 90f,
+                forceMoveTo = false
+            )
+            lineTo(cx - nr - 12f, 0f)
+
+            cubicTo(
+                cx - nr / 1.6f, 0f,
+                cx - nr / 1.8f, nd,
+                cx, nd
+            )
+            cubicTo(
+                cx + nr / 1.8f, nd,
+                cx + nr / 1.6f, 0f,
+                cx + nr + 12f, 0f
+            )
+
+            lineTo(size.width - r, 0f)
+            arcTo(
+                rect = Rect(size.width - 2 * r, 0f, size.width, 2 * r),
+                startAngleDegrees = 270f,
+                sweepAngleDegrees = 90f,
+                forceMoveTo = false
+            )
+            lineTo(size.width, size.height)
+            lineTo(0f, size.height)
+            close()
+        }
+
+        return Outline.Generic(path)
+    }
 }
 
 @Composable
@@ -77,6 +138,8 @@ fun App() {
         when (currentScreen) {
             is Screen.Settings -> currentScreen = Screen.Main
             is Screen.QrScanner -> currentScreen = Screen.Main
+            is Screen.Ranking -> currentScreen = Screen.Main
+            is Screen.Achievements -> currentScreen = Screen.Main
             is Screen.ActiveWorkout -> { }
             is Screen.Main -> if (currentTab != MainTab.HOME) currentTab = MainTab.HOME
         }
@@ -116,6 +179,20 @@ fun App() {
                             )
                         }
 
+                        is Screen.Ranking -> {
+                            RankingScreen(
+                                userStats = userStats,
+                                onNavigateBack = { currentScreen = Screen.Main }
+                            )
+                        }
+
+                        is Screen.Achievements -> {
+                            AchievementsScreen(
+                                badges = badges,
+                                onNavigateBack = { currentScreen = Screen.Main }
+                            )
+                        }
+
                         is Screen.ActiveWorkout -> {
                             WorkoutScreen(
                                 station = screen.station,
@@ -142,6 +219,21 @@ fun App() {
                         }
 
                         is Screen.Main -> {
+                            val pagerState = rememberPagerState(initialPage = currentTab.ordinal) { MainTab.entries.size }
+
+                            LaunchedEffect(currentTab) {
+                                if (pagerState.currentPage != currentTab.ordinal) {
+                                    pagerState.animateScrollToPage(currentTab.ordinal)
+                                }
+                            }
+
+                            LaunchedEffect(pagerState.currentPage) {
+                                val selectedTab = MainTab.entries[pagerState.currentPage]
+                                if (currentTab != selectedTab) {
+                                    currentTab = selectedTab
+                                }
+                            }
+
                             Scaffold(
                                 bottomBar = {
                                     VoltUpBottomBar(
@@ -151,14 +243,20 @@ fun App() {
                                     )
                                 }
                             ) { innerPadding ->
-                                Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-                                    when (currentTab) {
+                                HorizontalPager(
+                                    state = pagerState,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(innerPadding)
+                                ) { page ->
+                                    when (MainTab.entries[page]) {
                                         MainTab.HOME -> {
                                             DashboardScreen(
                                                 stats = userStats,
                                                 onOpenSettings = { currentScreen = Screen.Settings },
                                                 onGoToMap = { currentTab = MainTab.MAP },
-                                                onScanStation = { currentScreen = Screen.QrScanner }
+                                                onScanStation = { currentScreen = Screen.QrScanner },
+                                                onOpenRanking = { currentScreen = Screen.Ranking }
                                             )
                                         }
 
@@ -224,6 +322,12 @@ fun App() {
                                                 },
                                                 onOpenSettings = {
                                                     currentScreen = Screen.Settings
+                                                },
+                                                onOpenRanking = {
+                                                    currentScreen = Screen.Ranking
+                                                },
+                                                onOpenAchievements = {
+                                                    currentScreen = Screen.Achievements
                                                 }
                                             )
                                         }
@@ -255,9 +359,8 @@ fun VoltUpBottomBar(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(68.dp)
-                .shadow(elevation = 16.dp, shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)),
-            shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+                .height(70.dp),
+            shape = BottomBarWithNotchShape(notchRadius = 40.dp, notchDepth = 32.dp, cornerRadius = 20.dp),
             color = MaterialTheme.colorScheme.surface
         ) {
             Row(
@@ -278,7 +381,7 @@ fun VoltUpBottomBar(
                     onClick = { onTabSelected(MainTab.MAP) }
                 )
 
-                Spacer(modifier = Modifier.width(56.dp))
+                Spacer(modifier = Modifier.width(64.dp))
 
                 BottomNavItem(
                     tab = MainTab.REWARDS,
@@ -296,39 +399,26 @@ fun VoltUpBottomBar(
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .offset(y = (-16).dp),
+                .offset(y = 2.dp),
             contentAlignment = Alignment.Center
         ) {
             Surface(
-                modifier = Modifier.size(62.dp),
+                modifier = Modifier
+                    .size(54.dp)
+                    .clickable(onClick = onQrClick),
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.surface,
-                shadowElevation = 4.dp
+                color = MaterialTheme.colorScheme.primary
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Surface(
-                        modifier = Modifier
-                            .size(52.dp)
-                            .clickable(onClick = onQrClick),
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primary,
-                        shadowElevation = 4.dp
-                    ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.QrCodeScanner,
-                                contentDescription = "Skanuj QR",
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(26.dp)
-                            )
-                        }
-                    }
+                    Icon(
+                        imageVector = Icons.Default.QrCodeScanner,
+                        contentDescription = "Skanuj QR",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(26.dp)
+                    )
                 }
             }
         }
@@ -344,25 +434,18 @@ fun BottomNavItem(
     val activeColor = MaterialTheme.colorScheme.primary
     val inactiveColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
 
-    Column(
+    Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(CircleShape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = tab.icon,
             contentDescription = tab.label,
             tint = if (isSelected) activeColor else inactiveColor,
-            modifier = Modifier.size(22.dp)
-        )
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(
-            text = tab.label,
-            fontSize = 11.sp,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-            color = if (isSelected) activeColor else inactiveColor
+            modifier = Modifier.size(24.dp)
         )
     }
 }
@@ -372,7 +455,8 @@ fun DashboardScreen(
     stats: UserStats,
     onOpenSettings: () -> Unit,
     onGoToMap: () -> Unit,
-    onScanStation: () -> Unit
+    onScanStation: () -> Unit,
+    onOpenRanking: () -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -385,7 +469,6 @@ fun DashboardScreen(
             .padding(horizontal = 24.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        // Nowoczesny nagłówek z odpowiednią typografią
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -420,7 +503,6 @@ fun DashboardScreen(
             }
         }
 
-        // Karta Portfela (Clean UI)
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
@@ -463,8 +545,10 @@ fun DashboardScreen(
                         }
                     }
 
-                    // Znacznie poprawiona widoczność miejsca w rankingu
                     Surface(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable(onClick = onOpenRanking),
                         shape = RoundedCornerShape(12.dp),
                         color = MaterialTheme.colorScheme.primaryContainer
                     ) {
@@ -496,13 +580,11 @@ fun DashboardScreen(
             }
         }
 
-        // Zmieniony wykres: Słupki + Sinusoida
         SinusoidActivityChartCard(
             weeklyData = listOf(80.0, 110.0, 95.0, 140.0, 180.0, 120.0, 115.0),
             primaryColor = primaryColor
         )
 
-        // Cel Społecznościowy (Nowoczesny progress bar z odsunięciem)
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
@@ -539,9 +621,8 @@ fun DashboardScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(24.dp)) // Odsunięcie paska postępu
+                Spacer(modifier = Modifier.height(24.dp))
 
-                // Własny, czysty i idealnie zaokrąglony pasek postępu
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -560,7 +641,6 @@ fun DashboardScreen(
             }
         }
 
-        // Stacje w pobliżu (Sleek UI)
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
                 text = "W POBLIŻU",
@@ -676,7 +756,7 @@ fun SinusoidActivityChartCard(
     weeklyData: List<Double>,
     primaryColor: Color
 ) {
-    val currentDayIndex = 4 // Index dla piątku, symulujący dzisiejszy dzień
+    val currentDayIndex = 4
     val surfaceVariantColor = MaterialTheme.colorScheme.surfaceVariant
     val surfaceColor = MaterialTheme.colorScheme.surface
 
@@ -719,7 +799,6 @@ fun SinusoidActivityChartCard(
             }
 
             Column(modifier = Modifier.fillMaxWidth()) {
-                // Wykres z bloczkami i sinusoidą
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -731,12 +810,10 @@ fun SinusoidActivityChartCard(
                         val segmentWidth = size.width / weeklyData.size
                         val barWidth = 14.dp.toPx()
 
-                        // 1. Rysowanie bloczków
                         weeklyData.forEachIndexed { idx, v ->
                             val isToday = idx == currentDayIndex
                             val barHeight = (v.toFloat() / maxVal * (size.height - 20f))
 
-                            // Środek segmentu
                             val centerX = (idx * segmentWidth) + (segmentWidth / 2f)
                             val topLeftX = centerX - (barWidth / 2f)
                             val topLeftY = size.height - barHeight
@@ -751,7 +828,6 @@ fun SinusoidActivityChartCard(
                             )
                         }
 
-                        // 2. Rysowanie wygładzonej sinusoidy nad bloczkami
                         val points = weeklyData.mapIndexed { idx, v ->
                             val x = (idx * segmentWidth) + (segmentWidth / 2f)
                             val y = size.height - (v.toFloat() / maxVal * (size.height - 20f)) - 10f
@@ -794,7 +870,6 @@ fun SinusoidActivityChartCard(
                                 style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
                             )
 
-                            // Podkreślenie dzisiejszego punktu na linii
                             val todayPoint = points[currentDayIndex]
                             drawCircle(
                                 color = surfaceColor,
@@ -812,7 +887,6 @@ fun SinusoidActivityChartCard(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Idealnie wyrównane dni tygodnia pod słupkami
                 Row(modifier = Modifier.fillMaxWidth()) {
                     val days = listOf("Pn", "Wt", "Śr", "Cz", "Pt", "Sb", "Nd")
                     days.forEachIndexed { idx, d ->

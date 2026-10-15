@@ -5,6 +5,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -24,15 +25,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.seconds
-import kotlinx.coroutines.delay
-import androidx.compose.ui.tooling.preview.Preview
-
-
 
 @Composable
 fun WorkoutScreen(
@@ -40,13 +40,13 @@ fun WorkoutScreen(
     onFinishWorkout: (earnedWh: Double, earnedPoints: Int, workoutRecord: WorkoutSessionRecord) -> Unit,
     onCancel: () -> Unit
 ) {
-    var secondsElapsed by remember { mutableStateOf(0) }
-    var resistanceLevel by remember { mutableStateOf(5) }
+    var secondsElapsed by remember { mutableIntStateOf(0) }
+    var resistanceLevel by remember { mutableIntStateOf(5) }
     var isPaused by remember { mutableStateOf(false) }
-    var currentWatts by remember { mutableStateOf(65) }
-    var currentRpm by remember { mutableStateOf(60) }
-    var currentHeartRate by remember { mutableStateOf(85) }
-    var totalGeneratedWh by remember { mutableStateOf(0.0) }
+    var currentWatts by remember { mutableIntStateOf(65) }
+    var currentRpm by remember { mutableIntStateOf(60) }
+    var currentHeartRate by remember { mutableIntStateOf(85) }
+    var totalGeneratedWh by remember { mutableDoubleStateOf(0.0) }
 
     var showCompletionModal by remember { mutableStateOf(false) }
     var showCancelConfirmModal by remember { mutableStateOf(false) }
@@ -68,7 +68,6 @@ fun WorkoutScreen(
             currentWatts = (baseWatts + randomDelta).coerceAtLeast(10)
             currentRpm = (50 + (resistanceLevel * 2) + (-3..4).random()).coerceIn(40, 100)
 
-            // Symulacja pulsu
             val targetHr = 80 + (resistanceLevel * 6) + (currentRpm / 2)
             currentHeartRate = (targetHr + (-2..2).random()).coerceIn(70, 185)
 
@@ -89,7 +88,7 @@ fun WorkoutScreen(
             while (isPaused) {
                 delay(1.seconds)
                 secondsElapsed++
-                currentHeartRate = (currentHeartRate - 1).coerceAtLeast(70) // Puls powoli spada na pauzie
+                currentHeartRate = (currentHeartRate - 1).coerceAtLeast(70)
                 energyHistory.add(totalGeneratedWh.toFloat())
                 if (energyHistory.size > 60) energyHistory.removeAt(0)
             }
@@ -107,7 +106,6 @@ fun WorkoutScreen(
     val cancelRedColor = Color(0xFFEF4444)
     val caloriesColor = Color(0xFFFF4757)
 
-    // Gradienty kółek statystyk
     val energyGradient = listOf(Color(0xFFFFB75E), Color(0xFFED8F03))
     val resistanceGradient = listOf(Color(0xFF38EF7D), Color(0xFF11998E))
     val rpmGradient = listOf(Color(0xFF56CCF2), Color(0xFF2F80ED))
@@ -137,7 +135,6 @@ fun WorkoutScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Nagłówek Stacji
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -185,13 +182,11 @@ fun WorkoutScreen(
                 }
             }
 
-            // GŁÓWNY MIERNIK MOCY ORAZ PRZYCISKI AKCJI PO PRAWEJ STRONIE
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Główny zegar Mocy
                 Box(
                     modifier = Modifier
                         .size(230.dp)
@@ -204,7 +199,6 @@ fun WorkoutScreen(
                         val center = Offset(size.width / 2, size.height / 2)
                         val topLeftOffset = Offset(center.x - radius, center.y - radius)
 
-                        // Tło paska
                         drawArc(
                             color = surfaceVariantColor.copy(alpha = 0.4f),
                             startAngle = 130f,
@@ -215,7 +209,6 @@ fun WorkoutScreen(
                             style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
                         )
 
-                        // Aktywny pasek Mocy
                         drawArc(
                             color = if (isPaused) warningColor else primaryColor,
                             startAngle = 130f,
@@ -253,13 +246,11 @@ fun WorkoutScreen(
                     }
                 }
 
-                // Przyciski akcji (Bez tła)
                 Column(
                     modifier = Modifier.padding(end = 10.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // 1. Ikonka Pauza / Wznów
                     Surface(
                         modifier = Modifier
                             .size(52.dp)
@@ -278,14 +269,12 @@ fun WorkoutScreen(
                         }
                     }
 
-                    // 2. Ikonka Zakończ sesję
                     Surface(
                         modifier = Modifier
                             .size(52.dp)
                             .clickable { showCompletionModal = true },
                         shape = CircleShape,
-                        color = primaryColor,
-                        shadowElevation = 4.dp
+                        color = primaryColor
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
@@ -297,7 +286,6 @@ fun WorkoutScreen(
                         }
                     }
 
-                    // 3. Ikonka Anuluj
                     Surface(
                         modifier = Modifier
                             .size(52.dp)
@@ -318,59 +306,47 @@ fun WorkoutScreen(
                 }
             }
 
-            // Pigułki Kalorie i Czas (Mniejsze, z patternem)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Pigułka Kcal
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .height(48.dp)
                         .clip(CircleShape)
-                        .background(Brush.linearGradient(listOf(Color(0xFFFFE4E6), Color(0xFFFECDD3))))
+                        .background(surfaceVariantColor.copy(alpha = 0.5f))
                 ) {
-                    Canvas(modifier = Modifier.fillMaxSize()) {
-                        drawCircle(color = Color.White.copy(alpha = 0.4f), radius = 60f, center = Offset(size.width, 0f))
-                        drawCircle(color = Color.White.copy(alpha = 0.2f), radius = 40f, center = Offset(20f, size.height))
-                    }
                     Row(
                         modifier = Modifier.fillMaxSize(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        Icon(Icons.Default.LocalFireDepartment, contentDescription = null, tint = Color(0xFFE11D48), modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.LocalFireDepartment, contentDescription = null, tint = caloriesColor, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("$caloriesBurned Kcal", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF9F1239))
+                        Text("$caloriesBurned Kcal", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
 
-                // Pigułka Czasu
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .height(48.dp)
                         .clip(CircleShape)
-                        .background(Brush.linearGradient(listOf(Color(0xFFE0E7FF), Color(0xFFC7D2FE))))
+                        .background(surfaceVariantColor.copy(alpha = 0.5f))
                 ) {
-                    Canvas(modifier = Modifier.fillMaxSize()) {
-                        drawCircle(color = Color.White.copy(alpha = 0.4f), radius = 60f, center = Offset(0f, 0f))
-                        drawCircle(color = Color.White.copy(alpha = 0.2f), radius = 50f, center = Offset(size.width - 20f, size.height))
-                    }
                     Row(
                         modifier = Modifier.fillMaxSize(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        Icon(Icons.Default.Schedule, contentDescription = null, tint = Color(0xFF4338CA), modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.Schedule, contentDescription = null, tint = primaryColor, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text(secondsElapsed.formatSeconds(), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF312E81))
+                        Text(secondsElapsed.formatSeconds(), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }
 
-            // KARTA TŁA DLA 3 ZEGARÓW (Odsuniętych od siebie)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(32.dp),
@@ -384,7 +360,6 @@ fun WorkoutScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Zegar 1: Energia
                     MiniRingGauge(
                         progress = (totalGeneratedWh / 5.0).toFloat().coerceIn(0f, 1f),
                         gradientColors = energyGradient,
@@ -396,46 +371,47 @@ fun WorkoutScreen(
                         }
                     }
 
-                    // Zegar 2: Opór (z + i - w środku)
+                    var dragAccumulator by remember { mutableFloatStateOf(0f) }
+
                     MiniRingGauge(
                         progress = resistanceLevel / 10f,
                         gradientColors = resistanceGradient,
                         title = "Opór"
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
-                            modifier = Modifier.fillMaxSize()
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .pointerInput(Unit) {
+                                    detectVerticalDragGestures(
+                                        onDragEnd = { dragAccumulator = 0f }
+                                    ) { change, dragAmount ->
+                                        change.consume()
+                                        dragAccumulator += dragAmount
+                                        if (dragAccumulator > 30f) {
+                                            if (resistanceLevel > 1) resistanceLevel--
+                                            dragAccumulator = 0f
+                                        } else if (dragAccumulator < -30f) {
+                                            if (resistanceLevel < 10) resistanceLevel++
+                                            dragAccumulator = 0f
+                                        }
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                Icons.Default.Add,
-                                contentDescription = "+",
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .clip(CircleShape)
-                                    .clickable { if (resistanceLevel < 10) resistanceLevel++ },
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = "$resistanceLevel",
-                                fontWeight = FontWeight.Black,
-                                fontSize = 22.sp,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(vertical = 0.dp)
-                            )
-                            Icon(
-                                Icons.Default.Remove,
-                                contentDescription = "-",
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .clip(CircleShape)
-                                    .clickable { if (resistanceLevel > 1) resistanceLevel-- },
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "$resistanceLevel",
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 24.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
                         }
                     }
 
-                    // Zegar 3: RPM
                     MiniRingGauge(
                         progress = currentRpm / 100f,
                         gradientColors = rpmGradient,
@@ -449,14 +425,12 @@ fun WorkoutScreen(
                 }
             }
 
-            // Statystyki pod spodem: Pionowy VoltPoints + Dwa Poziome Prostokąty (Dystans, Tętno)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(160.dp), // Wymuszamy stałą wysokość by ładnie się zrównały
+                    .height(160.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Lewa: Pionowy VoltPoints (Znacznie większa czcionka)
                 Card(
                     modifier = Modifier
                         .weight(1f)
@@ -502,14 +476,12 @@ fun WorkoutScreen(
                     }
                 }
 
-                // Prawa: Kolumna 2 poziomych kafelków (Dystans, Tętno)
                 Column(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight(),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Dystans
                     Card(
                         modifier = Modifier
                             .weight(1f)
@@ -532,7 +504,6 @@ fun WorkoutScreen(
                             Icon(Icons.Default.DirectionsBike, contentDescription = null, tint = rpmGradient[0], modifier = Modifier.size(24.dp))
                         }
                     }
-                    // Tętno
                     Card(
                         modifier = Modifier
                             .weight(1f)
@@ -656,7 +627,6 @@ fun WorkoutScreen(
     }
 }
 
-// Ulepszony komponent pomocniczy dla zegarów z gradientami i dynamicznym środkiem
 @Composable
 fun MiniRingGauge(
     progress: Float,
@@ -668,7 +638,6 @@ fun MiniRingGauge(
         Box(modifier = Modifier.size(80.dp), contentAlignment = Alignment.Center) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val strokeWidth = 7.dp.toPx()
-                // Szare tło (lekko barwione kolorem głównym)
                 drawArc(
                     color = gradientColors.last().copy(alpha = 0.15f),
                     startAngle = -90f,
@@ -676,7 +645,6 @@ fun MiniRingGauge(
                     useCenter = false,
                     style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
                 )
-                // Wypełniony postęp z gradientem
                 drawArc(
                     brush = Brush.linearGradient(colors = gradientColors),
                     startAngle = -90f,
@@ -685,7 +653,6 @@ fun MiniRingGauge(
                     style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
                 )
             }
-            // Zawartość wewnątrz pierścienia
             centerContent()
         }
         Spacer(modifier = Modifier.height(10.dp))

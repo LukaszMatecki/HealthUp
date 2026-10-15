@@ -10,7 +10,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 
-// Minimalist Electric Palette
 val ElectricVoltGreen = Color(0xFF00E676)
 val EnergyYellow = Color(0xFFFFD600)
 val DarkBackground = Color(0xFF0E1116)
@@ -60,7 +59,6 @@ private val VoltUpLightColorScheme = lightColorScheme(
     tertiary = EnergyYellow
 )
 
-// Sleek, modern typography with crisp letter-spacing and hierarchy
 val VoltUpTypography = Typography(
     headlineLarge = TextStyle(
         fontFamily = FontFamily.SansSerif,

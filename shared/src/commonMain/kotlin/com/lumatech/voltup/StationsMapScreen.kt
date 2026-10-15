@@ -63,7 +63,7 @@ fun StationsMapScreen(
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    text = "Stacji",
+                    text = "VoltUp",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Light,
                     color = MaterialTheme.colorScheme.onBackground
@@ -186,19 +186,18 @@ fun StationsMapScreen(
                         else MaterialTheme.colorScheme.surface
                     ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                    // Zwykła, delikatna obwódka dla wszystkich elementów, brak pstrokatych kolorów
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp), // Mniejsze paddingi pionowe
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(40.dp) // Zmniejszona ikona
+                                .size(40.dp)
                                 .clip(CircleShape)
                                 .background(
                                     if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
@@ -224,7 +223,7 @@ fun StationsMapScreen(
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "${station.location} • ${station.distance}",
-                                style = MaterialTheme.typography.bodySmall, // Mniejszy font opisu
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -232,11 +231,10 @@ fun StationsMapScreen(
                         Surface(
                             modifier = Modifier.clickable { onSelectStationToScanQr(station) },
                             shape = CircleShape,
-                            // Wyróżnienie samego przycisku dla wybranego elementu
                             color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), // Zmniejszony przycisk
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {

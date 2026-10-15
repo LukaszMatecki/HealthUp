@@ -26,27 +26,79 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 
 @Composable
+fun StreakPill(streakDays: Int) {
+    val isDark = MaterialTheme.colorScheme.background == DarkBackground
+    val containerColor = if (isDark) Color(0xFF382400) else Color(0xFFFEF3C7)
+    val contentColor = if (isDark) Color(0xFFFFD600) else Color(0xFF92400E)
+
+    Surface(
+        shape = CircleShape,
+        color = containerColor
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.LocalFireDepartment,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(14.dp)
+            )
+            Text(
+                text = "$streakDays dni",
+                color = contentColor,
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp
+            )
+        }
+    }
+}
+
+@Composable
+fun PointsPill(points: Int) {
+    val isDark = MaterialTheme.colorScheme.background == DarkBackground
+    val containerColor = if (isDark) Color(0xFF382400) else Color(0xFFFEF3C7)
+    val contentColor = if (isDark) Color(0xFFFFD600) else Color(0xFF92400E)
+
+    Surface(
+        shape = CircleShape,
+        color = containerColor
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Stars,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(12.dp)
+            )
+            Text(
+                text = "+$points pkt",
+                color = contentColor,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 11.sp
+            )
+        }
+    }
+}
+
+@Composable
 fun ProfileScreen(
     stats: UserStats,
     challenges: List<Challenge>,
     badges: List<Badge> = MockData.sampleBadges,
     onClaimChallenge: (Challenge) -> Unit,
     onUpdateUserProfile: (newName: String, newAvatarId: Int) -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    onOpenRanking: () -> Unit = {},
+    onOpenAchievements: () -> Unit = {}
 ) {
     var showEditProfileDialog by remember { mutableStateOf(false) }
-    var showAllBadgesModal by remember { mutableStateOf(false) }
-    var showLeaderboardModal by remember { mutableStateOf(false) }
-
-    val districtLeaderboard = remember {
-        listOf(
-            DistrictRank(1, "Śródmieście & Piotrkowska", 1340.5, isUserDistrict = false),
-            DistrictRank(2, "Polesie", 1210.2, isUserDistrict = true),
-            DistrictRank(3, "Widzew", 980.0, isUserDistrict = false),
-            DistrictRank(4, "Bałuty", 890.4, isUserDistrict = false),
-            DistrictRank(5, "Górna", 720.8, isUserDistrict = false)
-        )
-    }
 
     val primaryColor = MaterialTheme.colorScheme.primary
 
@@ -57,7 +109,6 @@ fun ProfileScreen(
         contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Główna karta profilu (Clean UI)
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -71,48 +122,49 @@ fun ProfileScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Pasek narzędzi karty (Seria i Ustawienia)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = EnergyYellow.copy(alpha = 0.15f)
+                        StreakPill(streakDays = stats.streakDays)
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            IconButton(
+                                onClick = { showEditProfileDialog = true },
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                             ) {
-                                Icon(Icons.Default.LocalFireDepartment, contentDescription = null, tint = EnergyYellow, modifier = Modifier.size(14.dp))
-                                Text(
-                                    text = "${stats.streakDays} dni",
-                                    color = EnergyYellow,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Edytuj dane profilu",
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+
+                            IconButton(
+                                onClick = onOpenSettings,
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Settings,
+                                    contentDescription = "Ustawienia",
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
-
-                        IconButton(
-                            onClick = onOpenSettings,
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = "Ustawienia",
-                                modifier = Modifier.size(18.dp),
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
                     }
 
-                    // Awatar i nazwa
                     Box(
                         modifier = Modifier
                             .size(88.dp)
@@ -142,7 +194,6 @@ fun ProfileScreen(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(4.dp))
-                        // Używamy separatora zamiast przełamania wiersza dla czystszego widoku
                         Text(
                             text = "Poziom ${stats.level} • ${stats.levelTitle}",
                             style = MaterialTheme.typography.bodyMedium,
@@ -151,29 +202,11 @@ fun ProfileScreen(
                         )
                     }
 
-                    // Przycisk edycji "Soft UI"
-                    Surface(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .clickable { showEditProfileDialog = true },
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(imageVector = Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("Edytuj dane profilu", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 4.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                     )
 
-                    // Statystyki
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
@@ -198,13 +231,12 @@ fun ProfileScreen(
             }
         }
 
-        // Karta Osiągnięć (Modern Row)
         item {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
-                    .clickable { showAllBadgesModal = true },
+                    .clickable { onOpenAchievements() },
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -260,13 +292,12 @@ fun ProfileScreen(
             }
         }
 
-        // Karta Rankingu
         item {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
-                    .clickable { showLeaderboardModal = true },
+                    .clickable { onOpenRanking() },
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -299,14 +330,14 @@ fun ProfileScreen(
                         }
                         Column {
                             Text(
-                                text = "Ranking Dzielnic Łodzi",
+                                text = "Ranking",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 15.sp,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "Polesie: 2. miejsce",
+                                text = "Zobacz ranking",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -322,7 +353,6 @@ fun ProfileScreen(
             }
         }
 
-        // Nagłówek Wyzwań
         item {
             Text(
                 text = "WYZWANIA TYGODNIOWE",
@@ -334,7 +364,6 @@ fun ProfileScreen(
             )
         }
 
-        // Wyzwania Tygodniowe
         val activeChallenges = challenges.filter { !it.isClaimed }
         if (activeChallenges.isEmpty()) {
             item {
@@ -374,140 +403,6 @@ fun ProfileScreen(
         }
     }
 
-    // Modal Osiągnięć
-    if (showAllBadgesModal) {
-        AlertDialog(
-            onDismissRequest = { showAllBadgesModal = false },
-            shape = RoundedCornerShape(24.dp),
-            title = {
-                Text("Osiągnięcia", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-            },
-            text = {
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(vertical = 8.dp)
-                ) {
-                    items(badges) { badge ->
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            color = if (badge.isUnlocked) EnergyYellow.copy(alpha = 0.05f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                            border = BorderStroke(1.dp, if (badge.isUnlocked) EnergyYellow.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(if (badge.isUnlocked) EnergyYellow.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = badge.icon,
-                                        contentDescription = null,
-                                        tint = if (badge.isUnlocked) EnergyYellow else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(badge.title, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(badge.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    if (badge.isUnlocked) {
-                                        Text("Odblokowano", fontSize = 11.sp, color = EnergyYellow, fontWeight = FontWeight.Bold)
-                                    } else {
-                                        // Naprawiona matematyka (zamiast uciętego operatora)
-                                        Text("Postęp: ${(badge.progress * 100).toInt()}%", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = { showAllBadgesModal = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
-                    shape = CircleShape
-                ) {
-                    Text("Zamknij", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
-                }
-            }
-        )
-    }
-
-    // Modal Rankingu Dzielnic
-    if (showLeaderboardModal) {
-        AlertDialog(
-            onDismissRequest = { showLeaderboardModal = false },
-            shape = RoundedCornerShape(24.dp),
-            title = {
-                Text("Ranking Dzielnic Łodzi", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    districtLeaderboard.forEach { district ->
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            color = if (district.isUserDistrict) primaryColor.copy(alpha = 0.1f) else Color.Transparent,
-                            border = BorderStroke(1.dp, if (district.isUserDistrict) primaryColor.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "#${district.rank}",
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 14.sp,
-                                        color = if (district.rank == 1) EnergyYellow else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        text = district.name,
-                                        fontWeight = if (district.isUserDistrict) FontWeight.Bold else FontWeight.Medium,
-                                        fontSize = 14.sp,
-                                        color = if (district.isUserDistrict) primaryColor else MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
-                                Text(
-                                    text = "${district.totalEnergyKWh} kWh",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = { showLeaderboardModal = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
-                    shape = CircleShape
-                ) {
-                    Text("Zamknij", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
-                }
-            }
-        )
-    }
-
-    // Modal Edycji
     if (showEditProfileDialog) {
         var editName by remember { mutableStateOf(stats.userName) }
         var newPassword by remember { mutableStateOf("") }
@@ -579,7 +474,6 @@ fun ProfileScreen(
     }
 }
 
-// Czysty, nowoczesny komponent wyzwania
 @Composable
 fun ModernChallengeCard(
     challenge: Challenge,
@@ -609,18 +503,7 @@ fun ModernChallengeCard(
                     modifier = Modifier.weight(1f)
                 )
 
-                Surface(
-                    shape = CircleShape,
-                    color = EnergyYellow.copy(alpha = 0.15f)
-                ) {
-                    Text(
-                        text = "+${challenge.rewardPoints} pkt",
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        color = EnergyYellow,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 11.sp
-                    )
-                }
+                PointsPill(points = challenge.rewardPoints)
             }
 
             Text(
@@ -635,7 +518,6 @@ fun ModernChallengeCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Własny, płynnie zaokrąglony pasek postępu (zamiast kanciastego LinearProgressIndicator)
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -666,7 +548,6 @@ fun ModernChallengeCard(
                         Text("Odbierz", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 } else {
-                    // Naprawiona matematyka (zamiast uciętego operatora)
                     Text(
                         text = "${(challenge.currentProgress * 100).toInt()}%",
                         fontSize = 12.sp,
@@ -679,7 +560,6 @@ fun ModernChallengeCard(
     }
 }
 
-// Czysty komponent liczbowy w głównym nagłówku
 @Composable
 private fun ProfileStatNumber(
     value: String,

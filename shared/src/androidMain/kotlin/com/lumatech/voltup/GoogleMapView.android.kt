@@ -1,11 +1,5 @@
 package com.lumatech.voltup
 
-import android.annotation.SuppressLint
-import android.webkit.JavascriptInterface
-import android.webkit.WebResourceError
-import android.webkit.WebResourceRequest
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -16,7 +10,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.*
@@ -27,13 +20,33 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MapStyleOptions
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.rememberCameraPositionState
+import com.google.maps.android.compose.rememberMarkerState
 
-@SuppressLint("SetJavaScriptEnabled")
+private const val DARK_MAP_STYLE_JSON = """[
+  {"elementType": "geometry", "stylers": [{"color": "#181C23"}]},
+  {"elementType": "labels.text.fill", "stylers": [{"color": "#94A3B8"}]},
+  {"elementType": "labels.text.stroke", "stylers": [{"color": "#181C23"}]},
+  {"featureType": "administrative", "elementType": "country", "stylers": [{"color": "#94A3B8"}]},
+  {"featureType": "poi", "elementType": "labels.text.fill", "stylers": [{"color": "#64748B"}]},
+  {"featureType": "poi.park", "elementType": "geometry", "stylers": [{"color": "#112217"}]},
+  {"featureType": "poi.park", "elementType": "labels.text.fill", "stylers": [{"color": "#00E676"}]},
+  {"featureType": "road", "elementType": "geometry", "stylers": [{"color": "#222731"}]},
+  {"featureType": "road", "elementType": "labels.text.fill", "stylers": [{"color": "#94A3B8"}]},
+  {"featureType": "water", "elementType": "geometry", "stylers": [{"color": "#0E1116"}]}
+]"""
+
 @Composable
 actual fun GoogleMapView(
     modifier: Modifier,
@@ -43,7 +56,26 @@ actual fun GoogleMapView(
 ) {
     val isDark = isSystemInDarkTheme()
     val hasApiKey = GOOGLE_MAPS_API_KEY.isNotBlank() && GOOGLE_MAPS_API_KEY != "YOUR_GOOGLE_MAPS_API_KEY_HERE"
-    var webViewError by remember { mutableStateOf(false) }
+
+    val initialLat = selectedStation?.latitude ?: 51.7592
+    val initialLng = selectedStation?.longitude ?: 19.4560
+
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(LatLng(initialLat, initialLng), 13f)
+    }
+
+    LaunchedEffect(selectedStation) {
+        if (selectedStation != null) {
+            try {
+                cameraPositionState.animate(
+                    CameraUpdateFactory.newLatLngZoom(
+                        LatLng(selectedStation.latitude, selectedStation.longitude),
+                        14f
+                    )
+                )
+            } catch (_: Exception) { }
+        }
+    }
 
     Box(
         modifier = modifier
@@ -51,84 +83,37 @@ actual fun GoogleMapView(
             .clip(RoundedCornerShape(18.dp))
             .background(if (isDark) DarkSurface else LightSurface)
     ) {
-        if (hasApiKey && !webViewError) {
-            AndroidView(
+        if (hasApiKey) {
+            GoogleMap(
                 modifier = Modifier.fillMaxSize(),
-                factory = { context ->
-                    WebView(context).apply {
-                        settings.javaScriptEnabled = true
-                        settings.domStorageEnabled = true
-                        settings.loadWithOverviewMode = true
-                        settings.useWideViewPort = true
-                        webViewClient = object : WebViewClient() {
-                            override fun onReceivedError(
-                                view: WebView?,
-                                request: WebResourceRequest?,
-                                error: WebResourceError?
-                            ) {
-                                super.onReceivedError(view, request, error)
-                                if (request?.isForMainFrame == true) {
-                                    webViewError = true
-                                }
-                            }
+                cameraPositionState = cameraPositionState,
+                properties = MapProperties(
+                    mapStyleOptions = if (isDark) MapStyleOptions(DARK_MAP_STYLE_JSON) else null
+                ),
+                uiSettings = MapUiSettings(
+                    zoomControlsEnabled = false,
+                    myLocationButtonEnabled = false,
+                    compassEnabled = false,
+                    mapToolbarEnabled = false
+                )
+            ) {
+                stations.forEach { station ->
+                    val markerState = rememberMarkerState(
+                        key = station.id,
+                        position = LatLng(station.latitude, station.longitude)
+                    )
+                    Marker(
+                        state = markerState,
+                        title = station.name,
+                        snippet = "${station.location} • ${station.distance}",
+                        onClick = {
+                            onStationSelected(station)
+                            true
                         }
-
-                        addJavascriptInterface(object {
-                            @JavascriptInterface
-                            fun onMarkerClick(stationId: String) {
-                                post {
-                                    stations.find { it.id == stationId }?.let { onStationSelected(it) }
-                                }
-                            }
-                        }, "AndroidBridge")
-                    }
-                },
-                update = { webView ->
-                    val markersJs = stations.joinToString(",") { s ->
-                        "{ id: '${s.id}', name: '${s.name.replace("'", "\\'")}', lat: ${s.latitude}, lng: ${s.longitude}, type: '${s.type.displayName}' }"
-                    }
-                    val centerLat = selectedStation?.latitude ?: 51.7592
-                    val centerLng = selectedStation?.longitude ?: 19.4560
-                    val html = """
-                        <!DOCTYPE html>
-                        <html>
-                        <head>
-                            <meta charset="utf-8" />
-                            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-                            <script src="https://maps.googleapis.com/maps/api/js?key=$GOOGLE_MAPS_API_KEY"></script>
-                            <style>
-                                body, html, #map { margin: 0; padding: 0; width: 100%; height: 100%; background: ${if (isDark) "#0E1116" else "#F8FAFC"}; }
-                            </style>
-                        </head>
-                        <body>
-                            <div id="map"></div>
-                            <script>
-                                var map = new google.maps.Map(document.getElementById('map'), {
-                                    center: { lat: $centerLat, lng: $centerLng },
-                                    zoom: 13,
-                                    disableDefaultUI: true,
-                                    styles: ${if (isDark) "[{'elementType':'geometry','stylers':[{'color':'#181C23'}]},{'elementType':'labels.text.fill','stylers':[{'color':'#94A3B8'}]}]" else "[]"}
-                                });
-                                var stations = [$markersJs];
-                                stations.forEach(function(s) {
-                                    var marker = new google.maps.Marker({
-                                        position: { lat: s.lat, lng: s.lng },
-                                        map: map,
-                                        title: s.name
-                                    });
-                                    marker.addListener('click', function() {
-                                        if (window.AndroidBridge) { window.AndroidBridge.onMarkerClick(s.id); }
-                                    });
-                                });
-                            </script>
-                        </body>
-                        </html>
-                    """.trimIndent()
-                    webView.loadDataWithBaseURL("https://maps.google.com", html, "text/html", "UTF-8", null)
+                    )
                 }
-            )
+            }
         } else {
-            // Interaktywna mapa wektorowa z informacją o kluczu API
             InteractiveSchematicMap(
                 stations = stations,
                 selectedStation = selectedStation,
@@ -137,7 +122,6 @@ actual fun GoogleMapView(
             )
         }
 
-        // Komunikat informacyjny w górnym rogu
         Surface(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -163,7 +147,7 @@ actual fun GoogleMapView(
                     modifier = Modifier.size(12.dp)
                 )
                 Text(
-                    text = if (hasApiKey) "Google Maps" else "Brak klucza API (podgląd)",
+                    text = if (hasApiKey) "Google Maps" else "Siatka interaktywna",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = if (hasApiKey) MaterialTheme.colorScheme.primary else EnergyYellow
@@ -204,13 +188,11 @@ private fun InteractiveSchematicMap(
         val width = maxWidth
         val height = maxHeight
 
-        // Canvas z siatką ulic i parków Łodzi
         Canvas(modifier = Modifier.fillMaxSize()) {
             val gridColor = if (isDark) Color(0xFF222731) else Color(0xFFE2E8F0)
             val streetColor = if (isDark) Color(0xFF1E232B) else Color(0xFFEDF2F7)
             val parkColor = if (isDark) Color(0xFF112217) else Color(0xFFE8F5E9)
 
-            // Tereny parków (Zdrowie, Poniatowski, Źródliska)
             drawRoundRect(
                 color = parkColor,
                 topLeft = Offset(size.width * 0.12f, size.height * 0.22f),
@@ -230,7 +212,6 @@ private fun InteractiveSchematicMap(
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(16f, 16f)
             )
 
-            // Główne arterie (np. Piotrkowska / W-Z)
             drawLine(
                 color = streetColor,
                 start = Offset(size.width * 0.50f, 0f),
@@ -244,7 +225,6 @@ private fun InteractiveSchematicMap(
                 strokeWidth = 4.dp.toPx()
             )
 
-            // Delikatna siatka
             val step = 40.dp.toPx()
             var x = 0f
             while (x < size.width) {
@@ -258,7 +238,6 @@ private fun InteractiveSchematicMap(
             }
         }
 
-        // Pinezki stacji
         stations.forEach { station ->
             val isSelected = station.id == selectedStation?.id
             val posX = width * station.mapCoordinatesX
@@ -294,7 +273,6 @@ private fun InteractiveSchematicMap(
             }
         }
 
-        // Pigułka informacyjna o wybranej stacji na dole
         if (selectedStation != null) {
             Surface(
                 modifier = Modifier
