@@ -5,9 +5,9 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.vector.ImageVector
 
 enum class AppThemeMode(val title: String, val subtitle: String) {
-    SYSTEM("Systemowy", "Dostosowuje się automatycznie do ustawień urządzenia"),
-    DARK("Ciemny", "Elegancki, minimalistyczny ciemny motyw z zielonym akcentem"),
-    LIGHT("Jasny", "Przejrzysty, jasny motyw o wysokim kontraście")
+    SYSTEM("Systemowy", "Dostosowuje się do ustawień urządzenia"),
+    DARK("Ciemny", "Minimalistyczny ciemny motyw"),
+    LIGHT("Jasny", "Przejrzysty jasny motyw")
 }
 
 data class WorkoutSessionRecord(
@@ -44,10 +44,7 @@ data class NotificationItem(
 data class AppSettings(
     val themeMode: AppThemeMode = AppThemeMode.SYSTEM,
     val soundEffectsEnabled: Boolean = true,
-    val hapticFeedbackEnabled: Boolean = true,
     val autoPauseWhenIdle: Boolean = true,
-    val targetSessionWh: Int = 100,
-    val homeDistrict: String = "Polesie",
     val dailyReminders: Boolean = true
 )
 
@@ -58,11 +55,11 @@ data class UserStats(
     val co2SavedKg: Double = 2.41,
     val streakDays: Int = 5,
     val userName: String = "Jan Kowalski",
-    val userDistrict: String = "Polesie (Park na Zdrowiu)",
+    val userDistrict: String = "Polesie",
     val avatarId: Int = 0,
     val level: Int = 4,
     val levelTitle: String = "Aktywista Kinetyczny",
-    val weeklyEnergyWh: List<Double> = listOf(65.0, 110.0, 95.0, 140.0, 180.0, 120.0, 130.0), // Pn..Nd
+    val weeklyEnergyWh: List<Double> = listOf(45.0, 75.0, 60.0, 110.0, 145.0, 85.0, 95.0),
     val recentWorkouts: List<WorkoutSessionRecord> = emptyList()
 )
 
@@ -113,6 +110,7 @@ data class Reward(
     val category: RewardCategory,
     val description: String,
     val discountCode: String = "LODZ-VOLT-2025",
+    val validityMinutes: Int = 20,
     val expiresDays: Int = 30
 ) {
     val icon: ImageVector
@@ -128,6 +126,9 @@ data class RedeemedReward(
     val reward: Reward,
     val discountCode: String,
     val redeemedDate: String,
+    val isActivated: Boolean = false,
+    val activatedTimestamp: Long? = null,
+    val validityMinutes: Int = 20,
     val isUsed: Boolean = false
 )
 
@@ -136,7 +137,7 @@ data class Challenge(
     val title: String,
     val description: String,
     val rewardPoints: Int,
-    val currentProgress: Float, // 0.0f .. 1.0f
+    val currentProgress: Float,
     val isCompleted: Boolean = false,
     val isClaimed: Boolean = false
 )

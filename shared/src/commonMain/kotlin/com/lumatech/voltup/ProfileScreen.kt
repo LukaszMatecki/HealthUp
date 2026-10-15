@@ -1,5 +1,7 @@
 package com.lumatech.voltup
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
@@ -27,20 +30,20 @@ fun ProfileScreen(
     challenges: List<Challenge>,
     badges: List<Badge> = MockData.sampleBadges,
     onClaimChallenge: (Challenge) -> Unit,
-    onUpdateUserProfile: (newName: String, newDistrict: String, newAvatarId: Int) -> Unit,
+    onUpdateUserProfile: (newName: String, newAvatarId: Int) -> Unit,
     onOpenSettings: () -> Unit
 ) {
     var showEditProfileDialog by remember { mutableStateOf(false) }
     var showAllBadgesModal by remember { mutableStateOf(false) }
     var showLeaderboardModal by remember { mutableStateOf(false) }
 
-    val districtLeaderboard = remember(stats.userDistrict) {
+    val districtLeaderboard = remember {
         listOf(
-            DistrictRank(1, "Śródmieście & Piotrkowska", 1340.5, isUserDistrict = stats.userDistrict.contains("Śródmieście")),
-            DistrictRank(2, "Polesie (Park na Zdrowiu)", 1210.2, isUserDistrict = stats.userDistrict.contains("Polesie")),
-            DistrictRank(3, "Widzew & Księży Młyn", 980.0, isUserDistrict = stats.userDistrict.contains("Widzew")),
-            DistrictRank(4, "Bałuty & Manufaktura", 890.4, isUserDistrict = stats.userDistrict.contains("Bałuty")),
-            DistrictRank(5, "Górna & Stawy Stefańskiego", 720.8, isUserDistrict = stats.userDistrict.contains("Górna"))
+            DistrictRank(1, "Śródmieście & Piotrkowska", 1340.5, isUserDistrict = false),
+            DistrictRank(2, "Polesie", 1210.2, isUserDistrict = true),
+            DistrictRank(3, "Widzew", 980.0, isUserDistrict = false),
+            DistrictRank(4, "Bałuty", 890.4, isUserDistrict = false),
+            DistrictRank(5, "Górna", 720.8, isUserDistrict = false)
         )
     }
 
@@ -51,15 +54,15 @@ fun ProfileScreen(
             .fillMaxSize()
             .statusBarsPadding(),
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Nagłówek profilu
+        // User Profile Header
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
             ) {
                 Column(
                     modifier = Modifier.padding(20.dp),
@@ -72,27 +75,16 @@ fun ProfileScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(8.dp),
                             color = EnergyYellow.copy(alpha = 0.15f)
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.LocalFireDepartment,
-                                    contentDescription = null,
-                                    tint = EnergyYellow,
-                                    modifier = Modifier.size(15.dp)
-                                )
-                                Text(
-                                    text = "Seria: ${stats.streakDays} dni",
-                                    color = EnergyYellow,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp
-                                )
-                            }
+                            Text(
+                                text = "Seria: ${stats.streakDays} dni",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                color = EnergyYellow,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            )
                         }
 
                         IconButton(
@@ -113,7 +105,7 @@ fun ProfileScreen(
                         modifier = Modifier
                             .size(72.dp)
                             .clip(CircleShape)
-                            .background(primaryColor.copy(alpha = 0.15f)),
+                            .background(primaryColor.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center
                     ) {
                         val avatarIcon = when (stats.avatarId) {
@@ -126,7 +118,7 @@ fun ProfileScreen(
                             imageVector = avatarIcon,
                             contentDescription = "Avatar",
                             tint = primaryColor,
-                            modifier = Modifier.size(38.dp)
+                            modifier = Modifier.size(36.dp)
                         )
                     }
 
@@ -137,7 +129,7 @@ fun ProfileScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "${stats.userDistrict} • Poziom ${stats.level}",
+                            text = "Poziom ${stats.level} • ${stats.levelTitle}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -154,7 +146,7 @@ fun ProfileScreen(
                         Text("Edytuj dane", fontSize = 12.sp)
                     }
 
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -172,7 +164,7 @@ fun ProfileScreen(
                         )
                         ProfileStatNumber(
                             value = "${stats.co2SavedKg.formatOneDecimal()} kg",
-                            label = "Zredukowane CO₂",
+                            label = "CO2 redukcja",
                             valueColor = primaryColor
                         )
                     }
@@ -180,20 +172,20 @@ fun ProfileScreen(
             }
         }
 
-        // Karta Osiągnięć (bez brzydkich ramek, z przyciskiem do pełnej listy!)
+        // Achievements Card
         item {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { showAllBadgesModal = true },
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(14.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -203,23 +195,23 @@ fun ProfileScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(44.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(EnergyYellow.copy(alpha = 0.15f)),
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(EnergyYellow.copy(alpha = 0.12f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.EmojiEvents,
                                 contentDescription = null,
                                 tint = EnergyYellow,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                         Column {
                             Text(
                                 text = "Osiągnięcia i Odznaki",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
@@ -232,7 +224,7 @@ fun ProfileScreen(
 
                     Text(
                         text = "Zobacz ➔",
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = primaryColor
                     )
@@ -240,20 +232,20 @@ fun ProfileScreen(
             }
         }
 
-        // Karta Ligi Dzielnic (osobny przycisk otwierający ranking!)
+        // Leaderboard Row
         item {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { showLeaderboardModal = true },
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(14.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -263,27 +255,27 @@ fun ProfileScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(44.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(primaryColor.copy(alpha = 0.15f)),
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(primaryColor.copy(alpha = 0.12f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.MilitaryTech,
                                 contentDescription = null,
                                 tint = primaryColor,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                         Column {
                             Text(
                                 text = "Ranking Dzielnic Łodzi",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "Twoja dzielnica: Polesie (#2)",
+                                text = "Polesie: 2. miejsce",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -292,7 +284,7 @@ fun ProfileScreen(
 
                     Text(
                         text = "Tabela ➔",
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = primaryColor
                     )
@@ -300,18 +292,41 @@ fun ProfileScreen(
             }
         }
 
-        // Wyzwania Tygodniowe (Nowa, czytelna, minimalistyczna forma)
+        // Weekly Challenges Header
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    text = "WYZWANIA TYGODNIOWE",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    letterSpacing = 1.sp
-                )
+            Text(
+                text = "WYZWANIA TYGODNIOWE",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                letterSpacing = 1.sp
+            )
+        }
 
-                challenges.forEach { challenge ->
+        // Animated disappearing challenges on claim!
+        val activeChallenges = challenges.filter { !it.isClaimed }
+        if (activeChallenges.isEmpty()) {
+            item {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                ) {
+                    Box(modifier = Modifier.padding(16.dp), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "Wszystkie wyzwania na ten tydzień ukończone.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        } else {
+            items(activeChallenges, key = { it.id }) { challenge ->
+                AnimatedVisibility(
+                    visible = !challenge.isClaimed,
+                    exit = slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) + fadeOut() + shrinkVertically()
+                ) {
                     ModernChallengeCard(
                         challenge = challenge,
                         onClaimClick = { onClaimChallenge(challenge) }
@@ -321,27 +336,22 @@ fun ProfileScreen(
         }
 
         item {
-            Spacer(modifier = Modifier.height(80.dp)) // padding for bottom bar
+            Spacer(modifier = Modifier.height(80.dp))
         }
     }
 
-    // Modal Wszystkich Osiągnięć
+    // Modal Wszystkich Osiągnięć (Modern)
     if (showAllBadgesModal) {
         AlertDialog(
             onDismissRequest = { showAllBadgesModal = false },
+            shape = RoundedCornerShape(20.dp),
             title = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(imageVector = Icons.Default.EmojiEvents, contentDescription = null, tint = EnergyYellow)
-                    Text("Twoje Osiągnięcia", fontWeight = FontWeight.Bold)
-                }
+                Text("Osiągnięcia", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
             },
             text = {
                 LazyColumn(
-                    modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 380.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(badges) { badge ->
                         Surface(
@@ -350,13 +360,13 @@ fun ProfileScreen(
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
                         ) {
                             Row(
-                                modifier = Modifier.padding(12.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.padding(10.dp),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(40.dp)
+                                        .size(36.dp)
                                         .clip(CircleShape)
                                         .background(if (badge.isUnlocked) EnergyYellow.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface),
                                     contentAlignment = Alignment.Center
@@ -365,14 +375,14 @@ fun ProfileScreen(
                                         imageVector = badge.icon,
                                         contentDescription = null,
                                         tint = if (badge.isUnlocked) EnergyYellow else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(18.dp)
                                     )
                                 }
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(badge.title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    Text(badge.title, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                     Text(badge.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     if (badge.isUnlocked) {
-                                        Text("✓ Odblokowano", fontSize = 11.sp, color = primaryColor, fontWeight = FontWeight.Bold)
+                                        Text("Odblokowano", fontSize = 11.sp, color = primaryColor, fontWeight = FontWeight.SemiBold)
                                     } else {
                                         Text("Postęp: ${(badge.progress * 100).toInt()}%", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
@@ -383,40 +393,37 @@ fun ProfileScreen(
                 }
             },
             confirmButton = {
-                Button(onClick = { showAllBadgesModal = false }, shape = RoundedCornerShape(10.dp)) {
+                Button(
+                    onClick = { showAllBadgesModal = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = Color.Black),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
                     Text("Zamknij")
                 }
             }
         )
     }
 
-    // Modal Rankingu Dzielnic
+    // Modal Rankingu Dzielnic (Modern)
     if (showLeaderboardModal) {
         AlertDialog(
             onDismissRequest = { showLeaderboardModal = false },
+            shape = RoundedCornerShape(20.dp),
             title = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(imageVector = Icons.Default.MilitaryTech, contentDescription = null, tint = primaryColor)
-                    Text("Liga Dzielnic Łodzi", fontWeight = FontWeight.Bold)
-                }
+                Text("Ranking Dzielnic Łodzi", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Punkty wygenerowane w tym miesiącu:", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(modifier = Modifier.height(4.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     districtLeaderboard.forEach { district ->
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(10.dp),
-                            color = if (district.isUserDistrict) primaryColor.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant
+                            color = if (district.isUserDistrict) primaryColor.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant
                         ) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                    .padding(horizontal = 12.dp, vertical = 9.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -427,6 +434,7 @@ fun ProfileScreen(
                                     Text(
                                         text = "#${district.rank}",
                                         fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp,
                                         color = if (district.rank == 1) EnergyYellow else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Text(
@@ -448,42 +456,49 @@ fun ProfileScreen(
                 }
             },
             confirmButton = {
-                Button(onClick = { showLeaderboardModal = false }, shape = RoundedCornerShape(10.dp)) {
+                Button(
+                    onClick = { showLeaderboardModal = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = Color.Black),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
                     Text("Zamknij")
                 }
             }
         )
     }
 
-    // Modal edycji profilu
+    // Modal Edycji Danych (Imię, Hasło, Awatar)
     if (showEditProfileDialog) {
         var editName by remember { mutableStateOf(stats.userName) }
-        var editDistrict by remember { mutableStateOf(stats.userDistrict) }
+        var newPassword by remember { mutableStateOf("") }
         var editAvatar by remember { mutableStateOf(stats.avatarId) }
-
-        val districtOptions = listOf(
-            "Polesie (Park na Zdrowiu)",
-            "Śródmieście & Piotrkowska",
-            "Widzew & Księży Młyn",
-            "Bałuty & Manufaktura",
-            "Górna & Stawy Stefańskiego"
-        )
 
         AlertDialog(
             onDismissRequest = { showEditProfileDialog = false },
-            title = { Text("Edytuj profil", fontWeight = FontWeight.Bold) },
+            shape = RoundedCornerShape(20.dp),
+            title = { Text("Edytuj dane profilu", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = editName,
                         onValueChange = { editName = it },
-                        label = { Text("Twoje imię") },
+                        label = { Text("Imię") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         shape = RoundedCornerShape(10.dp)
                     )
 
-                    Text("Wybierz ikonę:", style = MaterialTheme.typography.labelSmall)
+                    OutlinedTextField(
+                        value = newPassword,
+                        onValueChange = { newPassword = it },
+                        label = { Text("Nowe hasło (opcjonalnie)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+
+                    Text("Wybierz ikonę profilu:", style = MaterialTheme.typography.labelSmall)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceAround
@@ -493,6 +508,7 @@ fun ProfileScreen(
                             IconButton(
                                 onClick = { editAvatar = id },
                                 modifier = Modifier
+                                    .size(42.dp)
                                     .clip(CircleShape)
                                     .background(if (isSel) primaryColor.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant)
                             ) {
@@ -500,31 +516,12 @@ fun ProfileScreen(
                             }
                         }
                     }
-
-                    Text("Twoja dzielnica:", style = MaterialTheme.typography.labelSmall)
-                    districtOptions.forEach { d ->
-                        val isSel = editDistrict == d
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable { editDistrict = d },
-                            color = if (isSel) primaryColor.copy(alpha = 0.15f) else Color.Transparent
-                        ) {
-                            Text(
-                                text = d,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                                fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isSel) primaryColor else MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        onUpdateUserProfile(editName, editDistrict, editAvatar)
+                        onUpdateUserProfile(editName, editAvatar)
                         showEditProfileDialog = false
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = Color.Black),
@@ -551,11 +548,11 @@ fun ModernChallengeCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -564,20 +561,20 @@ fun ModernChallengeCard(
             ) {
                 Text(
                     text = challenge.title,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f)
                 )
 
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = if (challenge.isClaimed) MaterialTheme.colorScheme.surfaceVariant else EnergyYellow.copy(alpha = 0.15f)
+                    shape = RoundedCornerShape(6.dp),
+                    color = EnergyYellow.copy(alpha = 0.15f)
                 ) {
                     Text(
-                        text = if (challenge.isClaimed) "Odebrane ✓" else "+${challenge.rewardPoints} pkt",
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        color = if (challenge.isClaimed) MaterialTheme.colorScheme.onSurfaceVariant else EnergyYellow,
+                        text = "+${challenge.rewardPoints} pkt",
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        color = EnergyYellow,
                         fontWeight = FontWeight.Bold,
                         fontSize = 11.sp
                     )
@@ -599,13 +596,13 @@ fun ModernChallengeCard(
                     progress = { challenge.currentProgress },
                     modifier = Modifier
                         .weight(1f)
-                        .height(6.dp)
+                        .height(5.dp)
                         .clip(RoundedCornerShape(3.dp)),
                     color = MaterialTheme.colorScheme.primary,
                     trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
 
-                if (challenge.isCompleted && !challenge.isClaimed) {
+                if (challenge.isCompleted) {
                     Button(
                         onClick = onClaimClick,
                         colors = ButtonDefaults.buttonColors(
@@ -632,17 +629,22 @@ fun ModernChallengeCard(
 }
 
 @Composable
-fun ProfileStatNumber(value: String, label: String, valueColor: Color) {
+private fun ProfileStatNumber(
+    value: String,
+    label: String,
+    valueColor: Color
+) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = value,
+            style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            fontSize = 17.sp,
             color = valueColor
         )
+        Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = label,
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
@@ -657,9 +659,8 @@ fun ProfileScreenPreview() {
             challenges = MockData.sampleChallenges,
             badges = MockData.sampleBadges,
             onClaimChallenge = {},
-            onUpdateUserProfile = { _, _, _ -> },
+            onUpdateUserProfile = { _, _ -> },
             onOpenSettings = {}
         )
     }
 }
-

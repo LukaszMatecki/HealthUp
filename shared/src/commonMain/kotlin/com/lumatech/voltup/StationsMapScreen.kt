@@ -1,5 +1,8 @@
 package com.lumatech.voltup
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -7,7 +10,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -25,7 +27,7 @@ import androidx.compose.ui.tooling.preview.Preview
 @Composable
 fun StationsMapScreen(
     stations: List<KineticStation> = MockData.sampleStations,
-    onSelectStationToWorkout: (KineticStation) -> Unit
+    onSelectStationToScanQr: (KineticStation) -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedDeviceType by remember { mutableStateOf<DeviceType?>(null) }
@@ -35,8 +37,7 @@ fun StationsMapScreen(
         stations.filter { station ->
             val matchesQuery = searchQuery.isBlank() ||
                     station.name.contains(searchQuery, ignoreCase = true) ||
-                    station.location.contains(searchQuery, ignoreCase = true) ||
-                    station.district.contains(searchQuery, ignoreCase = true)
+                    station.location.contains(searchQuery, ignoreCase = true)
             val matchesType = selectedDeviceType == null || station.type == selectedDeviceType
             matchesQuery && matchesType
         }
@@ -49,51 +50,44 @@ fun StationsMapScreen(
             .padding(top = 16.dp)
     ) {
         // Minimalist Header
-        Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
-                text = "EKO-PUNKTY ŁÓDŹ",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
+                text = "Mapa",
+                style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = 1.2.sp
+                color = MaterialTheme.colorScheme.onBackground
             )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant
             ) {
                 Text(
-                    text = "Mapa",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
+                    text = "${filteredStations.size} stacji",
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant
-                ) {
-                    Text(
-                        text = "${filteredStations.size} punktów",
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
             }
         }
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Interaktywna Prawdziwa Mapa Google
+        // Interaktywna Mapa ze statusem
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(210.dp)
+                .height(220.dp)
                 .padding(horizontal = 20.dp)
-                .clip(RoundedCornerShape(20.dp))
-                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(18.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(18.dp))
         ) {
             GoogleMapView(
                 modifier = Modifier.fillMaxSize(),
@@ -103,52 +97,24 @@ fun StationsMapScreen(
                     selectedStation = station
                 }
             )
-
-            // Minimalist badge on map
-            Surface(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(10.dp),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary)
-                    )
-                    Text(
-                        text = "Łódź • Google Maps",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
-        // Search Bar (Minimalist)
+        // Minimalist Search Bar
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp),
-            placeholder = { Text("Szukaj parku lub stacji...", fontSize = 14.sp) },
+            placeholder = { Text("Szukaj stacji lub parku...", fontSize = 14.sp) },
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             },
             trailingIcon = {
@@ -163,28 +129,41 @@ fun StationsMapScreen(
                 focusedContainerColor = MaterialTheme.colorScheme.surface,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
             ),
             singleLine = true
         )
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Filtry kategorii
+        // Kafelki sortowania / Filtry kategorii (Nowoczesne zaokrąglone pigułki)
         LazyRow(
             contentPadding = PaddingValues(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item {
+                val isAllSelected = selectedDeviceType == null
                 FilterChip(
-                    selected = selectedDeviceType == null,
+                    selected = isAllSelected,
                     onClick = { selectedDeviceType = null },
-                    label = { Text("Wszystkie", fontSize = 12.sp) },
-                    shape = RoundedCornerShape(10.dp),
+                    label = {
+                        Text(
+                            "Wszystkie",
+                            fontSize = 12.sp,
+                            fontWeight = if (isAllSelected) FontWeight.Bold else FontWeight.Normal
+                        )
+                    },
+                    shape = RoundedCornerShape(20.dp),
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = MaterialTheme.colorScheme.primary,
-                        selectedLabelColor = Color.Black
-                    )
+                        selectedLabelColor = Color.Black,
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    border = if (!isAllSelected) FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = false,
+                        borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+                    ) else null
                 )
             }
             items(DeviceType.entries) { type ->
@@ -192,124 +171,110 @@ fun StationsMapScreen(
                 FilterChip(
                     selected = isSelected,
                     onClick = { selectedDeviceType = if (isSelected) null else type },
-                    label = { Text(type.displayName, fontSize = 12.sp) },
-                    shape = RoundedCornerShape(10.dp),
+                    label = {
+                        Text(
+                            type.displayName,
+                            fontSize = 12.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                        )
+                    },
+                    shape = RoundedCornerShape(20.dp),
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = MaterialTheme.colorScheme.primary,
-                        selectedLabelColor = Color.Black
-                    )
+                        selectedLabelColor = Color.Black,
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    border = if (!isSelected) FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = false,
+                        borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+                    ) else null
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
-        // Lista Stacji
+        // Station List
         LazyColumn(
-            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 6.dp),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier.fillMaxSize()
         ) {
-            items(filteredStations) { station ->
+            items(filteredStations, key = { it.id }) { station ->
                 val isSelected = station.id == selectedStation?.id
-                MinimalStationCard(
-                    station = station,
-                    isSelected = isSelected,
-                    onCardClick = { selectedStation = station },
-                    onStartClick = { onSelectStationToWorkout(station) }
-                )
-            }
-            item {
-                Spacer(modifier = Modifier.height(80.dp)) // padding for bottom bar
-            }
-        }
-    }
-}
-
-@Composable
-fun MinimalStationCard(
-    station: KineticStation,
-    isSelected: Boolean,
-    onCardClick: () -> Unit,
-    onStartClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onCardClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = if (isSelected) androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
-        else androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                        else MaterialTheme.colorScheme.surfaceVariant
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = station.type.icon,
-                    contentDescription = null,
-                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = station.name,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "${station.location} • ${station.distance}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.padding(top = 2.dp)
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { selectedStation = station },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = if (isSelected) androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+                    else androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
                 ) {
-                    Box(
+                    Row(
                         modifier = Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary)
-                    )
-                    Text(
-                        text = "${station.activeUsersCount} os. ćwiczy",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(
+                                    if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                    else MaterialTheme.colorScheme.surfaceVariant
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = station.type.icon,
+                                contentDescription = null,
+                                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = station.name,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "${station.location} • ${station.distance}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        // Bezpośrednie przejście do skanera QR bez zbędnego dialogu
+                        Button(
+                            onClick = { onSelectStationToScanQr(station) },
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = Color.Black
+                            ),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                            modifier = Modifier.height(34.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(Icons.Default.QrCodeScanner, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Text("Skanuj", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
                 }
             }
-
-            Button(
-                onClick = onStartClick,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = Color.Black
-                ),
-                shape = RoundedCornerShape(10.dp),
-                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
-            ) {
-                Text("Połącz ⚡", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            item {
+                Spacer(modifier = Modifier.height(80.dp))
             }
         }
     }
@@ -321,7 +286,7 @@ fun StationsMapScreenPreview() {
     VoltUpTheme(AppThemeMode.DARK) {
         StationsMapScreen(
             stations = MockData.sampleStations,
-            onSelectStationToWorkout = {}
+            onSelectStationToScanQr = {}
         )
     }
 }
