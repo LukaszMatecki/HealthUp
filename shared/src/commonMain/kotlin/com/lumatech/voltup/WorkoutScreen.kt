@@ -40,12 +40,13 @@ fun WorkoutScreen(
     onFinishWorkout: (earnedWh: Double, earnedPoints: Int, workoutRecord: WorkoutSessionRecord) -> Unit,
     onCancel: () -> Unit
 ) {
+    var hasStarted by remember { mutableStateOf(false) }
     var secondsElapsed by remember { mutableIntStateOf(0) }
     var resistanceLevel by remember { mutableIntStateOf(5) }
     var isPaused by remember { mutableStateOf(false) }
-    var currentWatts by remember { mutableIntStateOf(65) }
-    var currentRpm by remember { mutableIntStateOf(60) }
-    var currentHeartRate by remember { mutableIntStateOf(85) }
+    var currentWatts by remember { mutableIntStateOf(0) }
+    var currentRpm by remember { mutableIntStateOf(0) }
+    var currentHeartRate by remember { mutableIntStateOf(75) }
     var totalGeneratedWh by remember { mutableDoubleStateOf(0.0) }
 
     var showCompletionModal by remember { mutableStateOf(false) }
@@ -58,44 +59,42 @@ fun WorkoutScreen(
         showCancelConfirmModal = true
     }
 
-    LaunchedEffect(isPaused, resistanceLevel) {
-        while (!isPaused) {
-            delay(1.seconds)
-            secondsElapsed++
-
-            val baseWatts = resistanceLevel * 16
-            val randomDelta = (-5..8).random()
-            currentWatts = (baseWatts + randomDelta).coerceAtLeast(10)
-            currentRpm = (50 + (resistanceLevel * 2) + (-3..4).random()).coerceIn(40, 100)
-
-            val targetHr = 80 + (resistanceLevel * 6) + (currentRpm / 2)
-            currentHeartRate = (targetHr + (-2..2).random()).coerceIn(70, 185)
-
-            val whPerSecond = currentWatts / 3600.0
-            totalGeneratedWh += whPerSecond
-
-            energyHistory.add(totalGeneratedWh.toFloat())
-            if (energyHistory.size > 60) {
-                energyHistory.removeAt(0)
-            }
-        }
-    }
-
-    LaunchedEffect(isPaused) {
-        if (isPaused) {
-            currentWatts = 0
-            currentRpm = 0
-            while (isPaused) {
+    // Active workout loop - ticks only when hasStarted, !isPaused, and modals are not open
+    LaunchedEffect(hasStarted, isPaused, showCompletionModal, showCancelConfirmModal, resistanceLevel) {
+        if (hasStarted && !isPaused && !showCompletionModal && !showCancelConfirmModal) {
+            while (hasStarted && !isPaused && !showCompletionModal && !showCancelConfirmModal) {
                 delay(1.seconds)
                 secondsElapsed++
-                currentHeartRate = (currentHeartRate - 1).coerceAtLeast(70)
+
+                val baseWatts = resistanceLevel * 16
+                val randomDelta = (-5..8).random()
+                currentWatts = (baseWatts + randomDelta).coerceAtLeast(10)
+                currentRpm = (50 + (resistanceLevel * 2) + (-3..4).random()).coerceIn(40, 100)
+
+                val targetHr = 80 + (resistanceLevel * 6) + (currentRpm / 2)
+                currentHeartRate = (targetHr + (-2..2).random()).coerceIn(70, 185)
+
+                val whPerSecond = currentWatts / 3600.0
+                totalGeneratedWh += whPerSecond
+
                 energyHistory.add(totalGeneratedWh.toFloat())
-                if (energyHistory.size > 60) energyHistory.removeAt(0)
+                if (energyHistory.size > 60) {
+                    energyHistory.removeAt(0)
+                }
             }
         }
     }
 
-    val earnedPoints = (totalGeneratedWh * 1.0).roundToInt().coerceAtLeast(1)
+    // Paused loop - drops watts and rpm to 0, slowly lowers HR
+    LaunchedEffect(isPaused, showCompletionModal, showCancelConfirmModal) {
+        if (hasStarted && (isPaused || showCompletionModal || showCancelConfirmModal)) {
+            currentWatts = 0
+            currentRpm = 0
+        }
+    }
+
+    // VoltPoints calculation - starts at 0, accumulates much slower (1 pt per 20 Wh)
+    val earnedPoints = (totalGeneratedWh * 0.05).toInt()
     val co2Saved = totalGeneratedWh * 0.0007
     val caloriesBurned = (totalGeneratedWh * 0.7 + (secondsElapsed * 0.08)).roundToInt()
     val distanceKm = (secondsElapsed * 0.0065) + (totalGeneratedWh * 0.012)
@@ -111,12 +110,12 @@ fun WorkoutScreen(
     val rpmGradient = listOf(Color(0xFF56CCF2), Color(0xFF2F80ED))
 
     val animatedWatts by animateIntAsState(
-        targetValue = currentWatts,
+        targetValue = if (hasStarted && !isPaused && !showCompletionModal && !showCancelConfirmModal) currentWatts else 0,
         animationSpec = tween(800),
         label = "watts"
     )
     val sweepAngle by animateFloatAsState(
-        targetValue = if (isPaused) 10f else ((animatedWatts.toFloat() / 150f) * 280f).coerceIn(10f, 280f),
+        targetValue = if (!hasStarted) 0f else if (isPaused || showCompletionModal) 10f else ((animatedWatts.toFloat() / 150f) * 280f).coerceIn(10f, 280f),
         animationSpec = tween(800),
         label = "sweep"
     )
@@ -156,9 +155,20 @@ fun WorkoutScreen(
                     )
                 }
 
+                val statusText = when {
+                    !hasStarted -> "GOTOWY"
+                    isPaused -> "WSTRZYMANO"
+                    else -> "AKTYWNY"
+                }
+                val statusColor = when {
+                    !hasStarted -> primaryColor
+                    isPaused -> warningColor
+                    else -> primaryColor
+                }
+
                 Surface(
                     shape = CircleShape,
-                    color = if (isPaused) warningColor.copy(alpha = 0.15f) else primaryColor.copy(alpha = 0.15f)
+                    color = statusColor.copy(alpha = 0.15f)
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
@@ -169,13 +179,13 @@ fun WorkoutScreen(
                             modifier = Modifier
                                 .size(8.dp)
                                 .clip(CircleShape)
-                                .background(if (isPaused) warningColor else primaryColor)
+                                .background(statusColor)
                         )
                         Text(
-                            text = if (isPaused) "WSTRZYMANO" else "AKTYWNY",
+                            text = statusText,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Black,
-                            color = if (isPaused) warningColor else primaryColor,
+                            color = statusColor,
                             letterSpacing = 1.sp
                         )
                     }
@@ -209,40 +219,66 @@ fun WorkoutScreen(
                             style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
                         )
 
-                        drawArc(
-                            color = if (isPaused) warningColor else primaryColor,
-                            startAngle = 130f,
-                            sweepAngle = sweepAngle,
-                            useCenter = false,
-                            topLeft = topLeftOffset,
-                            size = Size(radius * 2, radius * 2),
-                            style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
-                        )
+                        if (hasStarted) {
+                            drawArc(
+                                color = if (isPaused) warningColor else primaryColor,
+                                startAngle = 130f,
+                                sweepAngle = sweepAngle,
+                                useCenter = false,
+                                topLeft = topLeftOffset,
+                                size = Size(radius * 2, radius * 2),
+                                style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                            )
+                        }
                     }
 
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Text(
-                            text = if (isPaused) "PAUZA" else animatedWatts.toString(),
-                            fontSize = if (isPaused) 36.sp else 64.sp,
-                            fontWeight = FontWeight.Light,
-                            color = if (isPaused) warningColor else MaterialTheme.colorScheme.onBackground,
-                            letterSpacing = (-2).sp,
-                            modifier = if (isPaused) Modifier.clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) { isPaused = false } else Modifier
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = if (isPaused) "KLIKNIJ BY WZNOWIĆ" else "WATY (MOC)",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 2.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        if (!hasStarted) {
+                            Text(
+                                text = "START",
+                                fontSize = 48.sp,
+                                fontWeight = FontWeight.Black,
+                                color = primaryColor,
+                                letterSpacing = (-1).sp,
+                                modifier = Modifier.clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    hasStarted = true
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "KLIKNIJ ABY ROZPOCZĄĆ",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 1.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        } else {
+                            Text(
+                                text = if (isPaused) "PAUZA" else animatedWatts.toString(),
+                                fontSize = if (isPaused) 36.sp else 64.sp,
+                                fontWeight = FontWeight.Light,
+                                color = if (isPaused) warningColor else MaterialTheme.colorScheme.onBackground,
+                                letterSpacing = (-2).sp,
+                                modifier = if (isPaused) Modifier.clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) { isPaused = false } else Modifier
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = if (isPaused) "KLIKNIJ BY WZNOWIĆ" else "WATY (MOC)",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 2.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
 
@@ -254,16 +290,22 @@ fun WorkoutScreen(
                     Surface(
                         modifier = Modifier
                             .size(52.dp)
-                            .clickable { isPaused = !isPaused },
+                            .clickable {
+                                if (!hasStarted) {
+                                    hasStarted = true
+                                } else {
+                                    isPaused = !isPaused
+                                }
+                            },
                         shape = CircleShape,
-                        color = if (isPaused) warningColor.copy(alpha = 0.2f) else surfaceVariantColor.copy(alpha = 0.4f),
-                        border = BorderStroke(1.dp, if (isPaused) warningColor else surfaceVariantColor)
+                        color = if (isPaused || !hasStarted) warningColor.copy(alpha = 0.2f) else surfaceVariantColor.copy(alpha = 0.4f),
+                        border = BorderStroke(1.dp, if (isPaused || !hasStarted) warningColor else surfaceVariantColor)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
-                                imageVector = if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
-                                contentDescription = if (isPaused) "Wznów" else "Pauza",
-                                tint = if (isPaused) warningColor else MaterialTheme.colorScheme.onSurface,
+                                imageVector = if (!hasStarted || isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
+                                contentDescription = if (!hasStarted || isPaused) "Start/Wznów" else "Pauza",
+                                tint = if (!hasStarted || isPaused) warningColor else MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -272,9 +314,13 @@ fun WorkoutScreen(
                     Surface(
                         modifier = Modifier
                             .size(52.dp)
-                            .clickable { showCompletionModal = true },
+                            .clickable {
+                                if (hasStarted) {
+                                    showCompletionModal = true
+                                }
+                            },
                         shape = CircleShape,
-                        color = primaryColor
+                        color = if (hasStarted) primaryColor else primaryColor.copy(alpha = 0.4f)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
@@ -413,7 +459,7 @@ fun WorkoutScreen(
                     }
 
                     MiniRingGauge(
-                        progress = currentRpm / 100f,
+                        progress = (currentRpm / 100f).coerceIn(0f, 1f),
                         gradientColors = rpmGradient,
                         title = "Prędkość"
                     ) {
@@ -461,7 +507,7 @@ fun WorkoutScreen(
                             }
                             Text(
                                 text = "+$earnedPoints",
-                                fontSize = 50.sp,
+                                fontSize = 48.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = primaryColor,
                                 letterSpacing = (-1).sp
@@ -545,7 +591,7 @@ fun WorkoutScreen(
         )
 
         AlertDialog(
-            onDismissRequest = {},
+            onDismissRequest = { showCompletionModal = false },
             shape = RoundedCornerShape(24.dp),
             title = {
                 Text("Podsumowanie Sesji", fontWeight = FontWeight.Bold, fontSize = 20.sp)
@@ -596,6 +642,13 @@ fun WorkoutScreen(
                     shape = CircleShape
                 ) {
                     Text("Zapisz i odbierz punkty", fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(vertical = 4.dp))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showCompletionModal = false }
+                ) {
+                    Text("Kontynuuj trening", fontWeight = FontWeight.Bold, color = primaryColor)
                 }
             }
         )

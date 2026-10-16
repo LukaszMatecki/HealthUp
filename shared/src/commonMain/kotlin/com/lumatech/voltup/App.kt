@@ -188,7 +188,7 @@ fun App() {
 
                         is Screen.Achievements -> {
                             AchievementsScreen(
-                                badges = badges,
+                                badges = badges.map { it.toBadgeModel() },
                                 onNavigateBack = { currentScreen = Screen.Main }
                             )
                         }
@@ -322,9 +322,6 @@ fun App() {
                                                 },
                                                 onOpenSettings = {
                                                     currentScreen = Screen.Settings
-                                                },
-                                                onOpenRanking = {
-                                                    currentScreen = Screen.Ranking
                                                 },
                                                 onOpenAchievements = {
                                                     currentScreen = Screen.Achievements

@@ -21,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -36,37 +37,258 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 
 class TicketShape(
-    private val cornerRadius: Float = 40f,
+    private val cornerRadius: Float = 32f,
     private val cutoutRadius: Float = 24f,
     private val splitRatio: Float = 0.7f
 ) : Shape {
     override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
         val path = Path().apply {
-            val r = cornerRadius
-            val cutout = cutoutRadius
-            val x = size.width * splitRatio
+            val splitX = size.width * splitRatio
 
-            moveTo(r, 0f)
-            lineTo(x - cutout, 0f)
-            arcTo(Rect(x - cutout, -cutout, x + cutout, cutout), 180f, -180f, false)
-            lineTo(size.width - r, 0f)
-            arcTo(Rect(size.width - 2 * r, 0f, size.width, 2 * r), 270f, 90f, false)
+            // Lewy górny róg
+            moveTo(cornerRadius, 0f)
 
-            val rightCutout = cutout * 0.8f
-            lineTo(size.width, (size.height / 2f) - rightCutout)
-            arcTo(Rect(size.width - rightCutout, (size.height / 2f) - rightCutout, size.width + rightCutout, (size.height / 2f) + rightCutout), 270f, -180f, false)
+            // Górna krawędź do wycięcia
+            lineTo(splitX - cutoutRadius, 0f)
+            // Górne wycięcie
+            arcTo(
+                rect = Rect(
+                    left = splitX - cutoutRadius,
+                    top = -cutoutRadius,
+                    right = splitX + cutoutRadius,
+                    bottom = cutoutRadius
+                ),
+                startAngleDegrees = 180f,
+                sweepAngleDegrees = -180f,
+                forceMoveTo = false
+            )
+            // Górna krawędź od wycięcia do prawego górnego rogu
+            lineTo(size.width - cornerRadius, 0f)
 
-            lineTo(size.width, size.height - r)
-            arcTo(Rect(size.width - 2 * r, size.height - 2 * r, size.width, size.height), 0f, 90f, false)
-            lineTo(x + cutout, size.height)
-            arcTo(Rect(x - cutout, size.height - cutout, x + cutout, size.height + cutout), 0f, -180f, false)
-            lineTo(r, size.height)
-            arcTo(Rect(0f, size.height - 2 * r, 2 * r, size.height), 90f, 90f, false)
-            lineTo(0f, r)
-            arcTo(Rect(0f, 0f, 2 * r, 2 * r), 180f, 90f, false)
+            // Prawy górny róg
+            arcTo(
+                rect = Rect(size.width - 2 * cornerRadius, 0f, size.width, 2 * cornerRadius),
+                startAngleDegrees = 270f,
+                sweepAngleDegrees = 90f,
+                forceMoveTo = false
+            )
+
+            // Prawa krawędź
+            lineTo(size.width, size.height - cornerRadius)
+
+            // Prawy dolny róg
+            arcTo(
+                rect = Rect(size.width - 2 * cornerRadius, size.height - 2 * cornerRadius, size.width, size.height),
+                startAngleDegrees = 0f,
+                sweepAngleDegrees = 90f,
+                forceMoveTo = false
+            )
+
+            // Dolna krawędź do wycięcia
+            lineTo(splitX + cutoutRadius, size.height)
+            // Dolne wycięcie
+            arcTo(
+                rect = Rect(
+                    left = splitX - cutoutRadius,
+                    top = size.height - cutoutRadius,
+                    right = splitX + cutoutRadius,
+                    bottom = size.height + cutoutRadius
+                ),
+                startAngleDegrees = 0f,
+                sweepAngleDegrees = -180f,
+                forceMoveTo = false
+            )
+            // Dolna krawędź od wycięcia do lewego dolnego rogu
+            lineTo(cornerRadius, size.height)
+
+            // Lewy dolny róg
+            arcTo(
+                rect = Rect(0f, size.height - 2 * cornerRadius, 2 * cornerRadius, size.height),
+                startAngleDegrees = 90f,
+                sweepAngleDegrees = 90f,
+                forceMoveTo = false
+            )
+
+            // Lewa krawędź
+            lineTo(0f, cornerRadius)
+
+            // Zakończenie lewego górnego rogu
+            arcTo(
+                rect = Rect(0f, 0f, 2 * cornerRadius, 2 * cornerRadius),
+                startAngleDegrees = 180f,
+                sweepAngleDegrees = 90f,
+                forceMoveTo = false
+            )
             close()
         }
         return Outline.Generic(path)
+    }
+}
+
+@Composable
+fun CouponCard(
+    title: String,
+    partner: String,
+    subtitle: String,
+    mainValue: String,
+    valueLabel: String,
+    isAffordableOrActive: Boolean,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit
+) {
+    val splitRatio = 0.72f // Przesunięto delikatnie w prawo dla lepszych proporcji
+
+    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val surfaceVariant = MaterialTheme.colorScheme.surfaceVariant
+    val ticketBrush = remember(isAffordableOrActive, isDark, surfaceVariant) {
+        if (isAffordableOrActive) {
+            if (isDark) {
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFF222838),
+                        Color(0xFF141824),
+                        Color(0xFF1C2234)
+                    )
+                )
+            } else {
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFFFFFFFF),
+                        Color(0xFFF1F5F9),
+                        Color(0xFFE2E8F0)
+                    )
+                )
+            }
+        } else {
+            Brush.linearGradient(
+                colors = listOf(
+                    surfaceVariant.copy(alpha = 0.25f),
+                    surfaceVariant.copy(alpha = 0.10f)
+                )
+            )
+        }
+    }
+
+    val textColor = if (isAffordableOrActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+    val textLightColor = textColor.copy(alpha = 0.7f)
+
+    val ticketShape = remember { TicketShape(splitRatio = splitRatio) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(150.dp)
+            .padding(vertical = 4.dp)
+            .shadow(
+                elevation = if (isAffordableOrActive) 6.dp else 1.dp,
+                shape = ticketShape,
+                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+            )
+            .clip(ticketShape)
+            .background(ticketBrush)
+            .clickable(enabled = isAffordableOrActive, onClick = onClick)
+    ) {
+        // Zintegrowana linia przerywana pod spodem - idealnie spasowana z wycięciami
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val splitX = size.width * splitRatio
+            drawLine(
+                color = textLightColor.copy(alpha = 0.3f),
+                start = Offset(splitX, 16.dp.toPx()),
+                end = Offset(splitX, size.height - 16.dp.toPx()),
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 15f), 0f),
+                strokeWidth = 3f,
+                cap = StrokeCap.Round
+            )
+        }
+
+        Row(modifier = Modifier.fillMaxSize()) {
+            // Lewa sekcja (Informacje)
+            Column(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(splitRatio)
+                    .padding(start = 24.dp, top = 24.dp, bottom = 24.dp, end = 24.dp),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surface),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                    }
+                    Text(
+                        text = partner.uppercase(),
+                        color = textLightColor,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.2.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = title,
+                        color = textColor,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        maxLines = 2,
+                        lineHeight = 22.sp
+                    )
+                    if (subtitle.isNotEmpty()) {
+                        Text(
+                            text = subtitle,
+                            color = textLightColor,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+
+            // Prawa sekcja (Wartość / Akcja)
+            Column(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .weight(1f)
+                    .padding(horizontal = 12.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                if (mainValue.isNotEmpty()) {
+                    Text(
+                        text = mainValue,
+                        color = if (isAffordableOrActive) MaterialTheme.colorScheme.primary else textColor,
+                        fontSize = if (mainValue.length > 5) 18.sp else 26.sp,
+                        fontWeight = FontWeight.Black,
+                        textAlign = TextAlign.Center
+                    )
+                    if (valueLabel.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isAffordableOrActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color.Transparent
+                        ) {
+                            Text(
+                                text = valueLabel,
+                                color = textLightColor,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -128,7 +350,7 @@ fun RewardsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .statusBarsPadding()
-                    .padding(top = 16.dp)
+                    .padding(vertical = 16.dp)
             ) {
                 Row(
                     modifier = Modifier
@@ -137,16 +359,26 @@ fun RewardsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Nagrody VoltUp",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "Nagrody ",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Text(
+                            text = "VoltUp",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Light,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
 
+                    val orangeColor = Color(0xFFFF9800)
                     Surface(
                         shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer
+                        color = orangeColor.copy(alpha = 0.15f),
+                        border = BorderStroke(1.dp, orangeColor.copy(alpha = 0.3f))
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
@@ -154,15 +386,15 @@ fun RewardsScreen(
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Bolt,
+                                imageVector = Icons.Default.Stars,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                tint = orangeColor,
                                 modifier = Modifier.size(18.dp)
                             )
                             Text(
                                 text = currentPoints.toString(),
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = orangeColor,
                                 fontSize = 15.sp
                             )
                         }
@@ -316,124 +548,6 @@ fun RewardsScreen(
                                 item { Spacer(modifier = Modifier.height(100.dp)) }
                             }
                         }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun CouponCard(
-    title: String,
-    partner: String,
-    subtitle: String,
-    mainValue: String,
-    valueLabel: String,
-    isAffordableOrActive: Boolean,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit
-) {
-    val gradientColor1 = if (isAffordableOrActive) Color(0xFFE8F5E9) else Color(0xFFF5F5F5)
-    val gradientColor2 = if (isAffordableOrActive) Color(0xFFC8E6C9) else Color(0xFFE0E0E0)
-
-    val textColor = Color(0xFF1A1D20)
-    val textLightColor = Color(0xFF4A4D50)
-
-    val splitRatio = 0.7f
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(140.dp)
-            .clip(TicketShape(splitRatio = splitRatio))
-            .background(Brush.linearGradient(listOf(gradientColor1, gradientColor2)))
-            .clickable(enabled = isAffordableOrActive, onClick = onClick)
-    ) {
-        Row(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(splitRatio)
-                    .padding(start = 24.dp, top = 20.dp, bottom = 20.dp, end = 16.dp),
-                verticalArrangement = Arrangement.Center
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.5f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(icon, contentDescription = null, tint = textColor, modifier = Modifier.size(16.dp))
-                    }
-                    Text(
-                        text = partner.uppercase(),
-                        color = textLightColor,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 1.sp
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = title,
-                        color = textColor,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 2
-                    )
-                    if (subtitle.isNotEmpty()) {
-                        Text(
-                            text = subtitle,
-                            color = textLightColor,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
-
-            Box(modifier = Modifier.fillMaxHeight().width(2.dp), contentAlignment = Alignment.Center) {
-                Canvas(modifier = Modifier.fillMaxHeight()) {
-                    drawLine(
-                        color = Color.Black.copy(alpha = 0.15f),
-                        start = Offset(0f, 16.dp.toPx()),
-                        end = Offset(0f, size.height - 16.dp.toPx()),
-                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(15f, 15f), 0f),
-                        strokeWidth = 4f
-                    )
-                }
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .weight(1f)
-                    .padding(start = 12.dp, top = 16.dp, bottom = 16.dp, end = 16.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                if (mainValue.isNotEmpty()) {
-                    Text(
-                        text = mainValue,
-                        color = textColor,
-                        fontSize = if (mainValue.length > 5) 16.sp else 22.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        textAlign = TextAlign.Center
-                    )
-                    if (valueLabel.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = valueLabel,
-                            color = textLightColor,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
                     }
                 }
             }

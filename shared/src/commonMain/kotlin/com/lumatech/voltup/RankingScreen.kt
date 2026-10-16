@@ -5,13 +5,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,8 +33,6 @@ fun RankingScreen(
     userStats: UserStats,
     onNavigateBack: () -> Unit
 ) {
-    var selectedTab by remember { mutableIntStateOf(0) }
-
     val userLeaderboard = remember {
         listOf(
             UserRank(1, "Jan Kowalski", "Śródmieście", 2450.0, 18500),
@@ -51,31 +46,7 @@ fun RankingScreen(
         )
     }
 
-    val districtLeaderboard = remember {
-        listOf(
-            DistrictRank(1, "Śródmieście & Piotrkowska", 13400.5, isUserDistrict = false),
-            DistrictRank(2, "Polesie", 12100.2, isUserDistrict = true),
-            DistrictRank(3, "Widzew", 9800.0, isUserDistrict = false),
-            DistrictRank(4, "Bałuty", 8900.4, isUserDistrict = false),
-            DistrictRank(5, "Górna", 7200.8, isUserDistrict = false)
-        )
-    }
-
     val primaryColor = MaterialTheme.colorScheme.primary
-
-    val pagerState = rememberPagerState(initialPage = selectedTab) { 2 }
-
-    LaunchedEffect(selectedTab) {
-        if (pagerState.currentPage != selectedTab) {
-            pagerState.animateScrollToPage(selectedTab)
-        }
-    }
-
-    LaunchedEffect(pagerState.currentPage) {
-        if (selectedTab != pagerState.currentPage) {
-            selectedTab = pagerState.currentPage
-        }
-    }
 
     CommonBackHandler(enabled = true) {
         onNavigateBack()
@@ -110,218 +81,99 @@ fun RankingScreen(
             }
 
             Text(
-                text = "Ranking",
+                text = "Ranking Ogólny",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
             )
         }
 
-        TabRow(
-            selectedTabIndex = selectedTab,
-            containerColor = MaterialTheme.colorScheme.background,
-            contentColor = primaryColor,
-            divider = { HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)) }
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Tab(
-                selected = selectedTab == 0,
-                onClick = { selectedTab = 0 },
-                text = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Text("Osoby", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    }
-                }
-            )
-            Tab(
-                selected = selectedTab == 1,
-                onClick = { selectedTab = 1 },
-                text = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(Icons.Default.LocationCity, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Text("Dzielnice", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    }
-                }
-            )
-        }
-
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.fillMaxSize()
-        ) { page ->
-            if (page == 0) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.Bottom
                 ) {
-                    item {
+                    PodiumCard(userRank = userLeaderboard[1], heightDp = 110, rankColor = Color(0xFFC0C0C0))
+                    PodiumCard(userRank = userLeaderboard[0], heightDp = 140, rankColor = EnergyYellow)
+                    PodiumCard(userRank = userLeaderboard[2], heightDp = 95, rankColor = Color(0xFFCD7F32))
+                }
+            }
+
+            item {
+                Text(
+                    text = "LIDERZY ENERGII ŁODZI",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.padding(vertical = 4.dp, horizontal = 4.dp)
+                )
+            }
+
+            items(userLeaderboard) { user ->
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    color = if (user.isCurrentUser) primaryColor.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = if (user.isCurrentUser) primaryColor.copy(alpha = 0.4f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 16.dp),
-                            horizontalArrangement = Arrangement.SpaceEvenly,
-                            verticalAlignment = Alignment.Bottom
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            PodiumCard(userRank = userLeaderboard[1], heightDp = 110, rankColor = Color(0xFFC0C0C0))
-                            PodiumCard(userRank = userLeaderboard[0], heightDp = 140, rankColor = EnergyYellow)
-                            PodiumCard(userRank = userLeaderboard[2], heightDp = 95, rankColor = Color(0xFFCD7F32))
-                        }
-                    }
-
-                    item {
-                        Text(
-                            text = "WSZYSTKIE OSOBY",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            letterSpacing = 1.sp,
-                            modifier = Modifier.padding(vertical = 4.dp, horizontal = 4.dp)
-                        )
-                    }
-
-                    items(userLeaderboard) { user ->
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            color = if (user.isCurrentUser) primaryColor.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
-                            border = BorderStroke(
-                                width = 1.dp,
-                                color = if (user.isCurrentUser) primaryColor.copy(alpha = 0.4f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            Text(
+                                text = "#${user.rank}",
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 15.sp,
+                                color = when (user.rank) {
+                                    1 -> EnergyYellow
+                                    2 -> Color(0xFF9E9E9E)
+                                    3 -> Color(0xFFCD7F32)
+                                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                }
                             )
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "#${user.rank}",
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 15.sp,
-                                        color = when (user.rank) {
-                                            1 -> EnergyYellow
-                                            2 -> Color(0xFF9E9E9E)
-                                            3 -> Color(0xFFCD7F32)
-                                            else -> MaterialTheme.colorScheme.onSurfaceVariant
-                                        }
-                                    )
 
-                                    Column {
-                                        Text(
-                                            text = user.name,
-                                            fontWeight = if (user.isCurrentUser) FontWeight.Bold else FontWeight.Medium,
-                                            fontSize = 15.sp,
-                                            color = if (user.isCurrentUser) primaryColor else MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                        Text(
-                                            text = user.district,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-
-                                Column(horizontalAlignment = Alignment.End) {
-                                    Text(
-                                        text = "${user.totalKWh} kWh",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 14.sp,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    PointsPill(points = user.points)
-                                }
-                            }
-                        }
-                    }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    item {
-                        Text(
-                            text = "RANKING DZIELNIC ŁODZI",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            letterSpacing = 1.sp,
-                            modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
-                        )
-                    }
-
-                    items(districtLeaderboard) { district ->
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            color = if (district.isUserDistrict) primaryColor.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
-                            border = BorderStroke(
-                                width = 1.dp,
-                                color = if (district.isUserDistrict) primaryColor.copy(alpha = 0.4f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                            )
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "#${district.rank}",
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 16.sp,
-                                        color = when (district.rank) {
-                                            1 -> EnergyYellow
-                                            else -> MaterialTheme.colorScheme.onSurfaceVariant
-                                        }
-                                    )
-
-                                    Column {
-                                        Text(
-                                            text = district.name,
-                                            fontWeight = if (district.isUserDistrict) FontWeight.Bold else FontWeight.SemiBold,
-                                            fontSize = 15.sp,
-                                            color = if (district.isUserDistrict) primaryColor else MaterialTheme.colorScheme.onSurface
-                                        )
-                                        if (district.isUserDistrict) {
-                                            Text(
-                                                text = "Twoja dzielnica",
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = primaryColor
-                                            )
-                                        }
-                                    }
-                                }
-
+                            Column {
                                 Text(
-                                    text = "${district.totalEnergyKWh.formatOneDecimal()} kWh",
-                                    fontWeight = FontWeight.ExtraBold,
+                                    text = user.name,
+                                    fontWeight = if (user.isCurrentUser) FontWeight.Bold else FontWeight.Medium,
                                     fontSize = 15.sp,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = if (user.isCurrentUser) primaryColor else MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = user.district,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
+                        }
+
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = "${user.totalKWh} kWh",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                         }
                     }
                 }

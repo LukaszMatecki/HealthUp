@@ -121,39 +121,6 @@ actual fun GoogleMapView(
                 isDark = isDark
             )
         }
-
-        Surface(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(10.dp),
-            shape = RoundedCornerShape(12.dp),
-            color = if (hasApiKey) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                    else EnergyYellow.copy(alpha = 0.18f),
-            border = androidx.compose.foundation.BorderStroke(
-                1.dp,
-                if (hasApiKey) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                else EnergyYellow.copy(alpha = 0.5f)
-            )
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Icon(
-                    imageVector = if (hasApiKey) Icons.Default.LocationOn else Icons.Default.VpnKey,
-                    contentDescription = null,
-                    tint = if (hasApiKey) MaterialTheme.colorScheme.primary else EnergyYellow,
-                    modifier = Modifier.size(12.dp)
-                )
-                Text(
-                    text = if (hasApiKey) "Google Maps" else "Siatka interaktywna",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (hasApiKey) MaterialTheme.colorScheme.primary else EnergyYellow
-                )
-            }
-        }
     }
 }
 

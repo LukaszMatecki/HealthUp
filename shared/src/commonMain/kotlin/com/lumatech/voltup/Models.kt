@@ -118,12 +118,6 @@ data class Challenge(
     val isClaimed: Boolean = false,
 )
 
-data class DistrictRank(
-    val rank: Int,
-    val name: String,
-    val totalEnergyKWh: Double,
-    val isUserDistrict: Boolean = false,
-)
 
 data class UserBadge(
     val id: String,
@@ -136,6 +130,19 @@ data class UserBadge(
 )
 
 typealias Badge = UserBadge
+
+fun UserBadge.toBadgeModel(): BadgeModel {
+    return BadgeModel(
+        id = id,
+        title = title,
+        description = description,
+        icon = icon,
+        level = if (isUnlocked) 1 else 0,
+        currentProgress = if (isUnlocked) 100 else (progress * 100).coerceIn(0f, 100f).toInt(),
+        maxProgress = 100,
+        pointsAwarded = 50,
+    )
+}
 
 enum class AppThemeMode(val displayName: String, val description: String) {
     SYSTEM("Systemowy", "Dostosowuje się automatycznie do ustawień urządzenia"),
