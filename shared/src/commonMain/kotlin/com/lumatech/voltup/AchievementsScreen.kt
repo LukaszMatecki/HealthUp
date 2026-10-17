@@ -30,6 +30,11 @@ enum class AchievementTab(val label: String) {
     LEADERBOARD("Ranking")
 }
 
+enum class LeaderboardFilter(val limit: Int, val label: String) {
+    TOP_10(10, "TOP 10"),
+    TOP_50(50, "TOP 50")
+}
+
 data class BadgeModel(
     val id: String,
     val title: String,
@@ -53,21 +58,41 @@ data class LeaderboardUser(
 fun AchievementsScreen(
     badges: List<BadgeModel> = emptyList(),
     userStats: UserStats,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    dbService: VoltUpDatabaseService = remember { getDatabaseService() }
 ) {
     var selectedTab by remember { mutableStateOf(AchievementTab.ACHIEVEMENTS) }
+    var selectedFilter by remember { mutableStateOf(LeaderboardFilter.TOP_10) }
+    var leaderboardUsers by remember { mutableStateOf<List<LeaderboardUser>>(emptyList()) }
+    var isLoadingLeaderboard by remember { mutableStateOf(true) }
 
-    val leaderboard = remember(userStats.points, userStats.level, userStats.userName) {
-        listOf(
-            LeaderboardUser("2", "X-AE-A-19", 11848, 10),
-            LeaderboardUser("3", "Brandon Gray", 9914, 9),
-            LeaderboardUser("4", "Sarah Connor", 7520, 7),
-            LeaderboardUser("5", "Jan Kowalski", 1200, 4),
-            LeaderboardUser("6", "Anna Nowak", 450, 3),
-            LeaderboardUser("7", "Michał Zieliński", 180, 2),
-            LeaderboardUser("8", "Piotr Wiśniewski", 50, 1),
-            LeaderboardUser("1", "${userStats.userName} (Ty)", userStats.points, userStats.level, isCurrentUser = true)
-        ).sortedByDescending { it.points }
+    LaunchedEffect(selectedTab, selectedFilter, userStats.points, userStats.level, userStats.userName) {
+        isLoadingLeaderboard = true
+        try {
+            val list = dbService.getLeaderboard(limit = selectedFilter.limit)
+            val hasMe = list.any { it.isCurrentUser || it.name.startsWith(userStats.userName) }
+            val processed = if (!hasMe) {
+                (list + LeaderboardUser("me", "${userStats.userName} (Ty)", userStats.points, userStats.level, isCurrentUser = true))
+                    .sortedByDescending { it.points }
+            } else {
+                list.map {
+                    if (it.isCurrentUser || it.name.startsWith(userStats.userName)) {
+                        it.copy(name = "${userStats.userName} (Ty)", points = userStats.points, level = userStats.level, isCurrentUser = true)
+                    } else it
+                }.sortedByDescending { it.points }
+            }
+            leaderboardUsers = processed
+        } catch (_: Exception) {
+            leaderboardUsers = listOf(
+                LeaderboardUser("base_1", "Aleksander Piotrowski", 4250, 6),
+                LeaderboardUser("base_2", "Marta Łódzka", 3800, 5),
+                LeaderboardUser("base_3", "Kacper Zieliński", 3120, 5),
+                LeaderboardUser("base_4", "Ewa Nowicka", 2650, 4),
+                LeaderboardUser("me", "${userStats.userName} (Ty)", userStats.points, userStats.level, isCurrentUser = true)
+            ).sortedByDescending { it.points }
+        } finally {
+            isLoadingLeaderboard = false
+        }
     }
 
     Column(
@@ -86,7 +111,17 @@ fun AchievementsScreen(
 
         when (selectedTab) {
             AchievementTab.ACHIEVEMENTS -> BadgesContent(badges)
-            AchievementTab.LEADERBOARD -> LeaderboardContent(leaderboard)
+            AchievementTab.LEADERBOARD -> {
+                LeaderboardFilterPill(
+                    selectedFilter = selectedFilter,
+                    onFilterSelected = { selectedFilter = it }
+                )
+                LeaderboardContent(
+                    leaderboard = leaderboardUsers,
+                    limit = selectedFilter.limit,
+                    userStats = userStats
+                )
+            }
         }
     }
 }
@@ -295,57 +330,129 @@ private fun AchievementCard(badge: BadgeModel) {
 }
 
 @Composable
-private fun LeaderboardContent(leaderboard: List<LeaderboardUser>) {
+private fun LeaderboardFilterPill(
+    selectedFilter: LeaderboardFilter,
+    onFilterSelected: (LeaderboardFilter) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+        ) {
+            Row(
+                modifier = Modifier.padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                LeaderboardFilter.entries.forEach { filter ->
+                    val isSelected = selectedFilter == filter
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                            .clickable { onFilterSelected(filter) }
+                            .padding(horizontal = 24.dp, vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = filter.label,
+                            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Bold,
+                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LeaderboardContent(
+    leaderboard: List<LeaderboardUser>,
+    limit: Int,
+    userStats: UserStats
+) {
+    val displayList = leaderboard.take(limit)
     val currentUser = leaderboard.find { it.isCurrentUser }
+    val myRank = leaderboard.indexOfFirst { it.isCurrentUser } + 1
+    val isMeInDisplayList = displayList.any { it.isCurrentUser }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        if (currentUser != null) {
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = userStats.userName.take(1).uppercase(),
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = "${userStats.points} pkt",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Text(
+                    text = "${userStats.userName} (Ty) • Poziom ${userStats.level} • Pozycja: #${if (myRank > 0) myRank else '-'}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+
+        itemsIndexed(displayList, key = { index, user -> "${user.id}_$index" }) { index, user ->
+            LeaderboardItem(rank = index + 1, user = user)
+        }
+
+        if (!isMeInDisplayList && myRank > 0) {
             item {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .padding(top = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(72.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = currentUser.name.take(1).uppercase(),
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
                     Text(
-                        text = "${currentUser.points} pkt",
-                        style = MaterialTheme.typography.headlineMedium,
+                        text = "Twoja pozycja poza TOP $limit:",
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                    Text(
-                        text = "${currentUser.name} • Poziom ${currentUser.level}",
-                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    LeaderboardItem(
+                        rank = myRank,
+                        user = currentUser ?: LeaderboardUser("me", "${userStats.userName} (Ty)", userStats.points, userStats.level, isCurrentUser = true)
                     )
                 }
             }
-        }
-
-        itemsIndexed(leaderboard, key = { index, user -> "${user.id}_$index" }) { index, user ->
-            LeaderboardItem(rank = index + 1, user = user)
         }
     }
 }

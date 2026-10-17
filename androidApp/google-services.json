@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "344024062833",
+    "project_id": "voltup-21c34",
+    "storage_bucket": "voltup-21c34.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:344024062833:android:voltupapp",
+        "android_client_info": {
+          "package_name": "com.lumatech.voltup"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC1sit0tMF-_QBowwG3yt505xoRnItx4Uo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

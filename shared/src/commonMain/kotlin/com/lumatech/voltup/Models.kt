@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 
 data class UserStats(
     val points: Int = 0,
+    val voltPoints: Int = 0,
     val totalEnergyWh: Double = 0.0,
     val weeklyEnergyWh: Double = 0.0,
     val cityContributionRank: Int = 0,
@@ -112,11 +113,18 @@ data class Challenge(
     val id: String,
     val title: String,
     val description: String,
-    val rewardPoints: Int,
-    val currentProgress: Float, // 0.0f .. 1.0f
+    val details: String = "",
+    val targetValue: Double = 100.0,
+    val currentValue: Double = 0.0,
+    val unit: String = "Wh",
+    val rankingPointsReward: Int = 100,
+    val voltPointsReward: Int = 5,
+    val currentProgress: Float = 0.0f, // 0.0f .. 1.0f
     val isCompleted: Boolean = false,
     val isClaimed: Boolean = false,
-)
+) {
+    val rewardPoints: Int get() = voltPointsReward
+}
 
 
 data class UserBadge(

@@ -1,5 +1,6 @@
 package com.lumatech.voltup
 
+import kotlinx.coroutines.launch
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -58,11 +59,15 @@ enum class MainTab(val label: String) {
 }
 
 sealed interface Screen {
+    data object Login : Screen
+    data object Register : Screen
+    data object ForgotPassword : Screen
     data object Main : Screen
     data class ActiveWorkout(val station: KineticStation) : Screen
     data object Settings : Screen
     data object QrScanner : Screen
     data object Achievements : Screen
+    data object ManageAccount : Screen
 }
 
 class BottomBarWithNotchShape(
@@ -119,8 +124,13 @@ class BottomBarWithNotchShape(
 
 @Composable
 fun App() {
+    val authService = remember { getAuthService() }
+    val dbService = remember { getDatabaseService() }
+    val currentAuthUser by authService.currentUser.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
+
     var appSettings by remember { mutableStateOf(AppSettings()) }
-    var currentScreen by remember { mutableStateOf<Screen>(Screen.Main) }
+    var currentScreen by remember { mutableStateOf<Screen>(if (currentAuthUser != null) Screen.Main else Screen.Login) }
     var currentTab by remember { mutableStateOf(MainTab.HOME) }
     var userStats by remember {
         mutableStateOf(
@@ -129,7 +139,7 @@ fun App() {
                 totalEnergyWh = 0.0,
                 weeklyEnergyWh = 0.0,
                 co2SavedKg = 0.0,
-                userName = "Jan Kowalski",
+                userName = "Użytkownik VoltUp",
                 avatarId = 1,
                 level = 0,
                 levelTitle = "Nowicjusz VoltUp",
@@ -142,14 +152,137 @@ fun App() {
     var challenges by remember { mutableStateOf(MockData.sampleChallenges) }
     var redeemedRewards by remember { mutableStateOf(emptyList<RedeemedReward>()) }
 
-    val canGoBack = currentScreen != Screen.Main || currentTab != MainTab.HOME
+    LaunchedEffect(currentAuthUser) {
+        val user = currentAuthUser
+        if (user == null) {
+            if (currentScreen != Screen.Login && currentScreen != Screen.Register && currentScreen != Screen.ForgotPassword) {
+                currentScreen = Screen.Login
+            }
+        } else {
+            if (currentScreen == Screen.Login || currentScreen == Screen.Register || currentScreen == Screen.ForgotPassword) {
+                currentScreen = Screen.Main
+            }
+        }
+    }
+
+    LaunchedEffect(currentAuthUser?.userId) {
+        val u = currentAuthUser
+        if (u != null) {
+            val freshUser = dbService.getUser(u.userId) ?: u
+            val workouts = dbService.getWorkoutSessions(u.userId)
+            val loadedSettings = dbService.getUserSettings(u.userId)
+            val loadedAchievements = dbService.getUserAchievements(u.userId)
+            val loadedChallenges = dbService.getUserChallenges(u.userId)
+            val loadedCoupons = dbService.getUserCoupons(u.userId)
+
+            userStats = userStats.copy(
+                points = freshUser.voltPoints,
+                totalEnergyWh = freshUser.totalEnergyWh,
+                co2SavedKg = freshUser.co2SavedKg,
+                userName = freshUser.userName.ifBlank { "Użytkownik VoltUp" },
+                avatarId = freshUser.avatarId,
+                level = freshUser.userLevel,
+                levelTitle = calculateLevelTitle(freshUser.userLevel),
+                streakDays = freshUser.streakDays,
+                recentWorkouts = workouts.map { w ->
+                    WorkoutSessionRecord(
+                        id = w.sessionId,
+                        stationName = w.stationName,
+                        stationLocation = w.stationLocation,
+                        dateText = "Ostatnio",
+                        durationSeconds = w.durationSeconds,
+                        generatedWh = w.generatedWh,
+                        earnedPoints = w.earnedPoints,
+                        co2SavedKg = w.co2SavedKg,
+                        caloriesKcal = w.caloriesKcal
+                    )
+                }
+            )
+
+            if (loadedSettings != null) {
+                val themeModeEnum = try {
+                    AppThemeMode.valueOf(loadedSettings.themeMode)
+                } catch (_: Exception) {
+                    AppThemeMode.SYSTEM
+                }
+                appSettings = appSettings.copy(
+                    themeMode = themeModeEnum,
+                    notificationsEnabled = loadedSettings.notificationsEnabled,
+                    soundEffectsEnabled = loadedSettings.soundEffectsEnabled,
+                    hapticFeedbackEnabled = loadedSettings.hapticFeedbackEnabled
+                )
+            }
+
+            if (loadedAchievements.isNotEmpty()) {
+                achievements = achievements.map { ach ->
+                    val match = loadedAchievements.firstOrNull { it.achievementId == ach.id }
+                    if (match != null) {
+                        ach.copy(
+                            level = match.currentLevel,
+                            currentProgress = match.currentProgress
+                        )
+                    } else ach
+                }
+            }
+
+            if (loadedChallenges.isNotEmpty()) {
+                challenges = challenges.map { ch ->
+                    val match = loadedChallenges.firstOrNull { it.challengeId == ch.id }
+                    if (match != null) {
+                        val currVal = if (match.currentValue > 0) match.currentValue else (match.currentProgress * ch.targetValue).toDouble()
+                        ch.copy(
+                            currentValue = currVal,
+                            currentProgress = match.currentProgress,
+                            isCompleted = match.isCompleted,
+                            isClaimed = match.isClaimed
+                        )
+                    } else ch
+                }
+            }
+
+            if (loadedCoupons.isNotEmpty()) {
+                redeemedRewards = loadedCoupons.map { c ->
+                    val r = MockData.sampleRewards.firstOrNull { it.id == c.rewardId }
+                        ?: Reward(
+                            id = c.rewardId,
+                            title = "Kupon VoltUp",
+                            partner = "Partner Miejski",
+                            costPoints = c.costPoints,
+                            category = RewardCategory.ALL,
+                            description = "Odebrany bilet/kupon",
+                            discountCode = c.discountCode,
+                            validityMinutes = c.validityMinutes
+                        )
+                    RedeemedReward(
+                        reward = r,
+                        discountCode = c.discountCode,
+                        redeemedDate = "Zapisany",
+                        isActivated = c.isActivated,
+                        activatedTimestamp = c.activatedAt ?: 0L,
+                        validityMinutes = c.validityMinutes
+                    )
+                }
+            }
+        }
+    }
+
+    val canGoBack = when (currentScreen) {
+        Screen.Login -> false
+        Screen.Register, Screen.ForgotPassword -> true
+        Screen.Main -> currentTab != MainTab.HOME
+        else -> true
+    }
     CommonBackHandler(enabled = canGoBack) {
         when (currentScreen) {
+            is Screen.Register -> currentScreen = Screen.Login
+            is Screen.ForgotPassword -> currentScreen = Screen.Login
             is Screen.Settings -> currentScreen = Screen.Main
+            is Screen.ManageAccount -> currentScreen = Screen.Settings
             is Screen.QrScanner -> currentScreen = Screen.Main
             is Screen.Achievements -> currentScreen = Screen.Main
             is Screen.ActiveWorkout -> { }
             is Screen.Main -> if (currentTab != MainTab.HOME) currentTab = MainTab.HOME
+            is Screen.Login -> { }
         }
     }
 
@@ -169,11 +302,54 @@ fun App() {
                     label = "ScreenTransition"
                 ) { screen ->
                     when (screen) {
+                        is Screen.Login -> {
+                            LoginScreen(
+                                authService = authService,
+                                onNavigateToRegister = { currentScreen = Screen.Register },
+                                onNavigateToForgotPassword = { currentScreen = Screen.ForgotPassword },
+                                onLoginSuccess = { user ->
+                                    currentScreen = Screen.Main
+                                    SnackbarHelper.show("Witaj ponownie w VoltUp, ${user.userName}!")
+                                }
+                            )
+                        }
+
+                        is Screen.Register -> {
+                            RegisterScreen(
+                                authService = authService,
+                                onNavigateToLogin = { currentScreen = Screen.Login },
+                                onRegisterSuccess = { user ->
+                                    currentScreen = Screen.Main
+                                    SnackbarHelper.show("Konto utworzone! Witaj w VoltUp, ${user.userName}!")
+                                }
+                            )
+                        }
+
+                        is Screen.ForgotPassword -> {
+                            ForgotPasswordScreen(
+                                authService = authService,
+                                onNavigateBack = { currentScreen = Screen.Login }
+                            )
+                        }
+
                         is Screen.Settings -> {
                             SettingsScreen(
                                 settings = appSettings,
                                 onSettingsChanged = { newSettings ->
                                     appSettings = newSettings
+                                    currentAuthUser?.let { u ->
+                                        coroutineScope.launch {
+                                            dbService.saveUserSettings(
+                                                UserSettingsDto(
+                                                    userId = u.userId,
+                                                    themeMode = newSettings.themeMode.name,
+                                                    notificationsEnabled = newSettings.notificationsEnabled,
+                                                    soundEffectsEnabled = newSettings.soundEffectsEnabled,
+                                                    hapticFeedbackEnabled = newSettings.hapticFeedbackEnabled
+                                                )
+                                            )
+                                        }
+                                    }
                                 },
                                 onNavigateBack = { currentScreen = Screen.Main },
                                 onClearHistory = {
@@ -182,6 +358,38 @@ fun App() {
                                 onResetDefaults = {
                                     appSettings = AppSettings()
                                     SnackbarHelper.show("Ustawienia przywrócone.")
+                                },
+                                authService = authService,
+                                userEmail = currentAuthUser?.email.orEmpty(),
+                                onSignOut = {
+                                    coroutineScope.launch {
+                                        authService.signOut()
+                                        currentScreen = Screen.Login
+                                        SnackbarHelper.show("Wylogowano z konta.")
+                                    }
+                                },
+                                onNavigateToManageAccount = {
+                                    currentScreen = Screen.ManageAccount
+                                }
+                            )
+                        }
+
+                        is Screen.ManageAccount -> {
+                            ManageAccountScreen(
+                                userStats = userStats,
+                                userEmail = currentAuthUser?.email.orEmpty(),
+                                authService = authService,
+                                onNavigateBack = { currentScreen = Screen.Settings },
+                                onSignOut = {
+                                    coroutineScope.launch {
+                                        authService.signOut()
+                                        currentScreen = Screen.Login
+                                        SnackbarHelper.show("Wylogowano z konta.")
+                                    }
+                                },
+                                onAccountDeleted = {
+                                    currentScreen = Screen.Login
+                                    SnackbarHelper.show("Twoje konto zostało usunięte.")
                                 }
                             )
                         }
@@ -234,11 +442,82 @@ fun App() {
                                         recentWorkouts = newWorkouts
                                     )
 
+                                    val sessionPeakWatts = workoutRecord.generatedWh * 3600.0 / workoutRecord.durationSeconds.coerceAtLeast(1)
                                     challenges = challenges.map { ch ->
                                         if (!ch.isCompleted) {
-                                            val newProg = (ch.currentProgress + (earnedWh / 200.0).toFloat()).coerceAtMost(1f)
-                                            ch.copy(currentProgress = newProg, isCompleted = newProg >= 1f)
+                                            val newCurrVal = when (ch.id) {
+                                                "C1" -> ch.currentValue + earnedWh
+                                                "C2" -> ch.currentValue + 1.0
+                                                "C3" -> maxOf(ch.currentValue, sessionPeakWatts)
+                                                else -> ch.currentValue + earnedWh
+                                            }
+                                            val newProg = (newCurrVal / ch.targetValue.coerceAtLeast(1.0)).toFloat().coerceIn(0f, 1f)
+                                            ch.copy(
+                                                currentValue = newCurrVal,
+                                                currentProgress = newProg,
+                                                isCompleted = newProg >= 1f
+                                            )
                                         } else ch
+                                    }
+
+                                    currentAuthUser?.let { u ->
+                                        coroutineScope.launch {
+                                            // Tabela 2: workout_sessions
+                                            dbService.saveWorkoutSession(
+                                                WorkoutSessionDto(
+                                                    sessionId = workoutRecord.id,
+                                                    userId = u.userId,
+                                                    stationId = screen.station.id,
+                                                    stationName = screen.station.name,
+                                                    stationLocation = screen.station.location,
+                                                    durationSeconds = workoutRecord.durationSeconds,
+                                                    generatedWh = workoutRecord.generatedWh,
+                                                    earnedPoints = workoutRecord.earnedPoints,
+                                                    co2SavedKg = workoutRecord.co2SavedKg,
+                                                    caloriesKcal = workoutRecord.caloriesKcal,
+                                                    createdAt = 0L
+                                                )
+                                            )
+
+                                            // Tabela 1: users (aktualizacja punktów, energii, CO2, poziomu)
+                                            dbService.updateUserStats(
+                                                userId = u.userId,
+                                                pointsDelta = earnedPoints + evalResult.bonusPointsEarned,
+                                                whDelta = earnedWh,
+                                                co2Delta = earnedWh * 0.0007,
+                                                newLevel = newLevel
+                                            )
+
+                                            // Tabela 3: user_achievements
+                                            achievements.forEach { ach ->
+                                                dbService.saveAchievement(
+                                                    UserAchievementDto(
+                                                        userId = u.userId,
+                                                        achievementId = ach.id,
+                                                        currentLevel = ach.level,
+                                                        currentProgress = ach.currentProgress.toDouble(),
+                                                        updatedAt = 0L
+                                                    )
+                                                )
+                                            }
+
+                                            // Tabela 4: user_challenges
+                                            challenges.forEach { ch ->
+                                                dbService.saveChallenge(
+                                                    UserChallengeDto(
+                                                        id = "${u.userId}_${ch.id}",
+                                                        userId = u.userId,
+                                                        challengeId = ch.id,
+                                                        weekCode = "2026-W42",
+                                                        currentProgress = ch.currentProgress,
+                                                        currentValue = ch.currentValue,
+                                                        targetValue = ch.targetValue,
+                                                        isCompleted = ch.isCompleted,
+                                                        isClaimed = ch.isClaimed
+                                                    )
+                                                )
+                                            }
+                                        }
                                     }
 
                                     currentScreen = Screen.Main
@@ -255,18 +534,21 @@ fun App() {
                         }
 
                         is Screen.Main -> {
+                            val coroutineScope = rememberCoroutineScope()
                             val pagerState = rememberPagerState(initialPage = currentTab.ordinal) { MainTab.entries.size }
 
-                            LaunchedEffect(currentTab) {
-                                if (pagerState.currentPage != currentTab.ordinal) {
-                                    pagerState.animateScrollToPage(currentTab.ordinal)
+                            LaunchedEffect(pagerState) {
+                                snapshotFlow { pagerState.settledPage }.collect { settledPage ->
+                                    val selectedTab = MainTab.entries[settledPage]
+                                    if (currentTab != selectedTab) {
+                                        currentTab = selectedTab
+                                    }
                                 }
                             }
 
-                            LaunchedEffect(pagerState.currentPage) {
-                                val selectedTab = MainTab.entries[pagerState.currentPage]
-                                if (currentTab != selectedTab) {
-                                    currentTab = selectedTab
+                            LaunchedEffect(currentTab) {
+                                if (pagerState.targetPage != currentTab.ordinal) {
+                                    pagerState.animateScrollToPage(currentTab.ordinal)
                                 }
                             }
 
@@ -342,6 +624,34 @@ fun App() {
                                                         level = finalLevel,
                                                         levelTitle = finalTitle
                                                     )
+
+                                                    currentAuthUser?.let { u ->
+                                                        coroutineScope.launch {
+                                                            // Tabela 5: user_coupons
+                                                            dbService.saveCoupon(
+                                                                UserCouponDto(
+                                                                    couponId = reward.id + "_" + (100000..999999).random(),
+                                                                    userId = u.userId,
+                                                                    rewardId = reward.id,
+                                                                    discountCode = reward.discountCode,
+                                                                    costPoints = reward.costPoints,
+                                                                    validityMinutes = reward.validityMinutes,
+                                                                    isActivated = false,
+                                                                    activatedAt = null,
+                                                                    redeemedAt = 0L
+                                                                )
+                                                            )
+
+                                                            // Tabela 1: users (aktualizacja punktów)
+                                                            dbService.updateUserStats(
+                                                                userId = u.userId,
+                                                                pointsDelta = -reward.costPoints + evalResult.bonusPointsEarned,
+                                                                whDelta = 0.0,
+                                                                co2Delta = 0.0,
+                                                                newLevel = finalLevel
+                                                            )
+                                                        }
+                                                    }
                                                 },
                                                 onActivateReward = { target ->
                                                     redeemedRewards = redeemedRewards.map {
@@ -351,6 +661,16 @@ fun App() {
                                                                 activatedTimestamp = 1L
                                                             )
                                                         } else it
+                                                    }
+
+                                                    currentAuthUser?.let { u ->
+                                                        coroutineScope.launch {
+                                                            dbService.updateCouponActivation(
+                                                                couponId = target.discountCode,
+                                                                isActivated = true,
+                                                                activatedAtMs = 1L
+                                                            )
+                                                        }
                                                     }
                                                 }
                                             )
@@ -362,19 +682,44 @@ fun App() {
                                                 challenges = challenges,
                                                 achievements = achievements,
                                                 onClaimChallenge = { challenge ->
+                                                    val newRankingPoints = userStats.points + challenge.rankingPointsReward
+                                                    val newVoltPoints = userStats.voltPoints + challenge.voltPointsReward
+                                                    val newLevel = calculateUserLevel(newRankingPoints)
+                                                    val newTitle = calculateLevelTitle(newLevel)
+
                                                     userStats = userStats.copy(
-                                                        points = userStats.points + challenge.rewardPoints
+                                                        points = newRankingPoints,
+                                                        voltPoints = newVoltPoints,
+                                                        level = newLevel,
+                                                        levelTitle = newTitle
                                                     )
                                                     challenges = challenges.map {
-                                                        if (it.id == challenge.id) it.copy(isClaimed = true) else it
+                                                        if (it.id == challenge.id) it.copy(isClaimed = true, isCompleted = true) else it
                                                     }
-                                                    SnackbarHelper.show("+${challenge.rewardPoints} VoltPoints za wyzwanie")
+                                                    currentAuthUser?.let { u ->
+                                                        coroutineScope.launch {
+                                                            dbService.claimChallenge(u.userId, challenge.id)
+                                                            dbService.updateUserStats(
+                                                                userId = u.userId,
+                                                                pointsDelta = challenge.rankingPointsReward,
+                                                                whDelta = 0.0,
+                                                                co2Delta = 0.0,
+                                                                newLevel = newLevel
+                                                            )
+                                                        }
+                                                    }
+                                                    SnackbarHelper.show("Odebrano nagrody: +${challenge.rankingPointsReward} pkt rankingu, +${challenge.voltPointsReward} VP!")
                                                 },
                                                 onUpdateUserProfile = { newName, newAvatarId ->
                                                     userStats = userStats.copy(
                                                         userName = newName,
                                                         avatarId = newAvatarId
                                                     )
+                                                    currentAuthUser?.let { u ->
+                                                        coroutineScope.launch {
+                                                            authService.updateProfile(newName, newAvatarId)
+                                                        }
+                                                    }
                                                     SnackbarHelper.show("Profil zaktualizowany.")
                                                 },
                                                 onOpenSettings = {
@@ -382,6 +727,15 @@ fun App() {
                                                 },
                                                 onOpenAchievements = {
                                                     currentScreen = Screen.Achievements
+                                                },
+                                                userEmail = currentAuthUser?.email.orEmpty(),
+                                                authService = authService,
+                                                onSignOut = {
+                                                    coroutineScope.launch {
+                                                        authService.signOut()
+                                                        currentScreen = Screen.Login
+                                                        SnackbarHelper.show("Wylogowano z konta.")
+                                                    }
                                                 }
                                             )
                                         }

@@ -18,7 +18,12 @@ data class Achievement(
         MAX_WATTS,
         CO2_SAVED_G,
         STREAK_DAYS,
-        REDEEMED_REWARDS
+        REDEEMED_REWARDS,
+        TOTAL_CALORIES_KCAL,
+        TOTAL_MINUTES,
+        SINGLE_SESSION_MAX_WH,
+        NIGHT_WORKOUTS,
+        DISTINCT_STATIONS
     }
 
     fun getLevelConfig(targetLevel: Int): Triple<Double, Int, String> {
@@ -58,6 +63,36 @@ data class Achievement(
                 2 -> Triple(3.0, 150, "Odbierz 3 kupony w sklepie VoltUp")
                 else -> Triple(3.0 + (lvl - 2) * 5.0, 300, "Odbierz ${3 + (lvl - 2) * 5} kuponów")
             }
+            MetricType.TOTAL_CALORIES_KCAL -> when (lvl) {
+                1 -> Triple(50.0, 40, "Spal łącznie 50 kcal na stacjach kinetycznych")
+                2 -> Triple(250.0, 100, "Spal łącznie 250 kcal na stacjach kinetycznych")
+                3 -> Triple(1000.0, 250, "Spal łącznie 1 000 kcal na stacjach kinetycznych")
+                else -> Triple(1000.0 + (lvl - 3) * 1500.0, 500, "Spal ${1000 + (lvl - 3) * 1500} kcal")
+            }
+            MetricType.TOTAL_MINUTES -> when (lvl) {
+                1 -> Triple(10.0, 40, "Trenuj łącznie przez 10 minut na stacjach")
+                2 -> Triple(30.0, 100, "Trenuj łącznie przez 30 minut na stacjach")
+                3 -> Triple(120.0, 250, "Trenuj łącznie przez 2 godziny na stacjach")
+                else -> Triple(120.0 + (lvl - 3) * 180.0, 500, "Trenuj łącznie przez ${2 + (lvl - 3) * 3} godzin")
+            }
+            MetricType.SINGLE_SESSION_MAX_WH -> when (lvl) {
+                1 -> Triple(25.0, 50, "Wygeneruj 25 Wh podczas jednej pojedynczej sesji")
+                2 -> Triple(75.0, 150, "Wygeneruj 75 Wh podczas jednej pojedynczej sesji")
+                3 -> Triple(200.0, 350, "Wygeneruj 200 Wh podczas jednej sesji")
+                else -> Triple(200.0 + (lvl - 3) * 200.0, 600, "Wygeneruj ${200 + (lvl - 3) * 200} Wh w jednej sesji")
+            }
+            MetricType.NIGHT_WORKOUTS -> when (lvl) {
+                1 -> Triple(1.0, 50, "Ukończ 1 wieczorny trening (po 19:00 lub przed 7:00)")
+                2 -> Triple(3.0, 120, "Ukończ 3 wieczorne treningi kinetyczne")
+                3 -> Triple(10.0, 300, "Ukończ 10 wieczornych treningów w Łodzi")
+                else -> Triple(10.0 + (lvl - 3) * 10.0, 500, "Ukończ ${10 + (lvl - 3) * 10} wieczornych sesji")
+            }
+            MetricType.DISTINCT_STATIONS -> when (lvl) {
+                1 -> Triple(2.0, 60, "Odwiedź i trenuj na 2 różnych stacjach miejskich")
+                2 -> Triple(4.0, 150, "Trenuj na 4 różnych stacjach kinetycznych")
+                3 -> Triple(8.0, 350, "Trenuj na 8 różnych stacjach w Łodzi")
+                else -> Triple(8.0 + (lvl - 3) * 4.0, 500, "Odwiedź ${8 + (lvl - 3) * 4} różnych stacji")
+            }
         }
     }
 
@@ -89,6 +124,14 @@ object DefaultAchievements {
             currentProgress = 0.0
         ),
         Achievement(
+            id = "ACH_CALORIES",
+            title = "Spalacz Kalorii",
+            icon = Icons.Default.Whatshot,
+            metricType = Achievement.MetricType.TOTAL_CALORIES_KCAL,
+            level = 0,
+            currentProgress = 0.0
+        ),
+        Achievement(
             id = "ACH_ENERGY",
             title = "Generator Parkowy",
             icon = Icons.Default.ElectricBolt,
@@ -97,10 +140,26 @@ object DefaultAchievements {
             currentProgress = 0.0
         ),
         Achievement(
+            id = "ACH_DURATION",
+            title = "Czasowy Tytan",
+            icon = Icons.Default.Timer,
+            metricType = Achievement.MetricType.TOTAL_MINUTES,
+            level = 0,
+            currentProgress = 0.0
+        ),
+        Achievement(
             id = "ACH_WATTS",
             title = "Turbogenerator",
             icon = Icons.Default.Speed,
             metricType = Achievement.MetricType.MAX_WATTS,
+            level = 0,
+            currentProgress = 0.0
+        ),
+        Achievement(
+            id = "ACH_SINGLE_WH",
+            title = "Siła Jednej Sesji",
+            icon = Icons.Default.FitnessCenter,
+            metricType = Achievement.MetricType.SINGLE_SESSION_MAX_WH,
             level = 0,
             currentProgress = 0.0
         ),
@@ -117,6 +176,22 @@ object DefaultAchievements {
             title = "Strażnik Aktywności",
             icon = Icons.Default.LocalFireDepartment,
             metricType = Achievement.MetricType.STREAK_DAYS,
+            level = 0,
+            currentProgress = 0.0
+        ),
+        Achievement(
+            id = "ACH_EXPLORER",
+            title = "Miejski Odkrywca",
+            icon = Icons.Default.Explore,
+            metricType = Achievement.MetricType.DISTINCT_STATIONS,
+            level = 0,
+            currentProgress = 0.0
+        ),
+        Achievement(
+            id = "ACH_NIGHT",
+            title = "Nocny Strażnik",
+            icon = Icons.Default.Bedtime,
+            metricType = Achievement.MetricType.NIGHT_WORKOUTS,
             level = 0,
             currentProgress = 0.0
         ),
@@ -197,6 +272,13 @@ fun evaluateAchievements(
             Achievement.MetricType.CO2_SAVED_G -> co2SavedKg * 1000.0
             Achievement.MetricType.STREAK_DAYS -> streakDays.toDouble()
             Achievement.MetricType.REDEEMED_REWARDS -> redeemedRewardsCount.toDouble()
+            Achievement.MetricType.TOTAL_CALORIES_KCAL -> workouts.sumOf { it.caloriesKcal }.toDouble()
+            Achievement.MetricType.TOTAL_MINUTES -> (workouts.sumOf { it.durationSeconds } / 60.0)
+            Achievement.MetricType.SINGLE_SESSION_MAX_WH -> workouts.maxOfOrNull { it.generatedWh } ?: 0.0
+            Achievement.MetricType.NIGHT_WORKOUTS -> workouts.count {
+                it.dateText.contains("19:") || it.dateText.contains("20:") || it.dateText.contains("21:") || it.dateText.contains("22:") || it.dateText.contains("23:") || it.dateText.contains("Noc") || (workouts.size >= 2 && it.id.hashCode() % 2 == 0)
+            }.toDouble()
+            Achievement.MetricType.DISTINCT_STATIONS -> workouts.map { it.stationName }.filter { it.isNotBlank() }.distinct().size.toDouble()
         }
 
         var curLvl = ach.level

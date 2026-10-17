@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun StreakPill(streakDays: Int) {
@@ -74,9 +75,14 @@ fun ProfileScreen(
     onClaimChallenge: (Challenge) -> Unit,
     onUpdateUserProfile: (newName: String, newAvatarId: Int) -> Unit,
     onOpenSettings: () -> Unit,
-    onOpenAchievements: () -> Unit = {}
+    onOpenAchievements: () -> Unit = {},
+    userEmail: String = "",
+    authService: VoltUpAuthService? = null,
+    onSignOut: () -> Unit = {}
 ) {
     var showEditProfileDialog by remember { mutableStateOf(false) }
+    var showSignOutDialog by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     val primaryColor = MaterialTheme.colorScheme.primary
     val isDark = isSystemInDarkTheme()
@@ -133,7 +139,7 @@ fun ProfileScreen(
 
                         // Odsunięto ikonę edycji bardziej w lewo (spacedBy z 12.dp na 20.dp)
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(20.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             IconButton(
@@ -163,6 +169,21 @@ fun ProfileScreen(
                                     contentDescription = "Ustawienia",
                                     modifier = Modifier.size(18.dp),
                                     tint = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+
+                            IconButton(
+                                onClick = { showSignOutDialog = true },
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f))
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ExitToApp,
+                                    contentDescription = "Wyloguj się",
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.error
                                 )
                             }
                         }
@@ -200,6 +221,14 @@ fun ProfileScreen(
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
+
+                        if (userEmail.isNotBlank()) {
+                            Text(
+                                text = userEmail,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
 
                         Surface(
                             shape = CircleShape,
@@ -401,18 +430,25 @@ fun ProfileScreen(
 
         AlertDialog(
             onDismissRequest = { showEditProfileDialog = false },
-            shape = RoundedCornerShape(24.dp),
-            title = { Text("Edytuj profil", fontWeight = FontWeight.Bold, fontSize = 20.sp) },
+            shape = RoundedCornerShape(28.dp),
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = {
+                Text(
+                    text = "Edytuj profil",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    // Dodano jawne kolory tła, aby pola były widoczne
                     OutlinedTextField(
                         value = editName,
                         onValueChange = { editName = it },
-                        label = { Text("Imię") },
+                        label = { Text("Imię i nazwisko") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
@@ -428,7 +464,7 @@ fun ProfileScreen(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
@@ -437,12 +473,22 @@ fun ProfileScreen(
                         )
                     )
 
-                    Text("Wybierz ikonę profilu", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        text = "Wybierz ikonę profilu",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = primaryColor,
+                        fontWeight = FontWeight.Bold
+                    )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceAround
                     ) {
-                        listOf(0 to Icons.Default.Person, 1 to Icons.Default.DirectionsBike, 2 to Icons.Default.ElectricBolt, 3 to Icons.Default.Eco).forEach { (id, icon) ->
+                        listOf(
+                            0 to Icons.Default.Person,
+                            1 to Icons.AutoMirrored.Filled.DirectionsBike,
+                            2 to Icons.Default.ElectricBolt,
+                            3 to Icons.Default.Eco
+                        ).forEach { (id, icon) ->
                             val isSel = editAvatar == id
                             IconButton(
                                 onClick = { editAvatar = id },
@@ -451,39 +497,118 @@ fun ProfileScreen(
                                     .clip(CircleShape)
                                     .background(if (isSel) primaryColor else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                             ) {
-                                Icon(imageVector = icon, contentDescription = null, tint = if (isSel) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    tint = if (isSel) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        onUpdateUserProfile(editName, editAvatar)
-                        showEditProfileDialog = false
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
-                    shape = CircleShape
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Zapisz zmiany", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
+                    Button(
+                        onClick = {
+                            if (newPassword.isNotBlank()) {
+                                if (newPassword.length < 6) {
+                                    SnackbarHelper.show("Nowe hasło musi mieć co najmniej 6 znaków.")
+                                    return@Button
+                                }
+                                if (authService != null) {
+                                    coroutineScope.launch {
+                                        val pwRes = authService.changePassword(newPassword)
+                                        if (pwRes.isSuccess) {
+                                            SnackbarHelper.show("Hasło zostało zaktualizowane.")
+                                        } else {
+                                            SnackbarHelper.show(pwRes.errorMessage ?: "Błąd aktualizacji hasła.")
+                                        }
+                                    }
+                                }
+                            }
+                            onUpdateUserProfile(editName, editAvatar)
+                            showEditProfileDialog = false
+                        },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = Color.White),
+                        shape = CircleShape
+                    ) {
+                        Text("Zapisz zmiany", fontWeight = FontWeight.ExtraBold)
+                    }
+
+                    TextButton(
+                        onClick = { showEditProfileDialog = false },
+                        modifier = Modifier.fillMaxWidth().height(44.dp)
+                    ) {
+                        Text("Anuluj", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { showEditProfileDialog = false }) {
-                    Text("Anuluj", color = MaterialTheme.colorScheme.onSurface)
+            dismissButton = null
+        )
+    }
+
+    if (showSignOutDialog) {
+        AlertDialog(
+            onDismissRequest = { showSignOutDialog = false },
+            shape = RoundedCornerShape(28.dp),
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = {
+                Text(
+                    text = "Wylogować się?",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
+            text = {
+                Text(
+                    text = "Czy na pewno chcesz zakończyć sesję i wylogować się z konta VoltUp?",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            showSignOutDialog = false
+                            onSignOut()
+                        },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = Color.White),
+                        shape = CircleShape
+                    ) {
+                        Text("Wyloguj się", fontWeight = FontWeight.ExtraBold)
+                    }
+
+                    TextButton(
+                        onClick = { showSignOutDialog = false },
+                        modifier = Modifier.fillMaxWidth().height(44.dp)
+                    ) {
+                        Text("Anuluj", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
-            }
+            },
+            dismissButton = null
         )
     }
 }
 
-// Uproszczony, czystszy UI wyzwania
+// Uproszczony, czystszy UI wyzwania z rozwijaniem szczegółów
 @Composable
 fun ModernChallengeCard(
     challenge: Challenge,
     onClaimClick: () -> Unit
 ) {
+    var isExpanded by remember { mutableStateOf(false) }
     var isClaiming by remember { mutableStateOf(false) }
 
     val lineProgress by animateFloatAsState(
@@ -504,67 +629,121 @@ fun ModernChallengeCard(
     val warningYellow = if (isDark) Color(0xFFFFB74D) else Color(0xFFFF9800)
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .clickable { isExpanded = !isExpanded },
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .padding(16.dp)
+                .animateContentSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Tytuł i Punkty w jednej linii na górze
+            // Tytuł, ikona rozwijania i nagrody
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(contentAlignment = Alignment.CenterStart) {
-                    Text(
-                        text = challenge.title,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = if (isClaiming) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                        else MaterialTheme.colorScheme.onSurface,
-                        textDecoration = if (isClaiming) TextDecoration.LineThrough else TextDecoration.None
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = if (isExpanded) "Zwiń" else "Rozwiń",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
                     )
 
-                    if (lineProgress > 0f) {
-                        Canvas(modifier = Modifier.matchParentSize()) {
-                            val strokeW = 2.dp.toPx()
-                            val startY = size.height / 2f
-                            drawLine(
-                                color = warningYellow,
-                                start = Offset(0f, startY),
-                                end = Offset(size.width * lineProgress, startY),
-                                strokeWidth = strokeW,
-                                cap = StrokeCap.Round
-                            )
+                    Box(contentAlignment = Alignment.CenterStart) {
+                        Text(
+                            text = challenge.title,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = if (isClaiming || challenge.isClaimed) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            else MaterialTheme.colorScheme.onSurface,
+                            textDecoration = if (isClaiming || challenge.isClaimed) TextDecoration.LineThrough else TextDecoration.None
+                        )
+
+                        if (lineProgress > 0f) {
+                            Canvas(modifier = Modifier.matchParentSize()) {
+                                val strokeW = 2.dp.toPx()
+                                val startY = size.height / 2f
+                                drawLine(
+                                    color = warningYellow,
+                                    start = Offset(0f, startY),
+                                    end = Offset(size.width * lineProgress, startY),
+                                    strokeWidth = strokeW,
+                                    cap = StrokeCap.Round
+                                )
+                            }
                         }
                     }
                 }
 
+                // Nagrody skrótowe
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Stars,
-                        contentDescription = null,
-                        tint = warningYellow,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Text(
-                        text = "+${challenge.rewardPoints} pkt",
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 14.sp,
-                        color = warningYellow
-                    )
+                    Surface(
+                        shape = CircleShape,
+                        color = warningYellow.copy(alpha = 0.12f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Stars,
+                                contentDescription = null,
+                                tint = warningYellow,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = "+${challenge.rankingPointsReward}",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = warningYellow
+                            )
+                        }
+                    }
+
+                    Surface(
+                        shape = CircleShape,
+                        color = primaryColor.copy(alpha = 0.12f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ElectricBolt,
+                                contentDescription = null,
+                                tint = primaryColor,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = "+${challenge.voltPointsReward} VP",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = primaryColor
+                            )
+                        }
+                    }
                 }
             }
 
-            // Opis
+            // Krótki opis
             Text(
                 text = challenge.description,
                 style = MaterialTheme.typography.bodyMedium,
@@ -572,8 +751,74 @@ fun ModernChallengeCard(
                 lineHeight = 18.sp
             )
 
-            // Przycisk na całą szerokość LUB pasek postępu
-            if (challenge.isCompleted) {
+            // Sekcja rozwijana (szczegóły i dokładne liczby)
+            if (isExpanded) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        if (challenge.details.isNotBlank()) {
+                            Text(
+                                text = challenge.details,
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                lineHeight = 18.sp
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Postęp wyzwania:",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            val currFormatted = if (challenge.currentValue % 1.0 == 0.0) "${challenge.currentValue.toInt()}" else "${(challenge.currentValue * 10).toInt() / 10.0}"
+                            val targetFormatted = if (challenge.targetValue % 1.0 == 0.0) "${challenge.targetValue.toInt()}" else "${challenge.targetValue}"
+
+                            Text(
+                                text = "$currFormatted / $targetFormatted ${challenge.unit}",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Nagrody za ukończenie:",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            Text(
+                                text = "+${challenge.rankingPointsReward} pkt rankingu & +${challenge.voltPointsReward} VP",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = primaryColor
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Przycisk lub pasek postępu
+            if (challenge.isCompleted && !challenge.isClaimed) {
                 Button(
                     onClick = { if (!isClaiming) isClaiming = true },
                     enabled = !isClaiming,
@@ -585,10 +830,36 @@ fun ModernChallengeCard(
                     modifier = Modifier.fillMaxWidth().height(42.dp)
                 ) {
                     Text(
-                        text = if (isClaiming) "Odebrano" else "Odbierz nagrodę",
-                        fontSize = 14.sp,
+                        text = if (isClaiming) "Odbieranie..." else "Odbierz nagrody (+${challenge.rankingPointsReward} pkt | +${challenge.voltPointsReward} VP)",
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
                     )
+                }
+            } else if (challenge.isClaimed) {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = primaryColor.copy(alpha = 0.12f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = primaryColor,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Nagrody odebrane",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = primaryColor
+                        )
+                    }
                 }
             } else {
                 Row(
@@ -605,7 +876,7 @@ fun ModernChallengeCard(
                     ) {
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(challenge.currentProgress)
+                                .fillMaxWidth(challenge.currentProgress.coerceIn(0f, 1f))
                                 .fillMaxHeight()
                                 .clip(CircleShape)
                                 .background(primaryColor)

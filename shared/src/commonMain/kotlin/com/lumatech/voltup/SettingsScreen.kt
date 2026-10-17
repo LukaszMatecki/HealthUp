@@ -29,12 +29,18 @@ fun SettingsScreen(
     onSettingsChanged: (AppSettings) -> Unit,
     onNavigateBack: () -> Unit,
     onClearHistory: () -> Unit,
-    onResetDefaults: () -> Unit
+    onResetDefaults: () -> Unit,
+    authService: VoltUpAuthService? = null,
+    userEmail: String = "",
+    onSignOut: () -> Unit = {},
+    onNavigateToManageAccount: () -> Unit = {}
 ) {
     CommonBackHandler(enabled = true, onBack = onNavigateBack)
 
     var showClearHistoryDialog by remember { mutableStateOf(false) }
     var showResetDefaultsDialog by remember { mutableStateOf(false) }
+    var showChangePasswordDialog by remember { mutableStateOf(false) }
+    var showSignOutDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -170,6 +176,26 @@ fun SettingsScreen(
             }
 
             item {
+                SettingsSectionHeader("KONTO I BEZPIECZEŃSTWO")
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                ) {
+                    Column(modifier = Modifier.padding(8.dp)) {
+                        SettingActionRow(
+                            icon = Icons.Default.ManageAccounts,
+                            title = "Zarządzaj kontem",
+                            subtitle = if (userEmail.isNotBlank()) userEmail else "Dane profilu, zmiana hasła i opcje konta",
+                            titleColor = MaterialTheme.colorScheme.onSurface,
+                            onClick = onNavigateToManageAccount
+                        )
+                    }
+                }
+            }
+
+            item {
                 Spacer(modifier = Modifier.height(40.dp))
             }
         }
@@ -218,6 +244,40 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showResetDefaultsDialog = false }) { Text("Anuluj") }
+            }
+        )
+    }
+
+    if (showChangePasswordDialog && authService != null) {
+        ChangePasswordDialog(
+            authService = authService,
+            onDismiss = { showChangePasswordDialog = false },
+            onSuccess = {
+                showChangePasswordDialog = false
+                SnackbarHelper.show("Hasło zostało pomyślnie zmienione.")
+            }
+        )
+    }
+
+    if (showSignOutDialog) {
+        AlertDialog(
+            onDismissRequest = { showSignOutDialog = false },
+            shape = RoundedCornerShape(24.dp),
+            title = { Text("Wylogować się?", fontWeight = FontWeight.Bold) },
+            text = { Text("Czy na pewno chcesz zakończyć sesję i wylogować się z aplikacji VoltUp?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showSignOutDialog = false
+                        onSignOut()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Wyloguj", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSignOutDialog = false }) { Text("Anuluj") }
             }
         )
     }
