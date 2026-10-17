@@ -247,7 +247,7 @@ fun WorkoutScreen(
                         if (!hasStarted) {
                             Text(
                                 text = "START",
-                                fontSize = 48.sp,
+                                fontSize = 42.sp,
                                 fontWeight = FontWeight.Black,
                                 color = primaryColor,
                                 letterSpacing = (-1).sp,

@@ -1,6 +1,7 @@
 package com.lumatech.voltup
 
-import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -158,7 +159,15 @@ fun App() {
                 modifier = Modifier.fillMaxSize(),
                 color = MaterialTheme.colorScheme.background
             ) {
-                AnimatedContent(targetState = currentScreen, label = "ScreenTransition") { screen ->
+                AnimatedContent(
+                    targetState = currentScreen,
+                    transitionSpec = {
+                        fadeIn(animationSpec = androidx.compose.animation.core.tween(250)) +
+                        slideInVertically(animationSpec = androidx.compose.animation.core.tween(250)) { it / 10 } togetherWith
+                        fadeOut(animationSpec = androidx.compose.animation.core.tween(150))
+                    },
+                    label = "ScreenTransition"
+                ) { screen ->
                     when (screen) {
                         is Screen.Settings -> {
                             SettingsScreen(
@@ -272,7 +281,7 @@ fun App() {
                             ) { innerPadding ->
                                 HorizontalPager(
                                     state = pagerState,
-                                    userScrollEnabled = currentTab != MainTab.MAP,
+                                    userScrollEnabled = true,
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .padding(innerPadding)
@@ -353,19 +362,13 @@ fun App() {
                                                 challenges = challenges,
                                                 achievements = achievements,
                                                 onClaimChallenge = { challenge ->
-                                                    val newPoints = userStats.points + challenge.rewardPoints
-                                                    val newLevel = calculateUserLevel(newPoints)
-                                                    val newTitle = calculateLevelTitle(newLevel)
-
                                                     userStats = userStats.copy(
-                                                        points = newPoints,
-                                                        level = newLevel,
-                                                        levelTitle = newTitle
+                                                        points = userStats.points + challenge.rewardPoints
                                                     )
                                                     challenges = challenges.map {
                                                         if (it.id == challenge.id) it.copy(isClaimed = true) else it
                                                     }
-                                                    SnackbarHelper.show("+${challenge.rewardPoints} pkt za wyzwanie")
+                                                    SnackbarHelper.show("+${challenge.rewardPoints} VoltPoints za wyzwanie")
                                                 },
                                                 onUpdateUserProfile = { newName, newAvatarId ->
                                                     userStats = userStats.copy(

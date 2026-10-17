@@ -206,7 +206,7 @@ fun ProfileScreen(
                             color = primaryColor.copy(alpha = 0.12f)
                         ) {
                             Text(
-                                text = "Poziom ${stats.level} • ${stats.levelTitle}",
+                                text = "Poziom ${stats.level}",
                                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
@@ -218,6 +218,12 @@ fun ProfileScreen(
                         val currentLvlPts = (stats.points - minPts).coerceAtLeast(0)
                         val reqLvlPts = (maxPts - minPts).coerceAtLeast(1)
                         val progressFraction = (currentLvlPts.toFloat() / reqLvlPts.toFloat()).coerceIn(0f, 1f)
+
+                        val animatedProgressFraction by animateFloatAsState(
+                            targetValue = progressFraction,
+                            animationSpec = androidx.compose.animation.core.spring(stiffness = androidx.compose.animation.core.Spring.StiffnessLow),
+                            label = "profileLevelProgress"
+                        )
 
                         Row(
                             modifier = Modifier
@@ -235,7 +241,7 @@ fun ProfileScreen(
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .fillMaxWidth(progressFraction)
+                                        .fillMaxWidth(animatedProgressFraction.coerceIn(0.02f, 1f))
                                         .fillMaxHeight()
                                         .clip(CircleShape)
                                         .background(primaryColor)
@@ -260,11 +266,6 @@ fun ProfileScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        ProfileStatNumber(
-                            value = "${stats.points} pkt",
-                            label = "VoltPoints",
-                            valueColor = primaryColor
-                        )
                         ProfileStatNumber(
                             value = "${(stats.totalEnergyWh / 1000.0).formatOneDecimal()} kWh",
                             label = "Wygenerowano",

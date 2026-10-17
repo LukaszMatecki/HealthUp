@@ -5,13 +5,11 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,6 +18,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -82,6 +82,21 @@ actual fun GoogleMapView(
             .fillMaxSize()
             .clip(RoundedCornerShape(18.dp))
             .background(if (isDark) DarkSurface else LightSurface)
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent(pass = androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+                        if (event.changes.any { it.pressed }) {
+                            event.changes.forEach { change ->
+                                val delta = change.position - change.previousPosition
+                                if (delta != Offset.Zero) {
+                                    change.consume()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
     ) {
         if (hasApiKey) {
             GoogleMap(
@@ -131,6 +146,9 @@ private fun InteractiveSchematicMap(
     onStationSelected: (KineticStation) -> Unit,
     isDark: Boolean
 ) {
+    var panOffset by remember { mutableStateOf(Offset.Zero) }
+    var zoomScale by remember { mutableFloatStateOf(1f) }
+
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val haloRadius by infiniteTransition.animateFloat(
         initialValue = 10f,
@@ -151,64 +169,85 @@ private fun InteractiveSchematicMap(
         label = "haloAlpha"
     )
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+    val density = LocalDensity.current
+
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                detectTransformGestures { _, pan, zoom, _ ->
+                    panOffset += pan
+                    zoomScale = (zoomScale * zoom).coerceIn(0.8f, 2.5f)
+                }
+            }
+    ) {
         val width = maxWidth
         val height = maxHeight
+
+        val panXDp = with(density) { panOffset.x.toDp() }
+        val panYDp = with(density) { panOffset.y.toDp() }
 
         Canvas(modifier = Modifier.fillMaxSize()) {
             val gridColor = if (isDark) Color(0xFF222731) else Color(0xFFE2E8F0)
             val streetColor = if (isDark) Color(0xFF1E232B) else Color(0xFFEDF2F7)
             val parkColor = if (isDark) Color(0xFF112217) else Color(0xFFE8F5E9)
 
+            val pX = panOffset.x
+            val pY = panOffset.y
+
             drawRoundRect(
                 color = parkColor,
-                topLeft = Offset(size.width * 0.12f, size.height * 0.22f),
-                size = Size(size.width * 0.26f, size.height * 0.28f),
+                topLeft = Offset(size.width * 0.12f + pX, size.height * 0.22f + pY),
+                size = Size(size.width * 0.26f * zoomScale, size.height * 0.28f * zoomScale),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(16f, 16f)
             )
             drawRoundRect(
                 color = parkColor,
-                topLeft = Offset(size.width * 0.32f, size.height * 0.40f),
-                size = Size(size.width * 0.20f, size.height * 0.22f),
+                topLeft = Offset(size.width * 0.32f + pX, size.height * 0.40f + pY),
+                size = Size(size.width * 0.20f * zoomScale, size.height * 0.22f * zoomScale),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(16f, 16f)
             )
             drawRoundRect(
                 color = parkColor,
-                topLeft = Offset(size.width * 0.64f, size.height * 0.50f),
-                size = Size(size.width * 0.24f, size.height * 0.26f),
+                topLeft = Offset(size.width * 0.64f + pX, size.height * 0.50f + pY),
+                size = Size(size.width * 0.24f * zoomScale, size.height * 0.26f * zoomScale),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(16f, 16f)
             )
 
             drawLine(
                 color = streetColor,
-                start = Offset(size.width * 0.50f, 0f),
-                end = Offset(size.width * 0.50f, size.height),
+                start = Offset(size.width * 0.50f + pX, 0f),
+                end = Offset(size.width * 0.50f + pX, size.height),
                 strokeWidth = 4.dp.toPx()
             )
             drawLine(
                 color = streetColor,
-                start = Offset(0f, size.height * 0.52f),
-                end = Offset(size.width, size.height * 0.52f),
+                start = Offset(0f, size.height * 0.52f + pY),
+                end = Offset(size.width, size.height * 0.52f + pY),
                 strokeWidth = 4.dp.toPx()
             )
 
-            val step = 40.dp.toPx()
-            var x = 0f
+            val step = 40.dp.toPx() * zoomScale
+            var x = (pX % step)
             while (x < size.width) {
-                drawLine(gridColor.copy(alpha = 0.3f), Offset(x, 0f), Offset(x, size.height), 1f)
+                if (x >= 0f) {
+                    drawLine(gridColor.copy(alpha = 0.3f), Offset(x, 0f), Offset(x, size.height), 1f)
+                }
                 x += step
             }
-            var y = 0f
+            var y = (pY % step)
             while (y < size.height) {
-                drawLine(gridColor.copy(alpha = 0.3f), Offset(0f, y), Offset(size.width, y), 1f)
+                if (y >= 0f) {
+                    drawLine(gridColor.copy(alpha = 0.3f), Offset(0f, y), Offset(size.width, y), 1f)
+                }
                 y += step
             }
         }
 
         stations.forEach { station ->
             val isSelected = station.id == selectedStation?.id
-            val posX = width * station.mapCoordinatesX
-            val posY = height * station.mapCoordinatesY
+            val posX = width * station.mapCoordinatesX + panXDp
+            val posY = height * station.mapCoordinatesY + panYDp
 
             Box(
                 modifier = Modifier

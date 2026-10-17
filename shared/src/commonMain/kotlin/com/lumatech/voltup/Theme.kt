@@ -9,6 +9,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
+import org.jetbrains.compose.resources.Font
+import voltup.shared.generated.resources.Res
+import voltup.shared.generated.resources.*
 
 val ElectricVoltGreen = Color(0xFF00E676)
 val EnergyYellow = Color(0xFFFFD600)
@@ -59,78 +62,93 @@ private val VoltUpLightColorScheme = lightColorScheme(
     tertiary = EnergyYellow
 )
 
-val VoltUpTypography = Typography(
-    headlineLarge = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Bold,
-        fontSize = 30.sp,
-        letterSpacing = (-0.5).sp,
-        lineHeight = 36.sp
-    ),
-    headlineMedium = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Bold,
-        fontSize = 24.sp,
-        letterSpacing = (-0.3).sp,
-        lineHeight = 30.sp
-    ),
-    headlineSmall = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Bold,
-        fontSize = 20.sp,
-        letterSpacing = (-0.2).sp,
-        lineHeight = 26.sp
-    ),
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 18.sp,
-        letterSpacing = 0.sp,
-        lineHeight = 24.sp
-    ),
-    titleMedium = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 16.sp,
-        letterSpacing = 0.sp,
-        lineHeight = 22.sp
-    ),
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Normal,
-        fontSize = 15.sp,
-        letterSpacing = 0.1.sp,
-        lineHeight = 22.sp
-    ),
-    bodyMedium = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
-        letterSpacing = 0.1.sp,
-        lineHeight = 20.sp
-    ),
-    bodySmall = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Normal,
-        fontSize = 12.sp,
-        letterSpacing = 0.1.sp,
-        lineHeight = 16.sp
-    ),
-    labelLarge = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Bold,
-        fontSize = 13.sp,
-        letterSpacing = 0.8.sp,
-        lineHeight = 18.sp
-    ),
-    labelSmall = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        letterSpacing = 0.4.sp,
-        lineHeight = 14.sp
+@Composable
+fun getVoltUpTypography(): Typography {
+    val outfit = FontFamily(
+        Font(Res.font.Outfit_Thin, FontWeight.Thin),
+        Font(Res.font.Outfit_ExtraLight, FontWeight.ExtraLight),
+        Font(Res.font.Outfit_Light, FontWeight.Light),
+        Font(Res.font.Outfit_Regular, FontWeight.Normal),
+        Font(Res.font.Outfit_Medium, FontWeight.Medium),
+        Font(Res.font.Outfit_SemiBold, FontWeight.SemiBold),
+        Font(Res.font.Outfit_Bold, FontWeight.Bold),
+        Font(Res.font.Outfit_ExtraBold, FontWeight.ExtraBold),
+        Font(Res.font.Outfit_Black, FontWeight.Black)
     )
-)
+
+    return Typography(
+        headlineLarge = TextStyle(
+            fontFamily = outfit,
+            fontWeight = FontWeight.Bold,
+            fontSize = 30.sp,
+            letterSpacing = (-0.5).sp,
+            lineHeight = 36.sp
+        ),
+        headlineMedium = TextStyle(
+            fontFamily = outfit,
+            fontWeight = FontWeight.Bold,
+            fontSize = 24.sp,
+            letterSpacing = (-0.3).sp,
+            lineHeight = 30.sp
+        ),
+        headlineSmall = TextStyle(
+            fontFamily = outfit,
+            fontWeight = FontWeight.Bold,
+            fontSize = 20.sp,
+            letterSpacing = (-0.2).sp,
+            lineHeight = 26.sp
+        ),
+        titleLarge = TextStyle(
+            fontFamily = outfit,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 18.sp,
+            letterSpacing = 0.sp,
+            lineHeight = 24.sp
+        ),
+        titleMedium = TextStyle(
+            fontFamily = outfit,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 16.sp,
+            letterSpacing = 0.sp,
+            lineHeight = 22.sp
+        ),
+        bodyLarge = TextStyle(
+            fontFamily = outfit,
+            fontWeight = FontWeight.Normal,
+            fontSize = 15.sp,
+            letterSpacing = 0.1.sp,
+            lineHeight = 22.sp
+        ),
+        bodyMedium = TextStyle(
+            fontFamily = outfit,
+            fontWeight = FontWeight.Normal,
+            fontSize = 14.sp,
+            letterSpacing = 0.1.sp,
+            lineHeight = 20.sp
+        ),
+        bodySmall = TextStyle(
+            fontFamily = outfit,
+            fontWeight = FontWeight.Normal,
+            fontSize = 12.sp,
+            letterSpacing = 0.1.sp,
+            lineHeight = 16.sp
+        ),
+        labelLarge = TextStyle(
+            fontFamily = outfit,
+            fontWeight = FontWeight.Bold,
+            fontSize = 13.sp,
+            letterSpacing = 0.8.sp,
+            lineHeight = 18.sp
+        ),
+        labelSmall = TextStyle(
+            fontFamily = outfit,
+            fontWeight = FontWeight.Medium,
+            fontSize = 11.sp,
+            letterSpacing = 0.4.sp,
+            lineHeight = 14.sp
+        )
+    )
+}
 
 @Composable
 fun VoltUpTheme(
@@ -145,10 +163,11 @@ fun VoltUpTheme(
     }
 
     val colorScheme = if (isDark) VoltUpDarkColorScheme else VoltUpLightColorScheme
+    val typography = getVoltUpTypography()
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = VoltUpTypography,
+        typography = typography,
         content = content
     )
 }

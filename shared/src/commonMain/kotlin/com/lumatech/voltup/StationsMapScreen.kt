@@ -1,6 +1,8 @@
 package com.lumatech.voltup
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -19,6 +21,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -87,6 +91,18 @@ fun StationsMapScreen(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     shape = RoundedCornerShape(24.dp)
                 )
+                // BLOKADA PRZECHWYTYWANIA SWIPE PRZEZ RODZICA (np. HorizontalPager)
+                .pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            // Dziecko (mapa) przetwarza zdarzenie pierwsze, następnie to my blokujemy przekazanie go dalej
+                            val event = awaitPointerEvent(PointerEventPass.Main)
+                            event.changes.forEach { change ->
+                                change.consume()
+                            }
+                        }
+                    }
+                }
         ) {
             GoogleMapView(
                 modifier = Modifier.fillMaxSize(),
@@ -172,6 +188,7 @@ fun StationsMapScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(20.dp))
+                        .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow))
                         .clickable {
                             selectedStation = station
                             expandedStationId = if (isExpanded) null else station.id
