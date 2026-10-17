@@ -70,7 +70,7 @@ fun StreakPill(streakDays: Int) {
 fun ProfileScreen(
     stats: UserStats,
     challenges: List<Challenge>,
-    badges: List<Badge> = MockData.sampleBadges,
+    achievements: List<Achievement> = emptyList(),
     onClaimChallenge: (Challenge) -> Unit,
     onUpdateUserProfile: (newName: String, newAvatarId: Int) -> Unit,
     onOpenSettings: () -> Unit,
@@ -189,21 +189,66 @@ fun ProfileScreen(
                         )
                     }
 
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                         Text(
                             text = stats.userName,
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Poziom ${stats.level}\n${stats.levelTitle}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
-                        )
+
+                        Surface(
+                            shape = CircleShape,
+                            color = primaryColor.copy(alpha = 0.12f)
+                        ) {
+                            Text(
+                                text = "Poziom ${stats.level} • ${stats.levelTitle}",
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = primaryColor
+                            )
+                        }
+
+                        val (minPts, maxPts) = getLevelThresholds(stats.level)
+                        val currentLvlPts = (stats.points - minPts).coerceAtLeast(0)
+                        val reqLvlPts = (maxPts - minPts).coerceAtLeast(1)
+                        val progressFraction = (currentLvlPts.toFloat() / reqLvlPts.toFloat()).coerceIn(0f, 1f)
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 12.dp, end = 12.dp, top = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(8.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth(progressFraction)
+                                        .fillMaxHeight()
+                                        .clip(CircleShape)
+                                        .background(primaryColor)
+                                )
+                            }
+
+                            Text(
+                                text = "${stats.points}/$maxPts pkt",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
 
                     HorizontalDivider(
@@ -215,11 +260,9 @@ fun ProfileScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        // Zmieniono ranking na max 10 punktów Volt
-                        val mockVoltPoints = (stats.level.coerceAtMost(10))
                         ProfileStatNumber(
-                            value = "$mockVoltPoints/10",
-                            label = "Punkty Volt",
+                            value = "${stats.points} pkt",
+                            label = "VoltPoints",
                             valueColor = primaryColor
                         )
                         ProfileStatNumber(
@@ -284,7 +327,7 @@ fun ProfileScreen(
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "${badges.count { badge -> badge.isUnlocked }} z ${badges.size} odblokowane",
+                                text = "${achievements.count { it.level > 0 }} z ${achievements.size} odblokowane",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

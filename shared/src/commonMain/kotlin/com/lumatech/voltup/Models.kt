@@ -7,16 +7,16 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.vector.ImageVector
 
 data class UserStats(
-    val points: Int = 1240,
-    val totalEnergyWh: Double = 3450.0,
-    val weeklyEnergyWh: Double = 840.0,
-    val cityContributionRank: Int = 42,
-    val co2SavedKg: Double = 2.41,
+    val points: Int = 0,
+    val totalEnergyWh: Double = 0.0,
+    val weeklyEnergyWh: Double = 0.0,
+    val cityContributionRank: Int = 0,
+    val co2SavedKg: Double = 0.0,
     val userName: String = "Jan Kowalski",
     val avatarId: Int = 1,
-    val level: Int = 4,
-    val levelTitle: String = "Łódzki Aktywista Kinetyczny",
-    val streakDays: Int = 5,
+    val level: Int = 0,
+    val levelTitle: String = "Nowicjusz VoltUp",
+    val streakDays: Int = 1,
     val recentWorkouts: List<WorkoutSessionRecord> = emptyList(),
 )
 

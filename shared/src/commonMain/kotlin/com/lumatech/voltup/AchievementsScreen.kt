@@ -49,31 +49,26 @@ data class LeaderboardUser(
     val isCurrentUser: Boolean = false
 )
 
-object AchievementMockData {
-    val badges = listOf(
-        BadgeModel("1", "Refleksyjny detektyw", "Ukończ swoje przemyślenia", Icons.Default.Star, 1, 2, 3, 50),
-        BadgeModel("2", "Mistrz logowania", "Wykonuj codzienne logowania", Icons.Default.Star, 0, 0, 1, 0),
-        BadgeModel("3", "Ambasador", "Zaproś znajomych do aplikacji", Icons.Default.Star, 0, 0, 1, 0),
-        BadgeModel("4", "Aktywny zdobywca", "Ukończ wyznaczone aktywności", Icons.Default.Star, 2, 6, 10, 150)
-    )
-
-    // Punkty dostosowane tak, by odzwierciedlały sumę za osiągnięcia użytkownika (np. 50 + 150 = 200 pkt)
-    val leaderboard = listOf(
-        LeaderboardUser("2", "X-AE-A-19", 11848, 10),
-        LeaderboardUser("3", "Brandon Gray", 9914, 9),
-        LeaderboardUser("4", "Sarah Connor", 7520, 7),
-        LeaderboardUser("5", "Jan Kowalski", 1200, 4),
-        LeaderboardUser("1", "Twój Profil", 200, 2, true)
-    ).sortedByDescending { it.points }
-}
-
 @Composable
 fun AchievementsScreen(
-    badges: List<BadgeModel> = AchievementMockData.badges,
-    leaderboard: List<LeaderboardUser> = AchievementMockData.leaderboard,
+    badges: List<BadgeModel> = emptyList(),
+    userStats: UserStats,
     onNavigateBack: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(AchievementTab.ACHIEVEMENTS) }
+
+    val leaderboard = remember(userStats.points, userStats.level, userStats.userName) {
+        listOf(
+            LeaderboardUser("2", "X-AE-A-19", 11848, 10),
+            LeaderboardUser("3", "Brandon Gray", 9914, 9),
+            LeaderboardUser("4", "Sarah Connor", 7520, 7),
+            LeaderboardUser("5", "Jan Kowalski", 1200, 4),
+            LeaderboardUser("6", "Anna Nowak", 450, 3),
+            LeaderboardUser("7", "Michał Zieliński", 180, 2),
+            LeaderboardUser("8", "Piotr Wiśniewski", 50, 1),
+            LeaderboardUser("1", "${userStats.userName} (Ty)", userStats.points, userStats.level, isCurrentUser = true)
+        ).sortedByDescending { it.points }
+    }
 
     Column(
         modifier = Modifier
@@ -173,7 +168,7 @@ private fun BadgesContent(badges: List<BadgeModel>) {
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        items(badges) { badge ->
+        items(badges, key = { it.id }) { badge ->
             AchievementCard(badge)
         }
     }
@@ -266,7 +261,7 @@ private fun AchievementCard(badge: BadgeModel) {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     val progressFraction = if (badge.maxProgress > 0) {
-                        badge.currentProgress.toFloat() / badge.maxProgress.toFloat()
+                        (badge.currentProgress.toFloat() / badge.maxProgress.toFloat()).coerceIn(0f, 1f)
                     } else 0f
 
                     Box(
@@ -349,7 +344,7 @@ private fun LeaderboardContent(leaderboard: List<LeaderboardUser>) {
             }
         }
 
-        itemsIndexed(leaderboard) { index, user ->
+        itemsIndexed(leaderboard, key = { index, user -> "${user.id}_$index" }) { index, user ->
             LeaderboardItem(rank = index + 1, user = user)
         }
     }

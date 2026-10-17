@@ -61,7 +61,6 @@ sealed interface Screen {
     data class ActiveWorkout(val station: KineticStation) : Screen
     data object Settings : Screen
     data object QrScanner : Screen
-    data object Ranking : Screen
     data object Achievements : Screen
 }
 
@@ -125,12 +124,21 @@ fun App() {
     var userStats by remember {
         mutableStateOf(
             UserStats(
-                recentWorkouts = MockData.sampleRecentWorkouts
+                points = 0,
+                totalEnergyWh = 0.0,
+                weeklyEnergyWh = 0.0,
+                co2SavedKg = 0.0,
+                userName = "Jan Kowalski",
+                avatarId = 1,
+                level = 0,
+                levelTitle = "Nowicjusz VoltUp",
+                streakDays = 1,
+                recentWorkouts = emptyList()
             )
         )
     }
+    var achievements by remember { mutableStateOf(DefaultAchievements.initialAchievements) }
     var challenges by remember { mutableStateOf(MockData.sampleChallenges) }
-    var badges by remember { mutableStateOf(MockData.sampleBadges) }
     var redeemedRewards by remember { mutableStateOf(emptyList<RedeemedReward>()) }
 
     val canGoBack = currentScreen != Screen.Main || currentTab != MainTab.HOME
@@ -138,7 +146,6 @@ fun App() {
         when (currentScreen) {
             is Screen.Settings -> currentScreen = Screen.Main
             is Screen.QrScanner -> currentScreen = Screen.Main
-            is Screen.Ranking -> currentScreen = Screen.Main
             is Screen.Achievements -> currentScreen = Screen.Main
             is Screen.ActiveWorkout -> { }
             is Screen.Main -> if (currentTab != MainTab.HOME) currentTab = MainTab.HOME
@@ -179,16 +186,10 @@ fun App() {
                             )
                         }
 
-                        is Screen.Ranking -> {
-                            RankingScreen(
-                                userStats = userStats,
-                                onNavigateBack = { currentScreen = Screen.Main }
-                            )
-                        }
-
                         is Screen.Achievements -> {
                             AchievementsScreen(
-                                badges = badges.map { it.toBadgeModel() },
+                                badges = achievements.map { it.toBadgeModel() },
+                                userStats = userStats,
                                 onNavigateBack = { currentScreen = Screen.Main }
                             )
                         }
@@ -197,20 +198,46 @@ fun App() {
                             WorkoutScreen(
                                 station = screen.station,
                                 onFinishWorkout = { earnedWh, earnedPoints, workoutRecord ->
-                                    userStats = userStats.copy(
-                                        points = userStats.points + earnedPoints,
-                                        totalEnergyWh = userStats.totalEnergyWh + earnedWh,
-                                        co2SavedKg = userStats.co2SavedKg + (earnedWh * 0.0007),
-                                        recentWorkouts = listOf(workoutRecord) + userStats.recentWorkouts
+                                    val newWorkouts = listOf(workoutRecord) + userStats.recentWorkouts
+                                    val newTotalWh = userStats.totalEnergyWh + earnedWh
+                                    val newCo2 = userStats.co2SavedKg + (earnedWh * 0.0007)
+
+                                    val evalResult = evaluateAchievements(
+                                        currentAchievements = achievements,
+                                        workouts = newWorkouts,
+                                        totalEnergyWh = newTotalWh,
+                                        co2SavedKg = newCo2,
+                                        streakDays = userStats.streakDays,
+                                        redeemedRewardsCount = redeemedRewards.size
                                     )
+
+                                    achievements = evalResult.updatedAchievements
+                                    val totalPoints = userStats.points + earnedPoints + evalResult.bonusPointsEarned
+                                    val newLevel = calculateUserLevel(totalPoints)
+                                    val newTitle = calculateLevelTitle(newLevel)
+
+                                    userStats = userStats.copy(
+                                        points = totalPoints,
+                                        totalEnergyWh = newTotalWh,
+                                        co2SavedKg = newCo2,
+                                        level = newLevel,
+                                        levelTitle = newTitle,
+                                        recentWorkouts = newWorkouts
+                                    )
+
                                     challenges = challenges.map { ch ->
                                         if (!ch.isCompleted) {
                                             val newProg = (ch.currentProgress + (earnedWh / 200.0).toFloat()).coerceAtMost(1f)
                                             ch.copy(currentProgress = newProg, isCompleted = newProg >= 1f)
                                         } else ch
                                     }
+
                                     currentScreen = Screen.Main
-                                    SnackbarHelper.show("Sesja zapisana. +$earnedPoints pkt")
+                                    var snackMsg = "Sesja zapisana. +$earnedPoints pkt"
+                                    if (evalResult.bonusPointsEarned > 0) {
+                                        snackMsg += " | 🏆 Awans w osiągnięciach (+${evalResult.bonusPointsEarned} pkt)!"
+                                    }
+                                    SnackbarHelper.show(snackMsg)
                                 },
                                 onCancel = {
                                     currentScreen = Screen.Main
@@ -245,6 +272,7 @@ fun App() {
                             ) { innerPadding ->
                                 HorizontalPager(
                                     state = pagerState,
+                                    userScrollEnabled = currentTab != MainTab.MAP,
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .padding(innerPadding)
@@ -255,8 +283,7 @@ fun App() {
                                                 stats = userStats,
                                                 onOpenSettings = { currentScreen = Screen.Settings },
                                                 onGoToMap = { currentTab = MainTab.MAP },
-                                                onScanStation = { currentScreen = Screen.QrScanner },
-                                                onOpenRanking = { currentScreen = Screen.Ranking }
+                                                onScanStation = { currentScreen = Screen.QrScanner }
                                             )
                                         }
 
@@ -274,17 +301,38 @@ fun App() {
                                                 currentPoints = userStats.points,
                                                 redeemedRewards = redeemedRewards,
                                                 onRedeemReward = { reward ->
+                                                    val pointsAfterRedeem = userStats.points - reward.costPoints
+                                                    val newRedeemedList = listOf(
+                                                        RedeemedReward(
+                                                            reward = reward,
+                                                            discountCode = reward.discountCode,
+                                                            redeemedDate = "Dzisiaj",
+                                                            isActivated = false,
+                                                            validityMinutes = reward.validityMinutes
+                                                        )
+                                                    ) + redeemedRewards
+
+                                                    redeemedRewards = newRedeemedList
+
+                                                    val evalResult = evaluateAchievements(
+                                                        currentAchievements = achievements,
+                                                        workouts = userStats.recentWorkouts,
+                                                        totalEnergyWh = userStats.totalEnergyWh,
+                                                        co2SavedKg = userStats.co2SavedKg,
+                                                        streakDays = userStats.streakDays,
+                                                        redeemedRewardsCount = newRedeemedList.size
+                                                    )
+
+                                                    achievements = evalResult.updatedAchievements
+                                                    val finalPoints = pointsAfterRedeem + evalResult.bonusPointsEarned
+                                                    val finalLevel = calculateUserLevel(finalPoints)
+                                                    val finalTitle = calculateLevelTitle(finalLevel)
+
                                                     userStats = userStats.copy(
-                                                        points = userStats.points - reward.costPoints
+                                                        points = finalPoints,
+                                                        level = finalLevel,
+                                                        levelTitle = finalTitle
                                                     )
-                                                    val newRedeemed = RedeemedReward(
-                                                        reward = reward,
-                                                        discountCode = reward.discountCode,
-                                                        redeemedDate = "Dzisiaj",
-                                                        isActivated = false,
-                                                        validityMinutes = reward.validityMinutes
-                                                    )
-                                                    redeemedRewards = listOf(newRedeemed) + redeemedRewards
                                                 },
                                                 onActivateReward = { target ->
                                                     redeemedRewards = redeemedRewards.map {
@@ -303,10 +351,16 @@ fun App() {
                                             ProfileScreen(
                                                 stats = userStats,
                                                 challenges = challenges,
-                                                badges = badges,
+                                                achievements = achievements,
                                                 onClaimChallenge = { challenge ->
+                                                    val newPoints = userStats.points + challenge.rewardPoints
+                                                    val newLevel = calculateUserLevel(newPoints)
+                                                    val newTitle = calculateLevelTitle(newLevel)
+
                                                     userStats = userStats.copy(
-                                                        points = userStats.points + challenge.rewardPoints
+                                                        points = newPoints,
+                                                        level = newLevel,
+                                                        levelTitle = newTitle
                                                     )
                                                     challenges = challenges.map {
                                                         if (it.id == challenge.id) it.copy(isClaimed = true) else it
@@ -452,8 +506,7 @@ fun DashboardScreen(
     stats: UserStats,
     onOpenSettings: () -> Unit,
     onGoToMap: () -> Unit,
-    onScanStation: () -> Unit,
-    onOpenRanking: () -> Unit = {}
+    onScanStation: () -> Unit
 ) {
     val scrollState = rememberScrollState()
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -540,22 +593,6 @@ fun DashboardScreen(
                                 modifier = Modifier.padding(bottom = 8.dp)
                             )
                         }
-                    }
-
-                    Surface(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable(onClick = onOpenRanking),
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer
-                    ) {
-                        Text(
-                            text = "Miejsce #${stats.cityContributionRank}",
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
                     }
                 }
 

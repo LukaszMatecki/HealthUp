@@ -23,16 +23,24 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.seconds
+
+enum class StatPattern {
+    CIRCLES, DIAGONALS, WAVES
+}
 
 @Composable
 fun WorkoutScreen(
@@ -59,7 +67,6 @@ fun WorkoutScreen(
         showCancelConfirmModal = true
     }
 
-    // Active workout loop - ticks only when hasStarted, !isPaused, and modals are not open
     LaunchedEffect(hasStarted, isPaused, showCompletionModal, showCancelConfirmModal, resistanceLevel) {
         if (hasStarted && !isPaused && !showCompletionModal && !showCancelConfirmModal) {
             while (hasStarted && !isPaused && !showCompletionModal && !showCancelConfirmModal) {
@@ -85,7 +92,6 @@ fun WorkoutScreen(
         }
     }
 
-    // Paused loop - drops watts and rpm to 0, slowly lowers HR
     LaunchedEffect(isPaused, showCompletionModal, showCancelConfirmModal) {
         if (hasStarted && (isPaused || showCompletionModal || showCancelConfirmModal)) {
             currentWatts = 0
@@ -93,8 +99,7 @@ fun WorkoutScreen(
         }
     }
 
-    // VoltPoints calculation - starts at 0, accumulates much slower (1 pt per 20 Wh)
-    val earnedPoints = (totalGeneratedWh * 0.05).toInt()
+    val earnedPoints = (totalGeneratedWh * 0.2).toInt()
     val co2Saved = totalGeneratedWh * 0.0007
     val caloriesBurned = (totalGeneratedWh * 0.7 + (secondsElapsed * 0.08)).roundToInt()
     val distanceKm = (secondsElapsed * 0.0065) + (totalGeneratedWh * 0.012)
@@ -108,6 +113,9 @@ fun WorkoutScreen(
     val energyGradient = listOf(Color(0xFFFFB75E), Color(0xFFED8F03))
     val resistanceGradient = listOf(Color(0xFF38EF7D), Color(0xFF11998E))
     val rpmGradient = listOf(Color(0xFF56CCF2), Color(0xFF2F80ED))
+
+    val caloriesPillGradient = listOf(Color(0xFFFFE4E6), Color(0xFFFFD1D1))
+    val timePillGradient = listOf(Color(0xFFE0E7FF), Color(0xFFD4E4FF))
 
     val animatedWatts by animateIntAsState(
         targetValue = if (hasStarted && !isPaused && !showCompletionModal && !showCancelConfirmModal) currentWatts else 0,
@@ -356,41 +364,25 @@ fun WorkoutScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp)
-                        .clip(CircleShape)
-                        .background(surfaceVariantColor.copy(alpha = 0.5f))
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(Icons.Default.LocalFireDepartment, contentDescription = null, tint = caloriesColor, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("$caloriesBurned Kcal", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
-                    }
-                }
+                StatPill(
+                    icon = Icons.Default.LocalFireDepartment,
+                    iconTint = caloriesColor,
+                    text = "$caloriesBurned Kcal",
+                    textColor = Color(0xFF9F1239),
+                    gradientColors = caloriesPillGradient,
+                    pattern = StatPattern.CIRCLES,
+                    modifier = Modifier.weight(1f)
+                )
 
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp)
-                        .clip(CircleShape)
-                        .background(surfaceVariantColor.copy(alpha = 0.5f))
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(Icons.Default.Schedule, contentDescription = null, tint = primaryColor, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(secondsElapsed.formatSeconds(), fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
-                    }
-                }
+                StatPill(
+                    icon = Icons.Default.Schedule,
+                    iconTint = Color(0xFF2563EB),
+                    text = secondsElapsed.formatSeconds(),
+                    textColor = Color(0xFF1E40AF),
+                    gradientColors = timePillGradient,
+                    pattern = StatPattern.WAVES,
+                    modifier = Modifier.weight(1f)
+                )
             }
 
             Card(
@@ -590,93 +582,267 @@ fun WorkoutScreen(
             caloriesKcal = caloriesBurned
         )
 
-        AlertDialog(
-            onDismissRequest = { showCompletionModal = false },
-            shape = RoundedCornerShape(24.dp),
-            title = {
-                Text("Podsumowanie Sesji", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Dialog(onDismissRequest = { showCompletionModal = false }) {
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = Color.White,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(CircleShape)
+                            .background(primaryColor.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = primaryColor,
+                            modifier = Modifier.size(40.dp)
+                        )
+                    }
+
                     Text(
-                        "Świetna robota! Wygenerowana przez Ciebie energia właśnie zasiliła miejską sieć w Łodzi.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "Podsumowanie Sesji",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp,
+                        color = Color.Black
                     )
+
+                    Text(
+                        text = "Świetna robota! Wygenerowana przez Ciebie energia właśnie zasiliła miejską sieć w Łodzi.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray,
+                        textAlign = TextAlign.Center
+                    )
+
                     Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(16.dp)
+                        color = Color(0xFFF3F4F6),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
                             modifier = Modifier.padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Wygenerowano:", style = MaterialTheme.typography.bodyMedium)
+                                Text("Wygenerowano:", style = MaterialTheme.typography.bodyMedium, color = Color.DarkGray)
                                 Text("${totalGeneratedWh.formatOneDecimal()} Wh", fontWeight = FontWeight.ExtraBold, color = primaryColor)
                             }
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Zdobyte punkty:", style = MaterialTheme.typography.bodyMedium)
+                                Text("Zdobyte punkty:", style = MaterialTheme.typography.bodyMedium, color = Color.DarkGray)
                                 Text("+$earnedPoints VoltPoints", fontWeight = FontWeight.ExtraBold, color = warningColor)
                             }
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Czas sesji:", style = MaterialTheme.typography.bodyMedium)
-                                Text(secondsElapsed.formatSeconds(), fontWeight = FontWeight.Bold)
+                                Text("Czas sesji:", style = MaterialTheme.typography.bodyMedium, color = Color.DarkGray)
+                                Text(secondsElapsed.formatSeconds(), fontWeight = FontWeight.Bold, color = Color.Black)
                             }
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Spalone kalorie:", style = MaterialTheme.typography.bodyMedium)
-                                Text("$caloriesBurned kcal", fontWeight = FontWeight.Bold)
+                                Text("Spalone kalorie:", style = MaterialTheme.typography.bodyMedium, color = Color.DarkGray)
+                                Text("$caloriesBurned kcal", fontWeight = FontWeight.Bold, color = Color.Black)
                             }
                         }
                     }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showCompletionModal = false
-                        onFinishWorkout(totalGeneratedWh, earnedPoints, record)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = Color.White),
-                    shape = CircleShape
-                ) {
-                    Text("Zapisz i odbierz punkty", fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(vertical = 4.dp))
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { showCompletionModal = false }
-                ) {
-                    Text("Kontynuuj trening", fontWeight = FontWeight.Bold, color = primaryColor)
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Button(
+                            onClick = {
+                                showCompletionModal = false
+                                onFinishWorkout(totalGeneratedWh, earnedPoints, record)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = Color.White),
+                            shape = CircleShape
+                        ) {
+                            Text("Zapisz i odbierz punkty", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        }
+
+                        Button(
+                            onClick = { showCompletionModal = false },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            shape = CircleShape,
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF3F4F6), contentColor = Color.DarkGray)
+                        ) {
+                            Text("Kontynuuj trening", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        }
+                    }
                 }
             }
-        )
+        }
     }
 
     if (showCancelConfirmModal) {
-        AlertDialog(
-            onDismissRequest = { showCancelConfirmModal = false },
-            shape = RoundedCornerShape(24.dp),
-            title = { Text("Anulować trening?", fontWeight = FontWeight.Bold) },
-            text = { Text("Cały postęp tej sesji oraz wygenerowana energia zostaną utracone.", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showCancelConfirmModal = false
-                        onCancel()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+        Dialog(onDismissRequest = { showCancelConfirmModal = false }) {
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = Color.White,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text("Przerwij", fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showCancelConfirmModal = false }) {
-                    Text("Wznów trening", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    Box(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(CircleShape)
+                            .background(cancelRedColor.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = null,
+                            tint = cancelRedColor,
+                            modifier = Modifier.size(40.dp)
+                        )
+                    }
+
+                    Text(
+                        text = "Anulować trening?",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp,
+                        color = Color.Black
+                    )
+
+                    Text(
+                        text = "Cały postęp tej sesji oraz wygenerowana energia zostaną utracone.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Button(
+                            onClick = {
+                                showCancelConfirmModal = false
+                                onCancel()
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = cancelRedColor, contentColor = Color.White),
+                            shape = CircleShape
+                        ) {
+                            Text("Przerwij", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        }
+
+                        Button(
+                            onClick = { showCancelConfirmModal = false },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            shape = CircleShape,
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF3F4F6), contentColor = Color.DarkGray)
+                        ) {
+                            Text("Wznów trening", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        }
+                    }
                 }
             }
-        )
+        }
+    }
+}
+
+@Composable
+fun StatPill(
+    icon: ImageVector,
+    iconTint: Color,
+    text: String,
+    textColor: Color,
+    gradientColors: List<Color>,
+    pattern: StatPattern,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .height(52.dp)
+            .clip(CircleShape)
+            .background(Brush.linearGradient(gradientColors))
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            when (pattern) {
+                StatPattern.CIRCLES -> {
+                    drawCircle(
+                        color = Color.White.copy(alpha = 0.4f),
+                        radius = size.height * 0.7f,
+                        center = Offset(0f, 0f)
+                    )
+                    drawCircle(
+                        color = Color.White.copy(alpha = 0.3f),
+                        radius = size.height * 0.4f,
+                        center = Offset(size.width, size.height)
+                    )
+                    drawCircle(
+                        color = Color.White.copy(alpha = 0.2f),
+                        radius = size.height * 0.3f,
+                        center = Offset(size.width * 0.75f, size.height * 0.2f)
+                    )
+                }
+                StatPattern.DIAGONALS -> {
+                    val stripeWidth = size.height * 0.3f
+                    val step = (size.height * 0.8f).toInt()
+                    for (i in -size.height.toInt()..(size.width + size.height).toInt() step step) {
+                        drawLine(
+                            color = Color.White.copy(alpha = 0.25f),
+                            start = Offset(i.toFloat(), 0f),
+                            end = Offset(i.toFloat() - size.height, size.height),
+                            strokeWidth = stripeWidth
+                        )
+                    }
+                }
+                StatPattern.WAVES -> {
+                    val w = size.width
+                    val h = size.height
+
+                    val path1 = Path().apply {
+                        moveTo(0f, h * 0.5f)
+                        cubicTo(w * 0.3f, h * 0.3f, w * 0.7f, h * 0.7f, w, h * 0.4f)
+                        lineTo(w, h)
+                        lineTo(0f, h)
+                        close()
+                    }
+                    drawPath(path1, color = Color.White.copy(alpha = 0.15f))
+
+                    val path2 = Path().apply {
+                        moveTo(0f, h * 0.7f)
+                        cubicTo(w * 0.4f, h * 1.0f, w * 0.6f, h * 0.4f, w, h * 0.6f)
+                        lineTo(w, h)
+                        lineTo(0f, h)
+                        close()
+                    }
+                    drawPath(path2, color = Color.White.copy(alpha = 0.2f))
+                }
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(20.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = text,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = textColor
+            )
+        }
     }
 }
 
