@@ -46,7 +46,9 @@ fun ManageAccountScreen(
     var showSignOutDialog by remember { mutableStateOf(false) }
     var showDeleteAccountDialog by remember { mutableStateOf(false) }
 
+    var oldPasswordText by remember { mutableStateOf("") }
     var newPasswordText by remember { mutableStateOf("") }
+    var repeatNewPasswordText by remember { mutableStateOf("") }
     var isChangingPassword by remember { mutableStateOf(false) }
     var isDeletingAccount by remember { mutableStateOf(false) }
 
@@ -315,16 +317,56 @@ fun ManageAccountScreen(
                     )
 
                     Text(
-                        text = "Wprowadź nowe bezpieczne hasło do swojego konta (minimum 6 znaków).",
+                        text = "Wprowadź dotychczasowe hasło oraz nowe bezpieczne hasło (minimum 6 znaków).",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.Gray,
                         textAlign = TextAlign.Center
                     )
 
                     OutlinedTextField(
+                        value = oldPasswordText,
+                        onValueChange = { oldPasswordText = it },
+                        label = { Text("Dotychczasowe hasło") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.Black,
+                            unfocusedTextColor = Color.Black,
+                            focusedBorderColor = primaryColor,
+                            unfocusedBorderColor = Color(0xFFD1D5DB),
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            focusedLabelColor = primaryColor,
+                            unfocusedLabelColor = Color.Gray
+                        )
+                    )
+
+                    OutlinedTextField(
                         value = newPasswordText,
                         onValueChange = { newPasswordText = it },
                         label = { Text("Nowe hasło") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.Black,
+                            unfocusedTextColor = Color.Black,
+                            focusedBorderColor = primaryColor,
+                            unfocusedBorderColor = Color(0xFFD1D5DB),
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            focusedLabelColor = primaryColor,
+                            unfocusedLabelColor = Color.Gray
+                        )
+                    )
+
+                    OutlinedTextField(
+                        value = repeatNewPasswordText,
+                        onValueChange = { repeatNewPasswordText = it },
+                        label = { Text("Powtórz nowe hasło") },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         shape = RoundedCornerShape(14.dp),
@@ -349,19 +391,37 @@ fun ManageAccountScreen(
                     ) {
                         Button(
                             onClick = {
-                                val clean = newPasswordText.trim()
-                                if (clean.length < 6) {
-                                    SnackbarHelper.show("Hasło musi mieć co najmniej 6 znaków.")
+                                val cleanOld = oldPasswordText.trim()
+                                val cleanNew = newPasswordText.trim()
+                                val cleanRepeat = repeatNewPasswordText.trim()
+
+                                if (cleanOld.isBlank()) {
+                                    SnackbarHelper.show("Wprowadź dotychczasowe hasło.")
                                     return@Button
                                 }
+                                if (cleanNew.length < 6) {
+                                    SnackbarHelper.show("Nowe hasło musi mieć co najmniej 6 znaków.")
+                                    return@Button
+                                }
+                                if (cleanNew != cleanRepeat) {
+                                    SnackbarHelper.show("Nowe hasła nie są identyczne.")
+                                    return@Button
+                                }
+                                if (cleanOld == cleanNew) {
+                                    SnackbarHelper.show("Nowe hasło musi być inne niż dotychczasowe.")
+                                    return@Button
+                                }
+
                                 if (authService != null) {
                                     isChangingPassword = true
                                     coroutineScope.launch {
-                                        val res = authService.changePassword(clean)
+                                        val res = authService.changePassword(cleanOld, cleanNew)
                                         isChangingPassword = false
                                         if (res.isSuccess) {
                                             showChangePasswordDialog = false
+                                            oldPasswordText = ""
                                             newPasswordText = ""
+                                            repeatNewPasswordText = ""
                                             SnackbarHelper.show("Hasło zostało pomyślnie zmienione.")
                                         } else {
                                             SnackbarHelper.show(res.errorMessage ?: "Błąd zmiany hasła.")
@@ -377,7 +437,7 @@ fun ManageAccountScreen(
                             shape = CircleShape
                         ) {
                             Text(
-                                text = if (isChangingPassword) "Zapisywanie..." else "Zapisz nowe hasło",
+                                text = if (isChangingPassword) "Weryfikacja..." else "Zapisz nowe hasło",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp
                             )

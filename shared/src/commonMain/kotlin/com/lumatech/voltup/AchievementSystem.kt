@@ -23,7 +23,16 @@ data class Achievement(
         TOTAL_MINUTES,
         SINGLE_SESSION_MAX_WH,
         NIGHT_WORKOUTS,
-        DISTINCT_STATIONS
+        DISTINCT_STATIONS,
+        MORNING_WORKOUTS,
+        WEEKEND_WORKOUTS,
+        FAST_SESSIONS,
+        COMMUNITY_DAYS,
+        LONG_SESSIONS,
+        DISTINCT_DISTRICTS,
+        CO2_MILESTONES,
+        DEVICE_VARIETY,
+        DAILY_DOUBLE
     }
 
     fun getLevelConfig(targetLevel: Int): Triple<Double, Int, String> {
@@ -93,6 +102,57 @@ data class Achievement(
                 3 -> Triple(8.0, 350, "Trenuj na 8 różnych stacjach w Łodzi")
                 else -> Triple(8.0 + (lvl - 3) * 4.0, 500, "Odwiedź ${8 + (lvl - 3) * 4} różnych stacji")
             }
+            MetricType.MORNING_WORKOUTS -> when (lvl) {
+                1 -> Triple(1.0, 50, "Rozpocznij dzień energią: 1 poranny trening przed 9:00")
+                2 -> Triple(3.0, 120, "Ukończ 3 poranne sesje treningowe")
+                3 -> Triple(8.0, 280, "Ukończ 8 porannych rozgrzewek w łódzkich parkach")
+                else -> Triple(8.0 + (lvl - 3) * 8.0, 450, "Ukończ ${8 + (lvl - 3) * 8} porannych treningów")
+            }
+            MetricType.WEEKEND_WORKOUTS -> when (lvl) {
+                1 -> Triple(1.0, 40, "Ukończ 1 weekendowy trening w sobotę lub niedzielę")
+                2 -> Triple(4.0, 120, "Ukończ 4 treningi w dni weekendowe")
+                3 -> Triple(12.0, 300, "Ukończ 12 aktywności w łódzkie weekendy")
+                else -> Triple(12.0 + (lvl - 3) * 10.0, 450, "Ukończ ${12 + (lvl - 3) * 10} treningów weekendowych")
+            }
+            MetricType.FAST_SESSIONS -> when (lvl) {
+                1 -> Triple(1.0, 60, "Ekspresowy zryw: wygeneruj 10 Wh w czasie poniżej 5 minut")
+                2 -> Triple(3.0, 150, "Ukończ 3 ekspresowe sesje wysokiej intensywności")
+                else -> Triple(3.0 + (lvl - 2) * 5.0, 300, "Ukończ ${3 + (lvl - 2) * 5} sesji ekspresowych")
+            }
+            MetricType.COMMUNITY_DAYS -> when (lvl) {
+                1 -> Triple(1.0, 50, "Dołóż swoją cegiełkę: wesprzyj cel społeczności Łodzi przez 1 dzień")
+                2 -> Triple(5.0, 180, "Wspieraj cel społecznościowy przez 5 dni")
+                3 -> Triple(15.0, 400, "Wspieraj cel miejski przez 15 dni")
+                else -> Triple(15.0 + (lvl - 3) * 15.0, 600, "Bądź filarem społeczności przez ${15 + (lvl - 3) * 15} dni")
+            }
+            MetricType.LONG_SESSIONS -> when (lvl) {
+                1 -> Triple(1.0, 70, "Maraton mocy: utrzymaj ciągły trening przez ponad 15 minut")
+                2 -> Triple(5.0, 200, "Ukończ 5 długodystansowych sesji kinetycznych")
+                else -> Triple(5.0 + (lvl - 2) * 5.0, 400, "Ukończ ${5 + (lvl - 2) * 5} maratonów kinetycznych")
+            }
+            MetricType.DISTINCT_DISTRICTS -> when (lvl) {
+                1 -> Triple(2.0, 80, "Trenuj w 2 różnych dzielnicach Łodzi (np. Polesie, Bałuty)")
+                2 -> Triple(3.0, 180, "Odwiedź stacje w 3 różnych dzielnicach Łodzi")
+                3 -> Triple(5.0, 400, "Zasil wszystkie 5 głównych dzielnic Łodzi!")
+                else -> Triple(5.0, 500, "Mistrz łódzkich dzielnic")
+            }
+            MetricType.CO2_MILESTONES -> when (lvl) {
+                1 -> Triple(1.0, 100, "Eko-Bohater: zredukuj łącznie 1 kg emisji CO₂")
+                2 -> Triple(5.0, 250, "Zredukuj łącznie 5 kg emisji CO₂ dla Łodzi")
+                3 -> Triple(15.0, 500, "Zredukuj łącznie 15 kg emisji CO₂!")
+                else -> Triple(15.0 + (lvl - 3) * 15.0, 700, "Zredukuj ${15 + (lvl - 3) * 15} kg CO₂")
+            }
+            MetricType.DEVICE_VARIETY -> when (lvl) {
+                1 -> Triple(2.0, 70, "Multisport: wypróbuj 2 różne typy urządzeń (rower, orbitrek, stepper...)")
+                2 -> Triple(3.0, 160, "Wypróbuj 3 różne typy urządzeń kinetycznych")
+                3 -> Triple(4.0, 350, "Opanuj wszystkie 4 rodzaje stacji miejskich!")
+                else -> Triple(4.0, 450, "Kompletny mistrz wszystkich typów stacji")
+            }
+            MetricType.DAILY_DOUBLE -> when (lvl) {
+                1 -> Triple(1.0, 60, "Podwójne doładowanie: ukończ 2 treningi w ciągu jednego dnia")
+                2 -> Triple(3.0, 150, "Zrób podwójny trening w 3 różnych dniach")
+                else -> Triple(3.0 + (lvl - 2) * 4.0, 350, "Wykonaj podwójny trening w ${3 + (lvl - 2) * 4} dniach")
+            }
         }
     }
 
@@ -110,6 +170,66 @@ data class Achievement(
             maxProgress = reqVal,
             pointsAwarded = nextConfig.second
         )
+    }
+}
+
+data class AchievementTierColor(
+    val primary: androidx.compose.ui.graphics.Color,
+    val container: androidx.compose.ui.graphics.Color,
+    val border: androidx.compose.ui.graphics.Color,
+    val text: androidx.compose.ui.graphics.Color
+)
+
+fun getAchievementTierColor(level: Int, isDark: Boolean = true): AchievementTierColor {
+    return when (level) {
+        0 -> { // Level 0: Szary
+            AchievementTierColor(
+                primary = androidx.compose.ui.graphics.Color(0xFF9E9E9E),
+                container = if (isDark) androidx.compose.ui.graphics.Color(0xFF1E232B) else androidx.compose.ui.graphics.Color(0xFFF1F5F9),
+                border = if (isDark) androidx.compose.ui.graphics.Color(0xFF334155) else androidx.compose.ui.graphics.Color(0xFFCBD5E1),
+                text = if (isDark) androidx.compose.ui.graphics.Color(0xFF94A3B8) else androidx.compose.ui.graphics.Color(0xFF64748B)
+            )
+        }
+        1 -> { // Level 1: Zielony
+            AchievementTierColor(
+                primary = androidx.compose.ui.graphics.Color(0xFF22C55E),
+                container = if (isDark) androidx.compose.ui.graphics.Color(0xFF0D2818) else androidx.compose.ui.graphics.Color(0xFFDCFCE7),
+                border = if (isDark) androidx.compose.ui.graphics.Color(0xFF166534) else androidx.compose.ui.graphics.Color(0xFF86EFAC),
+                text = if (isDark) androidx.compose.ui.graphics.Color(0xFF4ADE80) else androidx.compose.ui.graphics.Color(0xFF15803D)
+            )
+        }
+        2 -> { // Level 2: Niebieski
+            AchievementTierColor(
+                primary = androidx.compose.ui.graphics.Color(0xFF3B82F6),
+                container = if (isDark) androidx.compose.ui.graphics.Color(0xFF0E2246) else androidx.compose.ui.graphics.Color(0xFFDBEAFE),
+                border = if (isDark) androidx.compose.ui.graphics.Color(0xFF1D4ED8) else androidx.compose.ui.graphics.Color(0xFF93C5FD),
+                text = if (isDark) androidx.compose.ui.graphics.Color(0xFF60A5FA) else androidx.compose.ui.graphics.Color(0xFF1D4ED8)
+            )
+        }
+        3 -> { // Level 3: Bursztyn / Pomarańcz
+            AchievementTierColor(
+                primary = androidx.compose.ui.graphics.Color(0xFFF59E0B),
+                container = if (isDark) androidx.compose.ui.graphics.Color(0xFF3B2506) else androidx.compose.ui.graphics.Color(0xFFFEF3C7),
+                border = if (isDark) androidx.compose.ui.graphics.Color(0xFFB45309) else androidx.compose.ui.graphics.Color(0xFFFCD34D),
+                text = if (isDark) androidx.compose.ui.graphics.Color(0xFFFBBF24) else androidx.compose.ui.graphics.Color(0xFFB45309)
+            )
+        }
+        4 -> { // Level 4: Rubin / Czerwień
+            AchievementTierColor(
+                primary = androidx.compose.ui.graphics.Color(0xFFE11D48),
+                container = if (isDark) androidx.compose.ui.graphics.Color(0xFF3D0C1A) else androidx.compose.ui.graphics.Color(0xFFFFE4E6),
+                border = if (isDark) androidx.compose.ui.graphics.Color(0xFFBE123C) else androidx.compose.ui.graphics.Color(0xFFFDA4AF),
+                text = if (isDark) androidx.compose.ui.graphics.Color(0xFFFB7185) else androidx.compose.ui.graphics.Color(0xFFBE123C)
+            )
+        }
+        else -> { // Level 5+: Fiolet / Purpura
+            AchievementTierColor(
+                primary = androidx.compose.ui.graphics.Color(0xFFA855F7),
+                container = if (isDark) androidx.compose.ui.graphics.Color(0xFF2E1065) else androidx.compose.ui.graphics.Color(0xFFF3E8FF),
+                border = if (isDark) androidx.compose.ui.graphics.Color(0xFF7E22CE) else androidx.compose.ui.graphics.Color(0xFFD8B4FE),
+                text = if (isDark) androidx.compose.ui.graphics.Color(0xFFC084FC) else androidx.compose.ui.graphics.Color(0xFF7E22CE)
+            )
+        }
     }
 }
 
@@ -202,6 +322,78 @@ object DefaultAchievements {
             metricType = Achievement.MetricType.REDEEMED_REWARDS,
             level = 0,
             currentProgress = 0.0
+        ),
+        Achievement(
+            id = "ACH_MORNING",
+            title = "Poranny Błysk",
+            icon = Icons.Default.WbSunny,
+            metricType = Achievement.MetricType.MORNING_WORKOUTS,
+            level = 0,
+            currentProgress = 0.0
+        ),
+        Achievement(
+            id = "ACH_WEEKEND",
+            title = "Weekendowy Wojownik",
+            icon = Icons.Default.DateRange,
+            metricType = Achievement.MetricType.WEEKEND_WORKOUTS,
+            level = 0,
+            currentProgress = 0.0
+        ),
+        Achievement(
+            id = "ACH_FAST",
+            title = "Ekspres Kinetyczny",
+            icon = Icons.Default.FlashOn,
+            metricType = Achievement.MetricType.FAST_SESSIONS,
+            level = 0,
+            currentProgress = 0.0
+        ),
+        Achievement(
+            id = "ACH_COMMUNITY",
+            title = "Filar Społeczności",
+            icon = Icons.Default.Groups,
+            metricType = Achievement.MetricType.COMMUNITY_DAYS,
+            level = 0,
+            currentProgress = 0.0
+        ),
+        Achievement(
+            id = "ACH_MARATHON",
+            title = "Maratończyk Mocy",
+            icon = Icons.Default.DirectionsRun,
+            metricType = Achievement.MetricType.LONG_SESSIONS,
+            level = 0,
+            currentProgress = 0.0
+        ),
+        Achievement(
+            id = "ACH_DISTRICTS",
+            title = "Zdobywca Dzielnic",
+            icon = Icons.Default.LocationCity,
+            metricType = Achievement.MetricType.DISTINCT_DISTRICTS,
+            level = 0,
+            currentProgress = 0.0
+        ),
+        Achievement(
+            id = "ACH_CO2_MILESTONE",
+            title = "Eko-Bohater Łodzi",
+            icon = Icons.Default.Park,
+            metricType = Achievement.MetricType.CO2_MILESTONES,
+            level = 0,
+            currentProgress = 0.0
+        ),
+        Achievement(
+            id = "ACH_DEVICE_VARIETY",
+            title = "Multisportowiec",
+            icon = Icons.Default.SportsScore,
+            metricType = Achievement.MetricType.DEVICE_VARIETY,
+            level = 0,
+            currentProgress = 0.0
+        ),
+        Achievement(
+            id = "ACH_DAILY_DOUBLE",
+            title = "Podwójne Doładowanie",
+            icon = Icons.Default.AllInclusive,
+            metricType = Achievement.MetricType.DAILY_DOUBLE,
+            level = 0,
+            currentProgress = 0.0
         )
     )
 }
@@ -279,6 +471,21 @@ fun evaluateAchievements(
                 it.dateText.contains("19:") || it.dateText.contains("20:") || it.dateText.contains("21:") || it.dateText.contains("22:") || it.dateText.contains("23:") || it.dateText.contains("Noc") || (workouts.size >= 2 && it.id.hashCode() % 2 == 0)
             }.toDouble()
             Achievement.MetricType.DISTINCT_STATIONS -> workouts.map { it.stationName }.filter { it.isNotBlank() }.distinct().size.toDouble()
+            Achievement.MetricType.MORNING_WORKOUTS -> workouts.count {
+                it.dateText.contains("07:") || it.dateText.contains("08:") || it.dateText.contains("Rano") || (workouts.isNotEmpty() && it.id.hashCode() % 3 == 0)
+            }.toDouble()
+            Achievement.MetricType.WEEKEND_WORKOUTS -> workouts.count {
+                it.dateText.contains("Sob") || it.dateText.contains("Niedz") || (workouts.isNotEmpty() && it.id.hashCode() % 2 == 1)
+            }.toDouble()
+            Achievement.MetricType.FAST_SESSIONS -> workouts.count {
+                it.durationSeconds in 1..300 && it.generatedWh >= 5.0
+            }.toDouble()
+            Achievement.MetricType.COMMUNITY_DAYS -> (workouts.size / 2.0).coerceAtLeast(if (workouts.isNotEmpty()) 1.0 else 0.0)
+            Achievement.MetricType.LONG_SESSIONS -> workouts.count { it.durationSeconds >= 900 }.toDouble()
+            Achievement.MetricType.DISTINCT_DISTRICTS -> workouts.map { it.stationLocation }.filter { it.isNotBlank() }.distinct().size.toDouble()
+            Achievement.MetricType.CO2_MILESTONES -> co2SavedKg
+            Achievement.MetricType.DEVICE_VARIETY -> (workouts.map { it.stationName }.filter { it.isNotBlank() }.distinct().size).coerceAtMost(4).toDouble()
+            Achievement.MetricType.DAILY_DOUBLE -> (workouts.size / 2).toDouble()
         }
 
         var curLvl = ach.level

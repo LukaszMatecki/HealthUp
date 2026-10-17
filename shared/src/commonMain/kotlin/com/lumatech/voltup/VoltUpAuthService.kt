@@ -14,7 +14,7 @@ interface VoltUpAuthService {
     suspend fun signIn(email: String, password: String): AuthResult
     suspend fun signUp(email: String, password: String, userName: String, avatarId: Int): AuthResult
     suspend fun sendPasswordReset(email: String): AuthResult
-    suspend fun changePassword(newPassword: String): AuthResult
+    suspend fun changePassword(oldPassword: String, newPassword: String): AuthResult
     suspend fun updateProfile(userName: String, avatarId: Int): AuthResult
     suspend fun deleteAccount(): AuthResult
     suspend fun signOut()

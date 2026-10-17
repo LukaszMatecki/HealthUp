@@ -315,6 +315,7 @@ fun RewardsScreen(
     var activeSubTab by remember { mutableIntStateOf(0) }
     var selectedCategory by remember { mutableStateOf(RewardCategory.ALL) }
     var selectedRewardDetail by remember { mutableStateOf<Reward?>(null) }
+    var viewingCouponCodeModal by remember { mutableStateOf<RedeemedReward?>(null) }
     var isViewingOwnedReward by remember { mutableStateOf(false) }
 
     val filteredRewards = remember(selectedCategory) {
@@ -353,8 +354,12 @@ fun RewardsScreen(
                 onRedeem = {
                     onRedeemReward(detailReward)
                     selectedRewardDetail = null
-                    activeSubTab = 1
-                    SnackbarHelper.show("Kupon dodany do zakładki Moje Kody.")
+                    if (!detailReward.id.contains("RANK")) {
+                        activeSubTab = 1
+                        SnackbarHelper.show("Kupon dodany do zakładki Moje Kody.")
+                    } else {
+                        SnackbarHelper.show("+100 pkt rankingu dodane!", icon = Icons.Default.EmojiEvents)
+                    }
                 },
                 onBack = { selectedRewardDetail = null }
             )
@@ -389,8 +394,7 @@ fun RewardsScreen(
                     val orangeColor = Color(0xFFFF9800)
                     Surface(
                         shape = RoundedCornerShape(16.dp),
-                        color = orangeColor.copy(alpha = 0.15f),
-                        border = BorderStroke(1.dp, orangeColor.copy(alpha = 0.3f))
+                        color = orangeColor.copy(alpha = 0.15f)
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
@@ -520,38 +524,55 @@ fun RewardsScreen(
                                 verticalArrangement = Arrangement.spacedBy(16.dp),
                                 modifier = Modifier.fillMaxSize()
                             ) {
-                                items(redeemedRewards, key = { it.discountCode }) { item ->
+                                items(redeemedRewards, key = { it.id.ifBlank { "${it.reward.id}_${it.discountCode}" } }) { item ->
+                                    val isTransport = item.reward.category == RewardCategory.TRANSPORT
                                     val totalSec = item.reward.validityMinutes * 60
                                     var remainingSeconds by remember(item.isActivated) { mutableStateOf(totalSec) }
 
                                     LaunchedEffect(item.isActivated) {
-                                        if (item.isActivated && remainingSeconds > 0) {
+                                        if (isTransport && item.isActivated && remainingSeconds > 0) {
                                             while (remainingSeconds > 0) {
                                                 delay(1000.milliseconds)
                                                 remainingSeconds--
                                             }
                                         }
                                     }
-                                    val isExpired = item.isActivated && remainingSeconds <= 0
+                                    val isExpired = isTransport && item.isActivated && remainingSeconds <= 0
+
+                                    val cardSubtitle = when {
+                                        !isTransport -> "KOD: ${item.discountCode} • Kliknij by wyświetlić"
+                                        isExpired -> "Bilet wygasł"
+                                        item.isActivated -> "KOD: ${item.discountCode}"
+                                        else -> "Bilet czasowy • Kliknij by aktywować"
+                                    }
+
+                                    val cardMainValue = when {
+                                        !isTransport -> if (item.reward.title.contains("-")) item.reward.title.substringBefore(" ").take(4) else "KOD"
+                                        isExpired -> "0:00"
+                                        item.isActivated -> "${remainingSeconds / 60}:${(remainingSeconds % 60).toString().padStart(2, '0')}"
+                                        else -> "AKTYWUJ"
+                                    }
+
+                                    val cardValueLabel = when {
+                                        !isTransport -> "AKTYWNY"
+                                        item.isActivated && !isExpired -> "POZOSTAŁO"
+                                        !isExpired -> "CZAS"
+                                        else -> ""
+                                    }
 
                                     CouponCard(
                                         title = item.reward.title,
                                         partner = item.reward.partner,
-                                        subtitle = if (isExpired) "Wygasły" else if (item.isActivated) "KOD: ${item.discountCode}" else "Kliknij na bilet by aktywować",
-                                        mainValue = when {
-                                            isExpired -> "0:00"
-                                            item.isActivated -> "${remainingSeconds / 60}:${(remainingSeconds % 60).toString().padStart(2, '0')}"
-                                            else -> "AKTYWUJ"
-                                        },
-                                        valueLabel = if (item.isActivated && !isExpired) "POZOSTAŁO" else "",
+                                        subtitle = cardSubtitle,
+                                        mainValue = cardMainValue,
+                                        valueLabel = cardValueLabel,
                                         isAffordableOrActive = !isExpired,
-                                        icon = if (item.isActivated && !isExpired) Icons.Default.QrCode else item.reward.icon,
+                                        icon = if (!isTransport) Icons.Default.ConfirmationNumber else if (item.isActivated && !isExpired) Icons.Default.QrCode else item.reward.icon,
                                         onClick = {
-                                            if (!item.isActivated) {
+                                            if (isTransport && !item.isActivated) {
                                                 onActivateReward(item)
                                             } else {
-                                                selectedRewardDetail = item.reward
-                                                isViewingOwnedReward = true
+                                                viewingCouponCodeModal = item
                                             }
                                         }
                                     )
@@ -561,6 +582,91 @@ fun RewardsScreen(
                         }
                     }
                 }
+            }
+
+            if (viewingCouponCodeModal != null) {
+                val coupon = viewingCouponCodeModal!!
+                AlertDialog(
+                    onDismissRequest = { viewingCouponCodeModal = null },
+                    shape = RoundedCornerShape(24.dp),
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    title = {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = coupon.reward.partner.uppercase(),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = LightPrimary
+                            )
+                            Text(
+                                text = coupon.reward.title,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    },
+                    text = {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                border = BorderStroke(1.dp, LightPrimary.copy(alpha = 0.3f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(20.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.QrCode2,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.size(64.dp)
+                                    )
+                                    Text(
+                                        text = coupon.discountCode,
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.Black,
+                                        letterSpacing = 2.sp,
+                                        color = LightPrimary,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+
+                            Text(
+                                text = "Pokaż powyższy kod sprzedawcy przy kasie lub wpisz w aplikacji partnera, aby zrealizować zniżkę.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+
+                            Button(
+                                onClick = { viewingCouponCodeModal = null },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = LightPrimary),
+                                shape = CircleShape
+                            ) {
+                                Text("Zamknij", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    },
+                    confirmButton = {},
+                    dismissButton = null
+                )
             }
         }
     }

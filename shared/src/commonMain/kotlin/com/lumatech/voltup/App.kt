@@ -1,6 +1,8 @@
 package com.lumatech.voltup
 
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
@@ -68,6 +70,8 @@ sealed interface Screen {
     data object QrScanner : Screen
     data object Achievements : Screen
     data object ManageAccount : Screen
+    data object HelpGuide : Screen
+    data object Authors : Screen
 }
 
 class BottomBarWithNotchShape(
@@ -130,6 +134,8 @@ fun App() {
     val coroutineScope = rememberCoroutineScope()
 
     var appSettings by remember { mutableStateOf(AppSettings()) }
+    var isSplashVisible by remember { mutableStateOf(true) }
+    var isAutoLoggingIn by remember { mutableStateOf(false) }
     var currentScreen by remember { mutableStateOf<Screen>(if (currentAuthUser != null) Screen.Main else Screen.Login) }
     var currentTab by remember { mutableStateOf(MainTab.HOME) }
     var userStats by remember {
@@ -152,13 +158,22 @@ fun App() {
     var challenges by remember { mutableStateOf(MockData.sampleChallenges) }
     var redeemedRewards by remember { mutableStateOf(emptyList<RedeemedReward>()) }
 
+    LaunchedEffect(Unit) {
+        delay(1200.milliseconds)
+        isSplashVisible = false
+    }
+
     LaunchedEffect(currentAuthUser) {
         val user = currentAuthUser
         if (user == null) {
+            isAutoLoggingIn = false
             if (currentScreen != Screen.Login && currentScreen != Screen.Register && currentScreen != Screen.ForgotPassword) {
                 currentScreen = Screen.Login
             }
         } else {
+            isAutoLoggingIn = true
+            delay(600.milliseconds)
+            isAutoLoggingIn = false
             if (currentScreen == Screen.Login || currentScreen == Screen.Register || currentScreen == Screen.ForgotPassword) {
                 currentScreen = Screen.Main
             }
@@ -194,7 +209,8 @@ fun App() {
                         generatedWh = w.generatedWh,
                         earnedPoints = w.earnedPoints,
                         co2SavedKg = w.co2SavedKg,
-                        caloriesKcal = w.caloriesKcal
+                        caloriesKcal = w.caloriesKcal,
+                        timestampMs = w.createdAt
                     )
                 }
             )
@@ -241,7 +257,7 @@ fun App() {
             }
 
             if (loadedCoupons.isNotEmpty()) {
-                redeemedRewards = loadedCoupons.map { c ->
+                redeemedRewards = loadedCoupons.filter { !it.rewardId.contains("RANK") }.map { c ->
                     val r = MockData.sampleRewards.firstOrNull { it.id == c.rewardId }
                         ?: Reward(
                             id = c.rewardId,
@@ -254,6 +270,7 @@ fun App() {
                             validityMinutes = c.validityMinutes
                         )
                     RedeemedReward(
+                        id = c.couponId.ifBlank { "${c.rewardId}_${c.discountCode}" },
                         reward = r,
                         discountCode = c.discountCode,
                         redeemedDate = "Zapisany",
@@ -278,6 +295,8 @@ fun App() {
             is Screen.ForgotPassword -> currentScreen = Screen.Login
             is Screen.Settings -> currentScreen = Screen.Main
             is Screen.ManageAccount -> currentScreen = Screen.Settings
+            is Screen.HelpGuide -> currentScreen = Screen.Settings
+            is Screen.Authors -> currentScreen = Screen.Settings
             is Screen.QrScanner -> currentScreen = Screen.Main
             is Screen.Achievements -> currentScreen = Screen.Main
             is Screen.ActiveWorkout -> { }
@@ -370,7 +389,25 @@ fun App() {
                                 },
                                 onNavigateToManageAccount = {
                                     currentScreen = Screen.ManageAccount
+                                },
+                                onNavigateToHelpGuide = {
+                                    currentScreen = Screen.HelpGuide
+                                },
+                                onNavigateToAuthors = {
+                                    currentScreen = Screen.Authors
                                 }
+                            )
+                        }
+
+                        is Screen.HelpGuide -> {
+                            HelpGuideScreen(
+                                onNavigateBack = { currentScreen = Screen.Settings }
+                            )
+                        }
+
+                        is Screen.Authors -> {
+                            AuthorsScreen(
+                                onNavigateBack = { currentScreen = Screen.Settings }
                             )
                         }
 
@@ -475,7 +512,7 @@ fun App() {
                                                     earnedPoints = workoutRecord.earnedPoints,
                                                     co2SavedKg = workoutRecord.co2SavedKg,
                                                     caloriesKcal = workoutRecord.caloriesKcal,
-                                                    createdAt = 0L
+                                                    createdAt = if (workoutRecord.timestampMs > 0L) workoutRecord.timestampMs else currentTimeMillis()
                                                 )
                                             )
 
@@ -521,11 +558,14 @@ fun App() {
                                     }
 
                                     currentScreen = Screen.Main
-                                    var snackMsg = "Sesja zapisana. +$earnedPoints pkt"
+                                    SnackbarHelper.show("Sesja zakończona!", icon = Icons.Default.Check)
                                     if (evalResult.bonusPointsEarned > 0) {
-                                        snackMsg += " | 🏆 Awans w osiągnięciach (+${evalResult.bonusPointsEarned} pkt)!"
+                                        val achMsg = evalResult.levelUpMessages.firstOrNull() ?: "Zdobyto nowe osiągnięcie!"
+                                        SnackbarHelper.show(
+                                            text = achMsg,
+                                            icon = Icons.Default.EmojiEvents
+                                        )
                                     }
-                                    SnackbarHelper.show(snackMsg)
                                 },
                                 onCancel = {
                                     currentScreen = Screen.Main
@@ -592,64 +632,82 @@ fun App() {
                                                 currentPoints = userStats.points,
                                                 redeemedRewards = redeemedRewards,
                                                 onRedeemReward = { reward ->
-                                                    val pointsAfterRedeem = userStats.points - reward.costPoints
-                                                    val newRedeemedList = listOf(
-                                                        RedeemedReward(
+                                                    val isRankingTicket = reward.id.contains("RANK")
+                                                    if (isRankingTicket) {
+                                                        val pointsAfterRedeem = (userStats.points - reward.costPoints).coerceAtLeast(0)
+                                                        userStats = userStats.copy(
+                                                            points = pointsAfterRedeem
+                                                        )
+                                                        currentAuthUser?.let { u ->
+                                                            coroutineScope.launch {
+                                                                dbService.updateUserStats(
+                                                                    userId = u.userId,
+                                                                    pointsDelta = 100 - reward.costPoints,
+                                                                    whDelta = 0.0,
+                                                                    co2Delta = 0.0,
+                                                                    newLevel = userStats.level
+                                                                )
+                                                            }
+                                                        }
+                                                    } else {
+                                                        val pointsAfterRedeem = (userStats.points - reward.costPoints).coerceAtLeast(0)
+                                                        val newCouponId = "${reward.id}_${(100000..999999).random()}"
+                                                        val uniqueDiscountCode = "${reward.discountCode}-${(1000..9999).random()}"
+                                                        val newRedeemed = RedeemedReward(
+                                                            id = newCouponId,
                                                             reward = reward,
-                                                            discountCode = reward.discountCode,
+                                                            discountCode = uniqueDiscountCode,
                                                             redeemedDate = "Dzisiaj",
                                                             isActivated = false,
                                                             validityMinutes = reward.validityMinutes
                                                         )
-                                                    ) + redeemedRewards
+                                                        val newRedeemedList = listOf(newRedeemed) + redeemedRewards
+                                                        redeemedRewards = newRedeemedList
 
-                                                    redeemedRewards = newRedeemedList
+                                                        val evalResult = evaluateAchievements(
+                                                            currentAchievements = achievements,
+                                                            workouts = userStats.recentWorkouts,
+                                                            totalEnergyWh = userStats.totalEnergyWh,
+                                                            co2SavedKg = userStats.co2SavedKg,
+                                                            streakDays = userStats.streakDays,
+                                                            redeemedRewardsCount = newRedeemedList.size
+                                                        )
 
-                                                    val evalResult = evaluateAchievements(
-                                                        currentAchievements = achievements,
-                                                        workouts = userStats.recentWorkouts,
-                                                        totalEnergyWh = userStats.totalEnergyWh,
-                                                        co2SavedKg = userStats.co2SavedKg,
-                                                        streakDays = userStats.streakDays,
-                                                        redeemedRewardsCount = newRedeemedList.size
-                                                    )
+                                                        achievements = evalResult.updatedAchievements
+                                                        val finalPoints = pointsAfterRedeem + evalResult.bonusPointsEarned
+                                                        val finalLevel = calculateUserLevel(finalPoints)
+                                                        val finalTitle = calculateLevelTitle(finalLevel)
 
-                                                    achievements = evalResult.updatedAchievements
-                                                    val finalPoints = pointsAfterRedeem + evalResult.bonusPointsEarned
-                                                    val finalLevel = calculateUserLevel(finalPoints)
-                                                    val finalTitle = calculateLevelTitle(finalLevel)
+                                                        userStats = userStats.copy(
+                                                            points = finalPoints,
+                                                            level = finalLevel,
+                                                            levelTitle = finalTitle
+                                                        )
 
-                                                    userStats = userStats.copy(
-                                                        points = finalPoints,
-                                                        level = finalLevel,
-                                                        levelTitle = finalTitle
-                                                    )
-
-                                                    currentAuthUser?.let { u ->
-                                                        coroutineScope.launch {
-                                                            // Tabela 5: user_coupons
-                                                            dbService.saveCoupon(
-                                                                UserCouponDto(
-                                                                    couponId = reward.id + "_" + (100000..999999).random(),
-                                                                    userId = u.userId,
-                                                                    rewardId = reward.id,
-                                                                    discountCode = reward.discountCode,
-                                                                    costPoints = reward.costPoints,
-                                                                    validityMinutes = reward.validityMinutes,
-                                                                    isActivated = false,
-                                                                    activatedAt = null,
-                                                                    redeemedAt = 0L
+                                                        currentAuthUser?.let { u ->
+                                                            coroutineScope.launch {
+                                                                dbService.saveCoupon(
+                                                                    UserCouponDto(
+                                                                        couponId = newCouponId,
+                                                                        userId = u.userId,
+                                                                        rewardId = reward.id,
+                                                                        discountCode = uniqueDiscountCode,
+                                                                        costPoints = reward.costPoints,
+                                                                        validityMinutes = reward.validityMinutes,
+                                                                        isActivated = false,
+                                                                        activatedAt = null,
+                                                                        redeemedAt = currentTimeMillis()
+                                                                    )
                                                                 )
-                                                            )
 
-                                                            // Tabela 1: users (aktualizacja punktów)
-                                                            dbService.updateUserStats(
-                                                                userId = u.userId,
-                                                                pointsDelta = -reward.costPoints + evalResult.bonusPointsEarned,
-                                                                whDelta = 0.0,
-                                                                co2Delta = 0.0,
-                                                                newLevel = finalLevel
-                                                            )
+                                                                dbService.updateUserStats(
+                                                                    userId = u.userId,
+                                                                    pointsDelta = -reward.costPoints + evalResult.bonusPointsEarned,
+                                                                    whDelta = 0.0,
+                                                                    co2Delta = 0.0,
+                                                                    newLevel = finalLevel
+                                                                )
+                                                            }
                                                         }
                                                     }
                                                 },
@@ -708,7 +766,7 @@ fun App() {
                                                             )
                                                         }
                                                     }
-                                                    SnackbarHelper.show("Odebrano nagrody: +${challenge.rankingPointsReward} pkt rankingu, +${challenge.voltPointsReward} VP!")
+                                                    SnackbarHelper.show("+${challenge.rankingPointsReward} pkt rankingu, +${challenge.voltPointsReward} VP!", icon = Icons.Default.EmojiEvents)
                                                 },
                                                 onUpdateUserProfile = { newName, newAvatarId ->
                                                     userStats = userStats.copy(
@@ -748,6 +806,99 @@ fun App() {
             }
 
             VoltUpSnackbarHost(modifier = Modifier.align(Alignment.TopCenter))
+
+            if (isAutoLoggingIn && !isSplashVisible) {
+                AlertDialog(
+                    onDismissRequest = {},
+                    shape = RoundedCornerShape(24.dp),
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    title = {
+                        Text(
+                            text = "Logowanie do konta...",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    },
+                    text = {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                color = LightPrimary,
+                                modifier = Modifier.size(36.dp),
+                                strokeWidth = 3.dp
+                            )
+                            Text(
+                                text = "Witaj ponownie! Trwa wczytywanie Twojego profilu i postępów w VoltUp.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    },
+                    confirmButton = {},
+                    dismissButton = null
+                )
+            }
+
+            if (isSplashVisible) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFF0E1116)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Surface(
+                            modifier = Modifier.size(80.dp),
+                            shape = CircleShape,
+                            color = LightPrimary.copy(alpha = 0.15f),
+                            border = BorderStroke(2.dp, LightPrimary.copy(alpha = 0.5f))
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.ElectricBolt,
+                                    contentDescription = "VoltUp Logo",
+                                    tint = LightPrimary,
+                                    modifier = Modifier.size(44.dp)
+                                )
+                            }
+                        }
+
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "Łódź ",
+                                    style = MaterialTheme.typography.headlineLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                                Text(
+                                    text = "VoltUp",
+                                    style = MaterialTheme.typography.headlineLarge,
+                                    fontWeight = FontWeight.Light,
+                                    color = Color.White
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Kinetyczna Energia Miasta",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.White.copy(alpha = 0.65f),
+                                letterSpacing = 1.sp
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -858,6 +1009,18 @@ fun BottomNavItem(
     }
 }
 
+private fun calculateDistanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+    val r = 6371000.0
+    val dLat = (lat2 - lat1) * (kotlin.math.PI / 180.0)
+    val dLon = (lon2 - lon1) * (kotlin.math.PI / 180.0)
+    val a = kotlin.math.sin(dLat / 2) * kotlin.math.sin(dLat / 2) +
+            kotlin.math.cos(lat1 * (kotlin.math.PI / 180.0)) *
+            kotlin.math.cos(lat2 * (kotlin.math.PI / 180.0)) *
+            kotlin.math.sin(dLon / 2) * kotlin.math.sin(dLon / 2)
+    val c = 2 * kotlin.math.atan2(kotlin.math.sqrt(a), kotlin.math.sqrt(1 - a))
+    return r * c
+}
+
 @Composable
 fun DashboardScreen(
     stats: UserStats,
@@ -959,77 +1122,58 @@ fun DashboardScreen(
                 ) {
                     DesignerMetricBox(
                         label = "Wygenerowano",
-                        value = "${(stats.totalEnergyWh / 1000.0).formatOneDecimal()} kWh",
+                        value = formatEnergySmart(stats.totalEnergyWh),
                         modifier = Modifier.weight(1f)
                     )
                     DesignerMetricBox(
                         label = "CO2 redukcja",
-                        value = "${stats.co2SavedKg.formatOneDecimal()} kg",
+                        value = formatCo2Smart(stats.co2SavedKg),
                         modifier = Modifier.weight(1f)
                     )
                 }
             }
         }
 
+        val currentDayIndex = remember {
+            getDayOfWeekIndex()
+        }
+
+        val weeklyActivityWh = remember(stats.recentWorkouts, stats.totalEnergyWh, currentDayIndex) {
+            val arr = DoubleArray(7) { 0.0 }
+            val now = currentTimeMillis()
+            for (w in stats.recentWorkouts) {
+                val t = if (w.timestampMs > 0L) w.timestampMs else now
+                val dayIdx = getDayOfWeekIndex(t)
+                if (dayIdx in 0..6) {
+                    arr[dayIdx] += w.generatedWh
+                }
+            }
+            if (arr.all { it == 0.0 } && stats.totalEnergyWh > 0.0) {
+                arr[currentDayIndex] = stats.totalEnergyWh.coerceAtMost(500.0)
+            }
+            arr.toList()
+        }
+
         SinusoidActivityChartCard(
-            weeklyData = listOf(80.0, 110.0, 95.0, 140.0, 180.0, 120.0, 115.0),
+            weeklyData = weeklyActivityWh,
+            currentDayIndex = currentDayIndex,
             primaryColor = primaryColor
         )
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-        ) {
-            Column(modifier = Modifier.padding(24.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "CEL SPOŁECZNOŚCIOWY",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            letterSpacing = 1.sp
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Park na Zdrowiu",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    Text(
-                        text = "78%",
-                        color = primaryColor,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 18.sp
-                    )
-                }
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = "CEL SPOŁECZNOŚCI",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                letterSpacing = 1.sp,
+                modifier = Modifier.padding(top = 4.dp)
+            )
 
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.78f)
-                            .fillMaxHeight()
-                            .clip(CircleShape)
-                            .background(primaryColor)
-                    )
-                }
-            }
+            CommunityGoalCard(
+                userWh = stats.totalEnergyWh,
+                primaryColor = primaryColor
+            )
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1042,69 +1186,153 @@ fun DashboardScreen(
                 modifier = Modifier.padding(top = 8.dp)
             )
 
-            MockData.sampleStations.take(2).forEach { station ->
+            val userLat = 51.7592
+            val userLng = 19.4560
+            val nearbyStations = remember {
+                MockData.sampleStations.map { station ->
+                    val distMeters = calculateDistanceMeters(userLat, userLng, station.latitude, station.longitude)
+                    val distStr = if (distMeters < 1000.0) "${distMeters.toInt()} m" else "${((distMeters / 100.0).roundToInt() / 10.0)} km"
+                    Triple(station, distMeters, distStr)
+                }.sortedBy { it.second }.take(3)
+            }
+
+            var expandedNearbyStationId by remember { mutableStateOf<String?>(null) }
+
+            nearbyStations.forEach { (station, _, distStr) ->
+                val isExpanded = expandedNearbyStationId == station.id
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(20.dp))
-                        .clickable(onClick = onScanStation),
+                        .clickable {
+                            expandedNearbyStationId = if (isExpanded) null else station.id
+                        },
                     color = MaterialTheme.colorScheme.surface,
                     shape = RoundedCornerShape(20.dp),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                 ) {
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(16.dp)
+                            .animateContentSize()
                     ) {
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(CircleShape)
-                                    .background(primaryColor.copy(alpha = 0.1f)),
-                                contentAlignment = Alignment.Center
+                            Row(
+                                modifier = Modifier.weight(1f).padding(end = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .clip(CircleShape)
+                                        .background(primaryColor.copy(alpha = 0.1f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = station.type.icon,
+                                        contentDescription = null,
+                                        tint = primaryColor,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                                Column {
+                                    Text(
+                                        text = station.name,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = "$distStr od Ciebie",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+
+                            Surface(
+                                shape = CircleShape,
+                                color = primaryColor.copy(alpha = 0.12f),
+                                modifier = Modifier.clickable { onScanStation() }
                             ) {
                                 Icon(
-                                    imageVector = station.type.icon,
-                                    contentDescription = null,
+                                    Icons.Default.QrCodeScanner,
+                                    contentDescription = "Skanuj QR",
                                     tint = primaryColor,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-                            Column {
-                                Text(
-                                    text = station.name,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = station.distance,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    modifier = Modifier
+                                        .padding(10.dp)
+                                        .size(20.dp)
                                 )
                             }
                         }
 
-                        Surface(
-                            shape = CircleShape,
-                            color = primaryColor.copy(alpha = 0.1f)
+                        AnimatedVisibility(
+                            visible = isExpanded,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
                         ) {
-                            Icon(
-                                Icons.Default.QrCodeScanner,
-                                contentDescription = "Skanuj QR",
-                                tint = primaryColor,
+                            Column(
                                 modifier = Modifier
-                                    .padding(10.dp)
-                                    .size(20.dp)
-                            )
+                                    .fillMaxWidth()
+                                    .padding(top = 12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.padding(top = 4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.LocationOn,
+                                        contentDescription = null,
+                                        tint = primaryColor,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = station.location,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "Dzielnica: ${station.district}",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = "Moc max: ${station.maxPowerW} W",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = if (station.isOnline) "Status: Aktywna (Online)" else "Status: Nieaktywna",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (station.isOnline) primaryColor else MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -1143,11 +1371,245 @@ fun DesignerMetricBox(label: String, value: String, modifier: Modifier = Modifie
 }
 
 @Composable
-fun SinusoidActivityChartCard(
-    weeklyData: List<Double>,
+fun CommunityGoalCard(
+    userWh: Double,
     primaryColor: Color
 ) {
-    val currentDayIndex = 4
+    var isExpanded by remember { mutableStateOf(false) }
+
+    var secondsRemaining by remember {
+        val now = currentTimeMillis()
+        val elapsedInDay = (now % 86400000L) / 1000L
+        mutableStateOf((86400L - elapsedInDay).coerceIn(0L, 86400L))
+    }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(1000L)
+            if (secondsRemaining > 0) {
+                secondsRemaining--
+            } else {
+                secondsRemaining = 86400L
+            }
+        }
+    }
+
+    val hours = secondsRemaining / 3600
+    val minutes = (secondsRemaining % 3600) / 60
+    val seconds = secondsRemaining % 60
+    val timeFormatted = "${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}"
+
+    val targetWh = 1000.0
+    val baseCommunityWh = 0.0
+    val totalCommunityWh = (baseCommunityWh + userWh).coerceAtMost(targetWh * 1.5)
+    val progressFraction = (totalCommunityWh / targetWh).toFloat().coerceIn(0f, 1f)
+    val percentage = (progressFraction * 100).toInt()
+    val isGoalCompleted = totalCommunityWh >= targetWh
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .clickable { isExpanded = !isExpanded },
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(20.dp)
+                .animateContentSize(),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = "Park na Zdrowiu",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    Text(
+                        text = "Wspólne zasilanie oświetlenia alejek",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Surface(
+                    shape = CircleShape,
+                    color = primaryColor.copy(alpha = 0.12f)
+                ) {
+                    Text(
+                        text = "$percentage%",
+                        color = primaryColor,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 16.sp,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(progressFraction)
+                        .fillMaxHeight()
+                        .clip(CircleShape)
+                        .background(primaryColor)
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Timer,
+                        contentDescription = null,
+                        tint = if (secondsRemaining < 3600) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = if (secondsRemaining > 0) "Koniec etapu za: $timeFormatted" else "Odnowienie za 4 godz.",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Surface(
+                    shape = CircleShape,
+                    color = if (isGoalCompleted) Color(0xFF22C55E).copy(alpha = 0.15f) else Color(0xFFF59E0B).copy(alpha = 0.15f)
+                ) {
+                    Text(
+                        text = if (isGoalCompleted) "Zaliczone ✓" else "W trakcie",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isGoalCompleted) Color(0xFF16A34A) else Color(0xFFD97706),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                    )
+                }
+            }
+
+            if (isExpanded) {
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(
+                            text = "Każdy wat energii wygenerowany na miejskich rowerach, stepperach i orbitrekach w Łodzi zasila wspólny akumulator parkowy. Gdy cel zostanie osiągnięty w ciągu 24h, wszyscy uczestnicy otrzymują +100 punktów do rankingu!",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            lineHeight = 18.sp
+                        )
+
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            thickness = 1.dp
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Stan zbiórki energii:",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "${totalCommunityWh.toInt()} / ${targetWh.toInt()} Wh",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Nagroda dla uczestników:",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "+100 pkt do rankingu",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = primaryColor
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Twój osobisty wkład:",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = formatEnergySmart(userWh),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = primaryColor
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SinusoidActivityChartCard(
+    weeklyData: List<Double>,
+    currentDayIndex: Int,
+    primaryColor: Color
+) {
     val surfaceVariantColor = MaterialTheme.colorScheme.surfaceVariant
     val surfaceColor = MaterialTheme.colorScheme.surface
 
@@ -1175,14 +1637,30 @@ fun SinusoidActivityChartCard(
                     letterSpacing = 1.sp
                 )
 
+                val todayVal = weeklyData.getOrElse(currentDayIndex) { 0.0 }
+                val prevDaysAvg = if (currentDayIndex > 0) {
+                    val sub = weeklyData.take(currentDayIndex)
+                    if (sub.any { it > 0 }) sub.filter { it > 0 }.average() else 0.0
+                } else 0.0
+
+                val (percentText, percentColor) = when {
+                    todayVal > 0 && prevDaysAvg > 0 -> {
+                        val pct = ((todayVal - prevDaysAvg) / prevDaysAvg * 100).toInt()
+                        if (pct >= 0) "+$pct%" to primaryColor else "$pct%" to MaterialTheme.colorScheme.error
+                    }
+                    todayVal > 0 -> "+100%" to primaryColor
+                    weeklyData.sum() > 0 -> "+${(weeklyData.sum() / 10).toInt().coerceIn(1, 99)}%" to primaryColor
+                    else -> "0%" to primaryColor
+                }
+
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = primaryColor.copy(alpha = 0.15f)
+                    color = percentColor.copy(alpha = 0.15f)
                 ) {
                     Text(
-                        text = "+5%",
+                        text = percentText,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        color = primaryColor,
+                        color = percentColor,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )

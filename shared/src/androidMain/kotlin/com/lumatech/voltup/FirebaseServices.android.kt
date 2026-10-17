@@ -1,6 +1,7 @@
 package com.lumatech.voltup
 
 import android.util.Log
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.firestore.FieldValue
@@ -255,14 +256,30 @@ class AndroidFirebaseAuthService : VoltUpAuthService {
         }
     }
 
-    override suspend fun changePassword(newPassword: String): AuthResult {
+    override suspend fun changePassword(oldPassword: String, newPassword: String): AuthResult {
         return try {
-            val cleanPass = newPassword.trim()
-            if (cleanPass.length < 6) {
+            val cleanOld = oldPassword.trim()
+            val cleanNew = newPassword.trim()
+            if (cleanOld.isBlank()) {
+                return AuthResult(false, null, "Wprowadź swoje dotychczasowe hasło.")
+            }
+            if (cleanNew.length < 6) {
                 return AuthResult(false, null, "Nowe hasło musi zawierać co najmniej 6 znaków.")
             }
             val user = auth.currentUser ?: return AuthResult(false, null, "Brak zalogowanego użytkownika.")
-            user.updatePassword(cleanPass).await()
+            val email = user.email ?: return AuthResult(false, null, "Brak przypisanego adresu e-mail.")
+
+            // 1. Weryfikacja dotychczasowego hasła w Firebase Auth przez ponowne uwierzytelnienie
+            try {
+                val credential = EmailAuthProvider.getCredential(email, cleanOld)
+                user.reauthenticate(credential).await()
+            } catch (e: Exception) {
+                Log.w(TAG, "Błędne dotychczasowe hasło: ${e.message}")
+                return AuthResult(false, null, "Aktualne hasło jest nieprawidłowe.")
+            }
+
+            // 2. Po potwierdzeniu z bazą - zmiana hasła
+            user.updatePassword(cleanNew).await()
             AuthResult(isSuccess = true)
         } catch (e: FirebaseAuthException) {
             Log.e(TAG, "Błąd zmiany hasła: ${e.errorCode}")
@@ -780,31 +797,9 @@ class AndroidFirestoreService : VoltUpDatabaseService {
         }
     }
 
-    // 7. Globalny Ranking (Leaderboard)
+    // 7. Globalny Ranking (Leaderboard) - TYLKO PRAWDZIWE KONTA Z BAZY DANYCH
     override suspend fun getLeaderboard(limit: Int): List<LeaderboardUser> {
         val currentUid = try { FirebaseAuth.getInstance().currentUser?.uid } catch (_: Exception) { null }
-        val baselineLeaderboard = listOf(
-            LeaderboardUser("base_1", "Aleksander Piotrowski", 4250, 6),
-            LeaderboardUser("base_2", "Marta Łódzka", 3800, 5),
-            LeaderboardUser("base_3", "Kacper Zieliński", 3120, 5),
-            LeaderboardUser("base_4", "Ewa Nowicka", 2650, 4),
-            LeaderboardUser("base_5", "Michał Kaczmarek", 1980, 4),
-            LeaderboardUser("base_6", "Zuzanna Wiśniewska", 1450, 3),
-            LeaderboardUser("base_7", "Piotr Wójcik", 980, 2),
-            LeaderboardUser("base_8", "Katarzyna Lewandowska", 720, 2),
-            LeaderboardUser("base_9", "Tomasz Kamiński", 430, 1),
-            LeaderboardUser("base_10", "Agnieszka Szymańska", 210, 1),
-            LeaderboardUser("base_11", "Bartosz Dąbrowski", 195, 1),
-            LeaderboardUser("base_12", "Natalia Kozłowska", 180, 1),
-            LeaderboardUser("base_13", "Szymon Jankowski", 160, 1),
-            LeaderboardUser("base_14", "Weronika Mazur", 140, 1),
-            LeaderboardUser("base_15", "Janusz Kwiatkowski", 120, 1),
-            LeaderboardUser("base_16", "Julia Krawczyk", 95, 1),
-            LeaderboardUser("base_17", "Filip Kaczmarczyk", 80, 1),
-            LeaderboardUser("base_18", "Magdalena Piotrowska", 65, 1),
-            LeaderboardUser("base_19", "Patryk Grabowski", 50, 1),
-            LeaderboardUser("base_20", "Dominika Pawlak", 35, 1)
-        )
 
         return try {
             val snapshot = firestore.collection("users").get().await()
@@ -822,13 +817,9 @@ class AndroidFirestoreService : VoltUpDatabaseService {
                     level = u.userLevel,
                     isCurrentUser = (u.userId == currentUid)
                 )
-            }
+            }.sortedByDescending { it.points }
 
-            val combined = (realLeaderboardUsers + baselineLeaderboard)
-                .distinctBy { it.id }
-                .sortedByDescending { it.points }
-
-            combined.take(limit)
+            realLeaderboardUsers.take(limit)
         } catch (e: Exception) {
             Log.w(TAG, "Błąd pobierania rankingu: ${e.message}")
             val localUsers = memoryUsers.values.map { u ->
@@ -840,8 +831,8 @@ class AndroidFirestoreService : VoltUpDatabaseService {
                     level = u.userLevel,
                     isCurrentUser = (u.userId == currentUid)
                 )
-            }
-            (localUsers + baselineLeaderboard).distinctBy { it.id }.sortedByDescending { it.points }.take(limit)
+            }.sortedByDescending { it.points }
+            localUsers.take(limit)
         }
     }
 
@@ -880,6 +871,206 @@ class AndroidFirestoreService : VoltUpDatabaseService {
             true
         } catch (e: Exception) {
             Log.w(TAG, "Błąd usuwania użytkownika z chmury: ${e.message}")
+            true
+        }
+    }
+
+    // 9. Tabela Urządzeń Miejskich (devices)
+    private val defaultDevices = listOf(
+        KineticStation(
+            id = "PC-1",
+            name = "Rower Kinetyczny",
+            location = "Piotrkowska Centrum",
+            district = "Śródmieście",
+            type = DeviceType.BIKE,
+            distance = "450 m",
+            activeUsersCount = 3,
+            qrCodeId = "LDZ-PC-1",
+            mapCoordinatesX = 0.52f,
+            mapCoordinatesY = 0.48f,
+            latitude = 51.7594,
+            longitude = 19.4568,
+            isOnline = true,
+            maxPowerW = 250
+        ),
+        KineticStation(
+            id = "PP-1",
+            name = "Rower Kinetyczny",
+            location = "Park Poniatowskiego",
+            district = "Polesie",
+            type = DeviceType.BIKE,
+            distance = "600 m",
+            activeUsersCount = 2,
+            qrCodeId = "LDZ-PP-1",
+            mapCoordinatesX = 0.38f,
+            mapCoordinatesY = 0.52f,
+            latitude = 51.7538,
+            longitude = 19.4445,
+            isOnline = true,
+            maxPowerW = 180
+        ),
+        KineticStation(
+            id = "PZ-1",
+            name = "Orbitrek Parkowy",
+            location = "Park na Zdrowiu",
+            district = "Polesie",
+            type = DeviceType.CROSS_TRAINER,
+            distance = "1.1 km",
+            activeUsersCount = 4,
+            qrCodeId = "LDZ-PZ-1",
+            mapCoordinatesX = 0.16f,
+            mapCoordinatesY = 0.38f,
+            latitude = 51.7656,
+            longitude = 19.4182,
+            isOnline = true,
+            maxPowerW = 220
+        ),
+        KineticStation(
+            id = "MF-1",
+            name = "Huśtawka Dynamiczna",
+            location = "Manufaktura",
+            district = "Bałuty",
+            type = DeviceType.SWING,
+            distance = "1.8 km",
+            activeUsersCount = 2,
+            qrCodeId = "LDZ-MF-1",
+            mapCoordinatesX = 0.48f,
+            mapCoordinatesY = 0.18f,
+            latitude = 51.7797,
+            longitude = 19.4496,
+            isOnline = true,
+            maxPowerW = 120
+        ),
+        KineticStation(
+            id = "PZ-2",
+            name = "Stepper Miejski",
+            location = "Park Źródliska",
+            district = "Widzew",
+            type = DeviceType.STEPPER,
+            distance = "2.3 km",
+            activeUsersCount = 1,
+            qrCodeId = "LDZ-PZ-2",
+            mapCoordinatesX = 0.74f,
+            mapCoordinatesY = 0.52f,
+            latitude = 51.7575,
+            longitude = 19.4754,
+            isOnline = true,
+            maxPowerW = 160
+        ),
+        KineticStation(
+            id = "SS-1",
+            name = "Orbitrek Nadwodny",
+            location = "Stawy Stefańskiego",
+            district = "Górna",
+            type = DeviceType.CROSS_TRAINER,
+            distance = "3.8 km",
+            activeUsersCount = 2,
+            qrCodeId = "LDZ-SS-1",
+            mapCoordinatesX = 0.46f,
+            mapCoordinatesY = 0.88f,
+            latitude = 51.7042,
+            longitude = 19.4492,
+            isOnline = true,
+            maxPowerW = 200
+        ),
+        KineticStation(
+            id = "EC-1",
+            name = "Rower Generator",
+            location = "EC1 Łódź",
+            district = "Śródmieście",
+            type = DeviceType.BIKE,
+            distance = "1.2 km",
+            activeUsersCount = 3,
+            qrCodeId = "LDZ-EC-1",
+            mapCoordinatesX = 0.70f,
+            mapCoordinatesY = 0.36f,
+            latitude = 51.7672,
+            longitude = 19.4718,
+            isOnline = true,
+            maxPowerW = 250
+        ),
+        KineticStation(
+            id = "PM-1",
+            name = "Stepper Parkowy",
+            location = "Park Matejki",
+            district = "Śródmieście",
+            type = DeviceType.STEPPER,
+            distance = "2.0 km",
+            activeUsersCount = 1,
+            qrCodeId = "LDZ-PM-1",
+            mapCoordinatesX = 0.79f,
+            mapCoordinatesY = 0.22f,
+            latitude = 51.7765,
+            longitude = 19.4880,
+            isOnline = true,
+            maxPowerW = 150
+        )
+    )
+
+    private val memoryDevices = mutableMapOf<String, KineticStation>()
+
+    private fun cleanStation(st: KineticStation): KineticStation {
+        val cleanName = st.name.replace(Regex("""\s*#\d+"""), "").trim()
+        val cleanLocation = st.location.replace(Regex("""\s*\(.*?\)"""), "").trim()
+        return st.copy(name = cleanName, location = cleanLocation)
+    }
+
+    override suspend fun getDevices(): List<KineticStation> {
+        return try {
+            val snapshot = firestore.collection("devices").get().await()
+            val existingList = snapshot.documents.mapNotNull { doc ->
+                doc.data?.let { KineticDeviceDto.fromMap(it).toKineticStation().let(::cleanStation) }
+            }
+
+            // Upewnij się, że wszystkie 8 urządzeń znajduje się w bazie Firestore z aktualnymi współrzędnymi
+            val resolvedList = mutableListOf<KineticStation>()
+            for (defaultDev in defaultDevices) {
+                val cleanedDefault = cleanStation(defaultDev)
+                val existing = existingList.find { it.id == defaultDev.id }
+                val target = if (existing != null) {
+                    cleanedDefault.copy(
+                        isOnline = existing.isOnline,
+                        currentEnergyRateW = existing.currentEnergyRateW
+                    )
+                } else {
+                    cleanedDefault
+                }
+                resolvedList.add(target)
+
+                // Jeśli w bazie brakowało stacji lub miała nieaktualne współrzędne/nazwę, zaktualizuj ją w Firestore
+                if (existing == null ||
+                    existing.latitude != defaultDev.latitude ||
+                    existing.longitude != defaultDev.longitude ||
+                    existing.mapCoordinatesX != defaultDev.mapCoordinatesX ||
+                    existing.mapCoordinatesY != defaultDev.mapCoordinatesY ||
+                    existing.name != cleanedDefault.name
+                ) {
+                    try {
+                        val dto = KineticDeviceDto.fromStation(target)
+                        firestore.collection("devices").document(defaultDev.id).set(dto.toMap()).await()
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Błąd zapisu/aktualizacji stacji ${defaultDev.id}: ${e.message}")
+                    }
+                }
+            }
+
+            resolvedList.forEach { memoryDevices[it.id] = it }
+            resolvedList
+        } catch (e: Exception) {
+            Log.w(TAG, "Pobieranie urządzeń z Firestore: ${e.message}")
+            val fallback = if (memoryDevices.isNotEmpty()) memoryDevices.values.toList() else defaultDevices
+            fallback.map(::cleanStation)
+        }
+    }
+
+    override suspend fun saveDevice(device: KineticStation): Boolean {
+        memoryDevices[device.id] = device
+        return try {
+            val dto = KineticDeviceDto.fromStation(device)
+            firestore.collection("devices").document(device.id).set(dto.toMap()).await()
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "Zapis urządzenia w Firestore: ${e.message}")
             true
         }
     }

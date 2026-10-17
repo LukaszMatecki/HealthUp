@@ -222,14 +222,6 @@ fun ProfileScreen(
                             color = MaterialTheme.colorScheme.onSurface
                         )
 
-                        if (userEmail.isNotBlank()) {
-                            Text(
-                                text = userEmail,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
                         Surface(
                             shape = CircleShape,
                             color = primaryColor.copy(alpha = 0.12f)
@@ -296,12 +288,12 @@ fun ProfileScreen(
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         ProfileStatNumber(
-                            value = "${(stats.totalEnergyWh / 1000.0).formatOneDecimal()} kWh",
+                            value = formatEnergySmart(stats.totalEnergyWh),
                             label = "Wygenerowano",
                             valueColor = MaterialTheme.colorScheme.onSurface
                         )
                         ProfileStatNumber(
-                            value = "${stats.co2SavedKg.formatOneDecimal()} kg",
+                            value = formatCo2Smart(stats.co2SavedKg),
                             label = "Mniej CO2",
                             valueColor = primaryColor
                         )
@@ -425,7 +417,6 @@ fun ProfileScreen(
 
     if (showEditProfileDialog) {
         var editName by remember { mutableStateOf(stats.userName) }
-        var newPassword by remember { mutableStateOf("") }
         var editAvatar by remember { mutableStateOf(stats.avatarId) }
 
         AlertDialog(
@@ -448,22 +439,6 @@ fun ProfileScreen(
                         label = { Text("Imię i nazwisko") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        shape = RoundedCornerShape(16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                            focusedBorderColor = primaryColor,
-                            unfocusedBorderColor = Color.Transparent
-                        )
-                    )
-
-                    OutlinedTextField(
-                        value = newPassword,
-                        onValueChange = { newPassword = it },
-                        label = { Text("Nowe hasło (opcjonalnie)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(),
                         shape = RoundedCornerShape(16.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
@@ -514,23 +489,11 @@ fun ProfileScreen(
                 ) {
                     Button(
                         onClick = {
-                            if (newPassword.isNotBlank()) {
-                                if (newPassword.length < 6) {
-                                    SnackbarHelper.show("Nowe hasło musi mieć co najmniej 6 znaków.")
-                                    return@Button
-                                }
-                                if (authService != null) {
-                                    coroutineScope.launch {
-                                        val pwRes = authService.changePassword(newPassword)
-                                        if (pwRes.isSuccess) {
-                                            SnackbarHelper.show("Hasło zostało zaktualizowane.")
-                                        } else {
-                                            SnackbarHelper.show(pwRes.errorMessage ?: "Błąd aktualizacji hasła.")
-                                        }
-                                    }
-                                }
+                            if (editName.isBlank()) {
+                                SnackbarHelper.show("Imię nie może być puste.")
+                                return@Button
                             }
-                            onUpdateUserProfile(editName, editAvatar)
+                            onUpdateUserProfile(editName.trim(), editAvatar)
                             showEditProfileDialog = false
                         },
                         modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -693,14 +656,40 @@ fun ModernChallengeCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
+                    // Ranking Points pill
                     Surface(
                         shape = CircleShape,
-                        color = warningYellow.copy(alpha = 0.12f)
+                        color = primaryColor.copy(alpha = 0.12f)
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Leaderboard,
+                                contentDescription = null,
+                                tint = primaryColor,
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Text(
+                                text = "+${challenge.rankingPointsReward}",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = primaryColor
+                            )
+                        }
+                    }
+
+                    // VoltPoints pill (zunifikowane gwiazdki w odcieniu bursztynowym/złotym)
+                    Surface(
+                        shape = CircleShape,
+                        color = warningYellow.copy(alpha = 0.15f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Stars,
@@ -709,34 +698,10 @@ fun ModernChallengeCard(
                                 modifier = Modifier.size(14.dp)
                             )
                             Text(
-                                text = "+${challenge.rankingPointsReward}",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
-                                color = warningYellow
-                            )
-                        }
-                    }
-
-                    Surface(
-                        shape = CircleShape,
-                        color = primaryColor.copy(alpha = 0.12f)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ElectricBolt,
-                                contentDescription = null,
-                                tint = primaryColor,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Text(
                                 text = "+${challenge.voltPointsReward} VP",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp,
-                                color = primaryColor
+                                color = warningYellow
                             )
                         }
                     }
@@ -754,20 +719,27 @@ fun ModernChallengeCard(
             // Sekcja rozwijana (szczegóły i dokładne liczby)
             if (isExpanded) {
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         if (challenge.details.isNotBlank()) {
                             Text(
                                 text = challenge.details,
                                 fontSize = 13.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                lineHeight = 18.sp
+                                lineHeight = 19.sp
+                            )
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                thickness = 1.dp
                             )
                         }
 
@@ -806,12 +778,34 @@ fun ModernChallengeCard(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
 
-                            Text(
-                                text = "+${challenge.rankingPointsReward} pkt rankingu & +${challenge.voltPointsReward} VP",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = primaryColor
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "+${challenge.rankingPointsReward} pkt",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = primaryColor
+                                )
+                                Text(
+                                    text = "&",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.Stars,
+                                    contentDescription = null,
+                                    tint = warningYellow,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Text(
+                                    text = "+${challenge.voltPointsReward} VP",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = warningYellow
+                                )
+                            }
                         }
                     }
                 }

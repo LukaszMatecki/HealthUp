@@ -256,3 +256,105 @@ data class UserSettingsDto(
         }
     }
 }
+
+/**
+ * Model tabeli Urządzeń Miejskich (devices)
+ * Stacje i urządzenia kinetyczne (rowery, steppery, orbitreki, huśtawki) w Łodzi.
+ */
+data class KineticDeviceDto(
+    val deviceId: String = "",
+    val name: String = "",
+    val locationName: String = "",
+    val district: String = "",
+    val status: String = "online", // "online" lub "offline"
+    val maxPowerW: Int = 150,
+    val latitude: Double = 51.7592,
+    val longitude: Double = 19.4560,
+    val deviceType: String = "BIKE",
+    val qrCodeId: String = "",
+    val currentEnergyRateW: Int = 0,
+    val activeUsersCount: Int = 0,
+    val mapCoordinatesX: Float = 0.5f,
+    val mapCoordinatesY: Float = 0.5f,
+) {
+    fun toMap(): Map<String, Any> = mapOf(
+        "device_id" to deviceId,
+        "name" to name,
+        "location_name" to locationName,
+        "district" to district,
+        "status" to status,
+        "max_power_w" to maxPowerW,
+        "latitude" to latitude,
+        "longitude" to longitude,
+        "device_type" to deviceType,
+        "qr_code_id" to qrCodeId,
+        "current_energy_rate_w" to currentEnergyRateW,
+        "active_users_count" to activeUsersCount,
+        "map_coordinates_x" to mapCoordinatesX,
+        "map_coordinates_y" to mapCoordinatesY
+    )
+
+    fun toKineticStation(): KineticStation {
+        val parsedType = try {
+            DeviceType.valueOf(deviceType)
+        } catch (_: Exception) {
+            DeviceType.BIKE
+        }
+        return KineticStation(
+            id = deviceId,
+            name = name,
+            location = locationName,
+            type = parsedType,
+            currentEnergyRateW = currentEnergyRateW,
+            distance = "500 m",
+            activeUsersCount = activeUsersCount,
+            qrCodeId = qrCodeId.ifEmpty { "LDZ-$deviceId" },
+            isFavorite = false,
+            district = district,
+            latitude = latitude,
+            longitude = longitude,
+            mapCoordinatesX = mapCoordinatesX,
+            mapCoordinatesY = mapCoordinatesY,
+            isOnline = status.equals("online", ignoreCase = true) || status.equals("aktywna", ignoreCase = true),
+            maxPowerW = maxPowerW
+        )
+    }
+
+    companion object {
+        fun fromStation(station: KineticStation): KineticDeviceDto = KineticDeviceDto(
+            deviceId = station.id,
+            name = station.name,
+            locationName = station.location,
+            district = station.district,
+            status = if (station.isOnline) "online" else "offline",
+            maxPowerW = station.maxPowerW,
+            latitude = station.latitude,
+            longitude = station.longitude,
+            deviceType = station.type.name,
+            qrCodeId = station.qrCodeId,
+            currentEnergyRateW = station.currentEnergyRateW,
+            activeUsersCount = station.activeUsersCount,
+            mapCoordinatesX = station.mapCoordinatesX,
+            mapCoordinatesY = station.mapCoordinatesY
+        )
+
+        fun fromMap(map: Map<String, Any?>): KineticDeviceDto {
+            return KineticDeviceDto(
+                deviceId = (map["device_id"] as? String ?: map["id"] as? String).orEmpty(),
+                name = (map["name"] as? String ?: map["nazwa"] as? String).orEmpty(),
+                locationName = (map["location_name"] as? String ?: map["location"] as? String ?: map["lokalizacja"] as? String).orEmpty(),
+                district = (map["district"] as? String ?: map["dzielnica"] as? String).orEmpty(),
+                status = (map["status"] as? String) ?: "online",
+                maxPowerW = (map["max_power_w"] as? Number ?: map["moc_max"] as? Number)?.toInt() ?: 150,
+                latitude = (map["latitude"] as? Number ?: map["szerokosc"] as? Number)?.toDouble() ?: 51.7592,
+                longitude = (map["longitude"] as? Number ?: map["dlugosc"] as? Number)?.toDouble() ?: 19.4560,
+                deviceType = (map["device_type"] as? String ?: map["typ"] as? String) ?: "BIKE",
+                qrCodeId = (map["qr_code_id"] as? String).orEmpty(),
+                currentEnergyRateW = (map["current_energy_rate_w"] as? Number)?.toInt() ?: 0,
+                activeUsersCount = (map["active_users_count"] as? Number)?.toInt() ?: 0,
+                mapCoordinatesX = (map["map_coordinates_x"] as? Number)?.toFloat() ?: 0.5f,
+                mapCoordinatesY = (map["map_coordinates_y"] as? Number)?.toFloat() ?: 0.5f
+            )
+        }
+    }
+}

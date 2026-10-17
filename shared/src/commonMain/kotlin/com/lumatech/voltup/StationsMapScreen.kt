@@ -31,18 +31,37 @@ import androidx.compose.ui.tooling.preview.Preview
 @Composable
 fun StationsMapScreen(
     stations: List<KineticStation> = MockData.sampleStations,
-    onSelectStationToScanQr: (KineticStation) -> Unit
+    onSelectStationToScanQr: (KineticStation) -> Unit,
+    dbService: VoltUpDatabaseService = remember { getDatabaseService() }
 ) {
+    var deviceList by remember { mutableStateOf(stations) }
+
+    LaunchedEffect(Unit) {
+        try {
+            val fromDb = dbService.getDevices()
+            if (fromDb.isNotEmpty()) {
+                deviceList = fromDb
+            }
+        } catch (_: Exception) {}
+    }
+
     var searchQuery by remember { mutableStateOf("") }
     var selectedDeviceType by remember { mutableStateOf<DeviceType?>(null) }
-    var selectedStation by remember { mutableStateOf(stations.firstOrNull()) }
+    var selectedStation by remember { mutableStateOf<KineticStation?>(null) }
     var expandedStationId by remember { mutableStateOf<String?>(null) }
 
-    val filteredStations = remember(searchQuery, selectedDeviceType, stations) {
-        stations.filter { station ->
+    LaunchedEffect(deviceList) {
+        if (selectedStation == null && deviceList.isNotEmpty()) {
+            selectedStation = deviceList.firstOrNull()
+        }
+    }
+
+    val filteredStations = remember(searchQuery, selectedDeviceType, deviceList) {
+        deviceList.filter { station ->
             val matchesQuery = searchQuery.isBlank() ||
                     station.name.contains(searchQuery, ignoreCase = true) ||
-                    station.location.contains(searchQuery, ignoreCase = true)
+                    station.location.contains(searchQuery, ignoreCase = true) ||
+                    station.id.contains(searchQuery, ignoreCase = true)
             val matchesType = selectedDeviceType == null || station.type == selectedDeviceType
             matchesQuery && matchesType
         }
@@ -106,7 +125,7 @@ fun StationsMapScreen(
         ) {
             GoogleMapView(
                 modifier = Modifier.fillMaxSize(),
-                stations = stations,
+                stations = deviceList,
                 selectedStation = selectedStation,
                 onStationSelected = { station ->
                     selectedStation = station
@@ -234,47 +253,35 @@ fun StationsMapScreen(
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
-                                    text = station.distance,
+                                    text = station.location,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
 
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            Surface(
+                                modifier = Modifier.clickable { onSelectStationToScanQr(station) },
+                                shape = CircleShape,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer
                             ) {
-                                Surface(
-                                    modifier = Modifier.clickable { onSelectStationToScanQr(station) },
-                                    shape = CircleShape,
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        Icon(
-                                            Icons.Default.QrCodeScanner,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(14.dp),
-                                            tint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimaryContainer
-                                        )
-                                        Text(
-                                            text = "Skanuj",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimaryContainer
-                                        )
-                                    }
+                                    Icon(
+                                        Icons.Default.QrCodeScanner,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(14.dp),
+                                        tint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                    Text(
+                                        text = "Skanuj",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
                                 }
-
-                                Icon(
-                                    imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                    contentDescription = if (isExpanded) "Zwiń" else "Rozwiń",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(20.dp)
-                                )
                             }
                         }
 
@@ -287,14 +294,17 @@ fun StationsMapScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 12.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                HorizontalDivider(
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
+                                    thickness = 1.dp
+                                )
 
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    modifier = Modifier.padding(top = 4.dp)
+                                    modifier = Modifier.padding(top = 2.dp)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.LocationOn,
@@ -320,7 +330,7 @@ fun StationsMapScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Text(
-                                        text = "Moc max: 150 W",
+                                        text = "Moc max: ${station.maxPowerW} W",
                                         fontSize = 12.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -331,15 +341,10 @@ fun StationsMapScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(
-                                        text = "Status: Aktywna (Online)",
+                                        text = if (station.isOnline) "Status: Aktywna (Online)" else "Status: Nieaktywna",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Text(
-                                        text = "Aktywni: ${station.activeUsersCount} osc.",
-                                        fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = if (station.isOnline) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
                                     )
                                 }
                             }

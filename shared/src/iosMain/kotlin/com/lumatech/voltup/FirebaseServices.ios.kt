@@ -48,7 +48,7 @@ class IosMockAuthService : VoltUpAuthService {
         return AuthResult(isSuccess = true)
     }
 
-    override suspend fun changePassword(newPassword: String): AuthResult {
+    override suspend fun changePassword(oldPassword: String, newPassword: String): AuthResult {
         return AuthResult(isSuccess = true)
     }
 
@@ -163,14 +163,7 @@ class IosMockDatabaseService : VoltUpDatabaseService {
         mockUser?.let {
             list.add(LeaderboardUser(it.userId, it.userName, if (it.rankingPoints > 0) it.rankingPoints else it.voltPoints, it.userLevel, isCurrentUser = true))
         }
-        val baseline = listOf(
-            LeaderboardUser("base_1", "Aleksander Piotrowski", 4250, 6),
-            LeaderboardUser("base_2", "Marta Łódzka", 3800, 5),
-            LeaderboardUser("base_3", "Kacper Zieliński", 3120, 5),
-            LeaderboardUser("base_4", "Ewa Nowicka", 2650, 4),
-            LeaderboardUser("base_5", "Michał Kaczmarek", 1980, 4)
-        )
-        return (list + baseline).distinctBy { it.id }.sortedByDescending { it.points }.take(limit)
+        return list.sortedByDescending { it.points }.take(limit)
     }
 
     override suspend fun deleteUser(userId: String): Boolean {
@@ -180,6 +173,21 @@ class IosMockDatabaseService : VoltUpDatabaseService {
         challenges.removeAll { it.userId == userId }
         coupons.removeAll { it.userId == userId }
         settings = null
+        return true
+    }
+
+    private val devices = mutableListOf<KineticStation>()
+
+    override suspend fun getDevices(): List<KineticStation> {
+        if (devices.isEmpty()) {
+            devices.addAll(MockData.sampleStations)
+        }
+        return devices
+    }
+
+    override suspend fun saveDevice(device: KineticStation): Boolean {
+        val idx = devices.indexOfFirst { it.id == device.id }
+        if (idx != -1) devices[idx] = device else devices.add(device)
         return true
     }
 }

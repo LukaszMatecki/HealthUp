@@ -979,8 +979,10 @@ fun ChangePasswordDialog(
     onDismiss: () -> Unit,
     onSuccess: () -> Unit
 ) {
+    var oldPassword by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+    var isOldPasswordVisible by remember { mutableStateOf(false) }
     var isPasswordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -1007,9 +1009,31 @@ fun ChangePasswordDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Text(
-                    text = "Wprowadź nowe hasło do swojego konta VoltUp (minimum 6 znaków).",
+                    text = "Wprowadź dotychczasowe hasło oraz nowe bezpieczne hasło (minimum 6 znaków).",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                OutlinedTextField(
+                    value = oldPassword,
+                    onValueChange = {
+                        oldPassword = it
+                        errorMessage = null
+                    },
+                    label = { Text("Dotychczasowe hasło") },
+                    singleLine = true,
+                    visualTransformation = if (isOldPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { isOldPasswordVisible = !isOldPasswordVisible }) {
+                            Icon(
+                                imageVector = if (isOldPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
                 )
 
                 OutlinedTextField(
@@ -1060,19 +1084,27 @@ fun ChangePasswordDialog(
         confirmButton = {
             Button(
                 onClick = {
+                    if (oldPassword.isBlank()) {
+                        errorMessage = "Wprowadź dotychczasowe hasło."
+                        return@Button
+                    }
                     if (newPassword.length < 6) {
-                        errorMessage = "Hasło musi mieć co najmniej 6 znaków."
+                        errorMessage = "Nowe hasło musi mieć co najmniej 6 znaków."
                         return@Button
                     }
                     if (newPassword != confirmPassword) {
-                        errorMessage = "Hasła nie są identyczne."
+                        errorMessage = "Nowe hasła nie są identyczne."
+                        return@Button
+                    }
+                    if (oldPassword == newPassword) {
+                        errorMessage = "Nowe hasło musi być inne niż stare."
                         return@Button
                     }
 
                     isLoading = true
                     errorMessage = null
                     coroutineScope.launch {
-                        val result = authService.changePassword(newPassword)
+                        val result = authService.changePassword(oldPassword, newPassword)
                         isLoading = false
                         if (result.isSuccess) {
                             onSuccess()

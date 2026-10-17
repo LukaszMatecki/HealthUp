@@ -40,6 +40,10 @@ interface VoltUpDatabaseService {
 
     // 8. Usunięcie użytkownika i jego danych
     suspend fun deleteUser(userId: String): Boolean
+
+    // 9. Tabela Urządzeń Miejskich (devices)
+    suspend fun getDevices(): List<KineticStation>
+    suspend fun saveDevice(device: KineticStation): Boolean
 }
 
 expect fun getDatabaseService(): VoltUpDatabaseService

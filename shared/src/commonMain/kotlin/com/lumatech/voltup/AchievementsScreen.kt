@@ -84,12 +84,8 @@ fun AchievementsScreen(
             leaderboardUsers = processed
         } catch (_: Exception) {
             leaderboardUsers = listOf(
-                LeaderboardUser("base_1", "Aleksander Piotrowski", 4250, 6),
-                LeaderboardUser("base_2", "Marta Łódzka", 3800, 5),
-                LeaderboardUser("base_3", "Kacper Zieliński", 3120, 5),
-                LeaderboardUser("base_4", "Ewa Nowicka", 2650, 4),
                 LeaderboardUser("me", "${userStats.userName} (Ty)", userStats.points, userStats.level, isCurrentUser = true)
-            ).sortedByDescending { it.points }
+            )
         } finally {
             isLoadingLeaderboard = false
         }
@@ -212,19 +208,20 @@ private fun BadgesContent(badges: List<BadgeModel>) {
 @Composable
 private fun AchievementCard(badge: BadgeModel) {
     val isLocked = badge.level == 0
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val lockedColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val tierColor = getAchievementTierColor(badge.level, isDark)
 
-    val accentColor = if (isLocked) lockedColor else primaryColor
-    val iconBgColor = if (isLocked) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f) else primaryColor.copy(alpha = 0.1f)
-    val textColor = if (isLocked) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
+    val accentColor = tierColor.primary
+    val iconBgColor = tierColor.container
+    val borderColor = tierColor.border
+    val textColor = if (isLocked) tierColor.text else MaterialTheme.colorScheme.onSurface
     val iconVector = if (isLocked) Icons.Default.HelpOutline else badge.icon
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+        border = BorderStroke(1.dp, if (isLocked) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f) else borderColor.copy(alpha = 0.5f))
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -250,7 +247,7 @@ private fun AchievementCard(badge: BadgeModel) {
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "POZIOM ${badge.level}",
+                    text = if (isLocked) "BLOKADA" else "POZIOM ${badge.level}",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     color = accentColor,
@@ -278,7 +275,7 @@ private fun AchievementCard(badge: BadgeModel) {
                             text = "+${badge.pointsAwarded} pkt",
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,
-                            color = primaryColor
+                            color = accentColor
                         )
                     }
                 }

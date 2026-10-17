@@ -5,6 +5,7 @@ import androidx.compose.material.icons.automirrored.filled.DirectionsBike
 import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.vector.ImageVector
+import kotlin.math.roundToInt
 
 data class UserStats(
     val points: Int = 0,
@@ -37,6 +38,7 @@ data class KineticStation(
     val mapCoordinatesX: Float = 0.5f,
     val mapCoordinatesY: Float = 0.5f,
     val isOnline: Boolean = true,
+    val maxPowerW: Int = 150,
 )
 
 data class WorkoutSessionRecord(
@@ -49,6 +51,7 @@ data class WorkoutSessionRecord(
     val earnedPoints: Int,
     val co2SavedKg: Double,
     val caloriesKcal: Int,
+    val timestampMs: Long = 0L,
 )
 
 enum class DeviceType(val displayName: String) {
@@ -92,7 +95,9 @@ data class Reward(
     val expiresDays: Int = 30,
 ) {
     val icon: ImageVector
-        get() = when (category) {
+        get() = if (id.contains("RANK")) {
+            Icons.Default.Leaderboard
+        } else when (category) {
             RewardCategory.TRANSPORT -> if (id.contains("ROD")) Icons.AutoMirrored.Filled.DirectionsBike else Icons.Default.DirectionsBus
             RewardCategory.CULTURE -> if (id.contains("FALA")) Icons.Default.Pool else Icons.Default.Museum
             RewardCategory.LOCAL -> Icons.Default.LocalCafe
@@ -101,6 +106,7 @@ data class Reward(
 }
 
 data class RedeemedReward(
+    val id: String = "",
     val reward: Reward,
     val discountCode: String,
     val redeemedDate: String,
@@ -161,6 +167,13 @@ enum class AppThemeMode(val displayName: String, val description: String) {
     val subtitle: String get() = description
 }
 
+enum class AppLanguage(val code: String, val displayName: String) {
+    POLISH("pl", "Polski (PL)"),
+    ENGLISH("en", "English (EN)");
+
+    val title: String get() = displayName
+}
+
 data class AppSettings(
     val soundEffectsEnabled: Boolean = true,
     val hapticFeedbackEnabled: Boolean = true,
@@ -168,7 +181,31 @@ data class AppSettings(
     val autoPauseWhenIdle: Boolean = true,
     val dailyReminders: Boolean = true,
     val themeMode: AppThemeMode = AppThemeMode.SYSTEM,
+    val language: AppLanguage = AppLanguage.POLISH,
 )
+
+fun formatEnergySmart(wh: Double): String {
+    return if (wh >= 1000.0) {
+        "${(wh / 1000.0).formatOneDecimal()} kWh"
+    } else if (wh > 0.0 && wh < 10.0) {
+        "${wh.formatOneDecimal()} Wh"
+    } else {
+        "${wh.roundToInt()} Wh"
+    }
+}
+
+fun formatCo2Smart(co2Kg: Double): String {
+    return if (co2Kg >= 1.0) {
+        "${co2Kg.formatOneDecimal()} kg"
+    } else {
+        val grams = co2Kg * 1000.0
+        if (grams > 0.0 && grams < 10.0) {
+            "${grams.formatOneDecimal()} g"
+        } else {
+            "${grams.roundToInt()} g"
+        }
+    }
+}
 
 data class NotificationItem(
     val id: String,

@@ -1,11 +1,13 @@
 package com.lumatech.voltup
 
-import androidx.compose.animation.*
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -13,11 +15,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 enum class SnackbarType {
     SUCCESS,
@@ -29,20 +36,43 @@ enum class SnackbarType {
 data class SnackbarMessage(
     val id: Long,
     val text: String,
-    val type: SnackbarType,
+    val type: SnackbarType = SnackbarType.SUCCESS,
+    val icon: ImageVector? = null,
 )
 
 object SnackbarHelper {
-    private val _message = mutableStateOf<SnackbarMessage?>(null)
-    val message: State<SnackbarMessage?> = _message
+    private val queue = mutableStateListOf<SnackbarMessage>()
+    private val _currentMessage = mutableStateOf<SnackbarMessage?>(null)
+    val currentMessage: State<SnackbarMessage?> = _currentMessage
+
+    // Zachowanie kompatybilności wstecznej
+    val message: State<SnackbarMessage?> = _currentMessage
+
     private var messageIdCounter = 0L
 
-    fun show(text: String, type: SnackbarType = SnackbarType.SUCCESS) {
-        _message.value = SnackbarMessage(++messageIdCounter, text, type)
+    fun show(
+        text: String,
+        type: SnackbarType = SnackbarType.SUCCESS,
+        icon: ImageVector? = null
+    ) {
+        val msg = SnackbarMessage(++messageIdCounter, text, type, icon)
+        if (_currentMessage.value == null) {
+            _currentMessage.value = msg
+        } else {
+            queue.add(msg)
+        }
+    }
+
+    internal fun onAnimationCompleted() {
+        if (queue.isNotEmpty()) {
+            _currentMessage.value = queue.removeAt(0)
+        } else {
+            _currentMessage.value = null
+        }
     }
 
     fun dismiss() {
-        _message.value = null
+        onAnimationCompleted()
     }
 }
 
@@ -50,107 +80,130 @@ object SnackbarHelper {
 fun VoltUpSnackbarHost(
     modifier: Modifier = Modifier,
 ) {
-    val currentMsg = SnackbarHelper.message.value
+    val currentMsg = SnackbarHelper.currentMessage.value
+
+    val expansion = remember { Animatable(0f) }
+    val offsetY = remember { Animatable(-70f) }
+    val alpha = remember { Animatable(0f) }
 
     LaunchedEffect(currentMsg?.id) {
-        if (currentMsg != null) {
-            delay(3500.milliseconds)
-            if (SnackbarHelper.message.value?.id == currentMsg.id) {
-                SnackbarHelper.dismiss()
+        if (currentMsg == null) return@LaunchedEffect
+
+        // 1. Reset do stanu początkowego (ukryte koło u góry)
+        expansion.snapTo(0f)
+        offsetY.snapTo(-70f)
+        alpha.snapTo(0f)
+
+        // 2. Faza wejścia: koło wyjeżdża z góry ekranu lekko w dół, opacity się zwiększa
+        coroutineScope {
+            launch {
+                alpha.animateTo(1f, animationSpec = tween(320, easing = LinearEasing))
+            }
+            launch {
+                offsetY.animateTo(0f, animationSpec = tween(360, easing = FastOutSlowInEasing))
             }
         }
+
+        // 3. Zatrzymanie i rozwinięcie: koło rozwija się w kapsułkę (pill), pokazując komunikat
+        delay(40.milliseconds)
+        expansion.animateTo(1f, animationSpec = tween(380, easing = FastOutSlowInEasing))
+
+        // 4. Czas wyświetlania (hold na przeczytanie komunikatu)
+        delay(2400.milliseconds)
+
+        // 5. Zwijanie: kapsułka zwija się z powrotem do idealnego koła
+        expansion.animateTo(0f, animationSpec = tween(340, easing = FastOutSlowInEasing))
+
+        // 6. Faza wyjścia: koło zanika i płynie w górę poza ekran
+        coroutineScope {
+            launch {
+                alpha.animateTo(0f, animationSpec = tween(280, easing = LinearEasing))
+            }
+            launch {
+                offsetY.animateTo(-70f, animationSpec = tween(300, easing = FastOutLinearInEasing))
+            }
+        }
+
+        // 7. Kolejka: przejście do następnego oczekującego komunikatu
+        SnackbarHelper.onAnimationCompleted()
     }
 
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        contentAlignment = Alignment.TopCenter,
-    ) {
-        AnimatedVisibility(
-            visible = currentMsg != null,
-            enter = slideInVertically(
-                initialOffsetY = { -it },
-                animationSpec = tween(350)
-            ) + fadeIn(animationSpec = tween(300)),
-            exit = slideOutVertically(
-                targetOffsetY = { -it },
-                animationSpec = tween(300)
-            ) + fadeOut(animationSpec = tween(250))
+    if (currentMsg != null) {
+        val accentColor = when (currentMsg.type) {
+            SnackbarType.SUCCESS -> LightPrimary
+            SnackbarType.INFO -> LightPrimary
+            SnackbarType.WARNING -> EnergyYellow
+            SnackbarType.ERROR -> MaterialTheme.colorScheme.error
+        }
+
+        val displayIcon = currentMsg.icon ?: when (currentMsg.type) {
+            SnackbarType.SUCCESS -> Icons.Default.Check
+            SnackbarType.INFO -> Icons.Default.Info
+            SnackbarType.WARNING -> Icons.Default.Warning
+            SnackbarType.ERROR -> Icons.Default.Error
+        }
+
+        val baseCircleSize = 48.dp
+        val maxPillWidth = 310.dp
+        val animatedWidth = baseCircleSize + ((maxPillWidth - baseCircleSize) * expansion.value)
+
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(top = 10.dp),
+            contentAlignment = Alignment.TopCenter
         ) {
-            if (currentMsg != null) {
-                val accentColor = when (currentMsg.type) {
-                    SnackbarType.SUCCESS -> ElectricVoltGreen
-                    SnackbarType.INFO -> MaterialTheme.colorScheme.secondary
-                    SnackbarType.WARNING -> EnergyYellow
-                    SnackbarType.ERROR -> MaterialTheme.colorScheme.error
-                }
-
-                val icon = when (currentMsg.type) {
-                    SnackbarType.SUCCESS -> Icons.Default.CheckCircle
-                    SnackbarType.INFO -> Icons.Default.Info
-                    SnackbarType.WARNING -> Icons.Default.Warning
-                    SnackbarType.ERROR -> Icons.Default.Error
-                }
-
-                Surface(
+            Surface(
+                modifier = Modifier
+                    .offset(y = offsetY.value.dp)
+                    .graphicsLayer(alpha = alpha.value)
+                    .width(animatedWidth)
+                    .height(baseCircleSize)
+                    .clip(CircleShape),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shadowElevation = 0.dp,
+                border = null
+            ) {
+                Row(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(elevation = 12.dp, shape = RoundedCornerShape(18.dp)),
-                    shape = RoundedCornerShape(18.dp),
-                    color = MaterialTheme.colorScheme.surface
+                        .fillMaxSize()
+                        .padding(start = 7.dp, end = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
+                    // Ikonka w delikatnym zielonym tle (spójnym z przyciskiem skanowania, bez neonu)
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(accentColor.copy(alpha = 0.14f)),
+                        contentAlignment = Alignment.Center
                     ) {
-                        // Kolorowy pasek akcentowy na krawędzi bez ramki
-                        Box(
-                            modifier = Modifier
-                                .width(4.dp)
-                                .height(28.dp)
-                                .clip(CircleShape)
-                                .background(accentColor)
+                        Icon(
+                            imageVector = displayIcon,
+                            contentDescription = null,
+                            tint = accentColor,
+                            modifier = Modifier.size(19.dp)
                         )
+                    }
 
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(accentColor.copy(alpha = 0.15f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = null,
-                                tint = accentColor,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-
+                    // Tekst komunikatu pojawia się płynnie podczas rozszerzania kapsułki
+                    if (expansion.value > 0.18f) {
+                        val textAlpha = ((expansion.value - 0.18f) / 0.82f).coerceIn(0f, 1f)
+                        Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             text = currentMsg.text,
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.weight(1f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            fontSize = 13.sp,
+                            modifier = Modifier
+                                .weight(1f)
+                                .graphicsLayer(alpha = textAlpha)
                         )
-
-                        IconButton(
-                            onClick = { SnackbarHelper.dismiss() },
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Zamknij",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
                     }
                 }
             }
