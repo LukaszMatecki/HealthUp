@@ -187,6 +187,9 @@ fun SettingsScreen(
                                         .clickable {
                                             onSettingsChanged(settings.copy(themeMode = mode))
                                             VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_THEME, mode.name)
+                                            if (mode == AppThemeMode.DARK) {
+                                                VoltUpStorage.setBoolean("ach_dark_theme", true)
+                                            }
                                             isThemeExpanded = false
                                         }
                                             .padding(horizontal = 14.dp, vertical = 10.dp),
@@ -453,7 +456,10 @@ fun SettingsScreen(
                             title = strings.aboutAppMenuTitle,
                             subtitle = strings.aboutVoltUpAppSubtitle,
                             titleColor = MaterialTheme.colorScheme.onSurface,
-                            onClick = { showAboutDialog = true }
+                            onClick = {
+                                VoltUpStorage.setBoolean("ach_about_viewed", true)
+                                showAboutDialog = true
+                            }
                         )
                     }
                 }

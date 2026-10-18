@@ -573,6 +573,7 @@ fun ProfileScreen(
                                 return@Button
                             }
                             onUpdateUserProfile(editName.trim(), editAvatar)
+                            VoltUpStorage.setBoolean("ach_profile_custom", true)
                             showEditProfileDialog = false
                         },
                         modifier = Modifier.fillMaxWidth().height(48.dp),

@@ -45,7 +45,8 @@ data class BadgeModel(
     val level: Int,
     val currentProgress: Int,
     val maxProgress: Int,
-    val pointsAwarded: Int
+    val pointsAwarded: Int,
+    val isMaxLevel: Boolean = false
 )
 
 data class LeaderboardUser(
@@ -233,7 +234,8 @@ private fun AchievementCard(badge: BadgeModel) {
     val strings = strings
     val isLocked = badge.level == 0
     val isDark = isAppInDarkTheme()
-    val tierColor = getAchievementTierColor(badge.level, isDark)
+    val isEnglish = strings is VoltUpEnglishStrings
+    val tierColor = if (badge.isMaxLevel) getAchievementTierColor(5, isDark) else getAchievementTierColor(badge.level, isDark)
 
     val accentColor = tierColor.primary
     val iconBgColor = tierColor.container
@@ -271,7 +273,9 @@ private fun AchievementCard(badge: BadgeModel) {
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = if (isLocked) strings.badgeLocked else strings.badgeLevel(badge.level),
+                    text = if (isLocked) strings.badgeLocked
+                        else if (badge.isMaxLevel) (if (isEnglish) "LEVEL MAX" else "POZIOM MAX")
+                        else strings.badgeLevel(badge.level),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     color = accentColor,
@@ -342,7 +346,7 @@ private fun AchievementCard(badge: BadgeModel) {
                         text = "${badge.currentProgress}/${badge.maxProgress}",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (badge.isMaxLevel) accentColor else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

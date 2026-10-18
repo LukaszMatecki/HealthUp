@@ -304,6 +304,18 @@ fun App() {
                 }
             }
 
+            val evalOnLoad = evaluateAchievements(
+                currentAchievements = achievements,
+                workouts = userStats.recentWorkouts,
+                totalEnergyWh = userStats.totalEnergyWh,
+                co2SavedKg = userStats.co2SavedKg,
+                streakDays = userStats.streakDays,
+                redeemedRewardsCount = loadedCoupons.size,
+                isEnglish = appSettings.language == AppLanguage.ENGLISH,
+                isDarkTheme = appSettings.themeMode == AppThemeMode.DARK
+            )
+            achievements = evalOnLoad.updatedAchievements
+
             challenges = MockData.sampleChallenges.map { ch ->
                 val cleanId = ch.id.removePrefix("${u.userId}_")
                 val match = loadedChallenges.firstOrNull {
@@ -547,6 +559,7 @@ fun App() {
                         }
 
                         is Screen.QrScanner -> {
+                            VoltUpStorage.setBoolean("ach_qr_scanner", true)
                             QrScannerScreen(
                                 onStationDetected = { station ->
                                     currentScreen = Screen.ActiveWorkout(station)
@@ -556,6 +569,19 @@ fun App() {
                         }
 
                         is Screen.Achievements -> {
+                            val evalResult = evaluateAchievements(
+                                currentAchievements = achievements,
+                                workouts = userStats.recentWorkouts,
+                                totalEnergyWh = userStats.totalEnergyWh,
+                                co2SavedKg = userStats.co2SavedKg,
+                                streakDays = userStats.streakDays,
+                                redeemedRewardsCount = redeemedRewards.size,
+                                isEnglish = appSettings.language == AppLanguage.ENGLISH,
+                                isDarkTheme = appSettings.themeMode == AppThemeMode.DARK
+                            )
+                            if (evalResult.updatedAchievements != achievements) {
+                                achievements = evalResult.updatedAchievements
+                            }
                             AchievementsScreen(
                                 badges = achievements.map { it.toBadgeModel(isEnglish = appSettings.language == AppLanguage.ENGLISH) },
                                 userStats = userStats,
@@ -564,6 +590,7 @@ fun App() {
                         }
 
                         is Screen.WorkoutHistory -> {
+                            VoltUpStorage.setBoolean("ach_explore_history", true)
                             WorkoutHistoryScreen(
                                 workouts = userStats.recentWorkouts,
                                 onNavigateBack = { currentScreen = Screen.Main }
@@ -585,7 +612,8 @@ fun App() {
                                         co2SavedKg = newCo2,
                                         streakDays = userStats.streakDays,
                                         redeemedRewardsCount = redeemedRewards.size,
-                                        isEnglish = appSettings.language == AppLanguage.ENGLISH
+                                        isEnglish = appSettings.language == AppLanguage.ENGLISH,
+                                        isDarkTheme = appSettings.themeMode == AppThemeMode.DARK
                                     )
 
                                     achievements = evalResult.updatedAchievements
@@ -731,6 +759,7 @@ fun App() {
                                 ) { page ->
                                     when (MainTab.entries[page]) {
                                         MainTab.HOME -> {
+                                            VoltUpStorage.setBoolean("ach_weekly_challenges", true)
                                             DashboardScreen(
                                                 stats = userStats,
                                                 onOpenSettings = { currentScreen = Screen.Settings },
@@ -740,6 +769,7 @@ fun App() {
                                         }
 
                                         MainTab.MAP -> {
+                                            VoltUpStorage.setBoolean("ach_map_navigator", true)
                                             StationsMapScreen(
                                                 stations = MockData.sampleStations,
                                                 onSelectStationToScanQr = {
@@ -801,7 +831,8 @@ fun App() {
                                                             co2SavedKg = userStats.co2SavedKg,
                                                             streakDays = userStats.streakDays,
                                                             redeemedRewardsCount = newRedeemedList.size,
-                                                            isEnglish = appSettings.language == AppLanguage.ENGLISH
+                                                            isEnglish = appSettings.language == AppLanguage.ENGLISH,
+                                                            isDarkTheme = appSettings.themeMode == AppThemeMode.DARK
                                                         )
 
                                                         achievements = evalResult.updatedAchievements

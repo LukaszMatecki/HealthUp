@@ -11,8 +11,12 @@ data class Achievement(
     val icon: ImageVector,
     val metricType: MetricType,
     val level: Int = 0,
-    val currentProgress: Double = 0.0
+    val currentProgress: Double = 0.0,
+    val maxLevel: Int = 5
 ) {
+    val isMaxLevel: Boolean
+        get() = maxLevel in 1..level
+
     enum class MetricType {
         WORKOUTS_COUNT,
         TOTAL_ENERGY_WH,
@@ -33,7 +37,17 @@ data class Achievement(
         DISTINCT_DISTRICTS,
         CO2_MILESTONES,
         DEVICE_VARIETY,
-        DAILY_DOUBLE
+        DAILY_DOUBLE,
+        EXPLORE_HISTORY,
+        DARK_THEME_TOGGLE,
+        ABOUT_VIEWED,
+        PROFILE_CUSTOM,
+        ARCHIVE_VIEWED,
+        QR_SCANNER,
+        MAP_NAVIGATOR,
+        WEEKLY_CHALLENGES,
+        FIRST_REWARD,
+        ECO_CALCULATOR_HERO
     }
 
     fun getLocalizedTitle(isEnglish: Boolean = false): String = if (!isEnglish) title else when (metricType) {
@@ -49,14 +63,24 @@ data class Achievement(
         MetricType.NIGHT_WORKOUTS -> "Night Owl"
         MetricType.DISTINCT_STATIONS -> "City Explorer"
         MetricType.MORNING_WORKOUTS -> "Early Bird"
-        MetricType.WEEKEND_WORKOUTS -> "Weekend Warrior"
+        MetricType.WEEKEND_WORKOUTS -> "Weekend Pro"
         MetricType.FAST_SESSIONS -> "Sprint Prodigy"
         MetricType.COMMUNITY_DAYS -> "Community Pillar"
         MetricType.LONG_SESSIONS -> "Marathoner"
         MetricType.DISTINCT_DISTRICTS -> "District Conqueror"
         MetricType.CO2_MILESTONES -> "Carbon Offset King"
         MetricType.DEVICE_VARIETY -> "All-Round Athlete"
-        MetricType.DAILY_DOUBLE -> "Double Impact"
+        MetricType.DAILY_DOUBLE -> "Double Power"
+        MetricType.EXPLORE_HISTORY -> "History Buff"
+        MetricType.DARK_THEME_TOGGLE -> "Dark Mode"
+        MetricType.ABOUT_VIEWED -> "Inside VoltUp"
+        MetricType.PROFILE_CUSTOM -> "Custom Style"
+        MetricType.ARCHIVE_VIEWED -> "Ticket Archivist"
+        MetricType.QR_SCANNER -> "QR Scanner"
+        MetricType.MAP_NAVIGATOR -> "City Navigator"
+        MetricType.WEEKLY_CHALLENGES -> "Mission Brief"
+        MetricType.FIRST_REWARD -> "First Voucher"
+        MetricType.ECO_CALCULATOR_HERO -> "Green Footprint"
     }
 
     fun getLevelConfig(targetLevel: Int, isEnglish: Boolean = false): Triple<Double, Int, String> {
@@ -173,26 +197,43 @@ data class Achievement(
                 else -> Triple(4.0, 450, if (isEnglish) "Master of all station types" else "Kompletny mistrz wszystkich typów stacji")
             }
             MetricType.DAILY_DOUBLE -> when (lvl) {
-                1 -> Triple(1.0, 60, if (isEnglish) "Double charge: complete 2 workouts in a single day" else "Podwójne doładowanie: ukończ 2 treningi w ciągu jednego dnia")
+                1 -> Triple(1.0, 60, if (isEnglish) "Double charge: complete 2 workouts in a single day" else "Podwójna moc: ukończ 2 treningi w ciągu jednego dnia")
                 2 -> Triple(3.0, 150, if (isEnglish) "Do double workouts on 3 different days" else "Zrób podwójny trening w 3 różnych dniach")
                 else -> Triple(3.0 + (lvl - 2) * 4.0, 350, if (isEnglish) "Do double workouts on ${3 + (lvl - 2) * 4} days" else "Wykonaj podwójny trening w ${3 + (lvl - 2) * 4} dniach")
             }
+            MetricType.EXPLORE_HISTORY -> Triple(1.0, 50, if (isEnglish) "Check your past workout history in the profile tab" else "Sprawdź historię swoich treningów w profilu")
+            MetricType.DARK_THEME_TOGGLE -> Triple(1.0, 50, if (isEnglish) "Switch the app theme to dark mode" else "Przełącz motyw aplikacji na ciemny")
+            MetricType.ABOUT_VIEWED -> Triple(1.0, 50, if (isEnglish) "Read information in the About VoltUp section" else "Przeczytaj informacje w sekcji O VoltUp")
+            MetricType.PROFILE_CUSTOM -> Triple(1.0, 50, if (isEnglish) "Customize your avatar or username in your profile" else "Dostosuj swój awatar lub nazwę użytkownika w profilu")
+            MetricType.ARCHIVE_VIEWED -> Triple(1.0, 50, if (isEnglish) "View redeemed vouchers in your ticket archive" else "Przejrzyj wykorzystane bilety w archiwum biletów")
+            MetricType.QR_SCANNER -> Triple(1.0, 50, if (isEnglish) "Open QR code scanner to locate a station" else "Otwórz skaner kodów QR, aby namierzyć stację")
+            MetricType.MAP_NAVIGATOR -> Triple(1.0, 50, if (isEnglish) "Explore the interactive map of kinetic hubs" else "Przeglądaj interaktywną mapę miejskich stacji")
+            MetricType.WEEKLY_CHALLENGES -> Triple(1.0, 50, if (isEnglish) "Review weekly challenges on your dashboard" else "Sprawdź wyzwania tygodniowe na pulpicie głównym")
+            MetricType.FIRST_REWARD -> Triple(1.0, 60, if (isEnglish) "Redeem your first discount voucher or transit ticket" else "Odbierz swój pierwszy kupon zniżkowy lub bilet MPK")
+            MetricType.ECO_CALCULATOR_HERO -> Triple(1.0, 50, if (isEnglish) "Save at least 50 g of CO₂ emissions for Łódź" else "Zaoszczędź co najmniej 50 g emisji CO₂ dla Łodzi")
         }
     }
 
     fun toBadgeModel(isEnglish: Boolean = false): BadgeModel {
-        val nextConfig = getLevelConfig(level + 1, isEnglish)
+        val atMax = maxLevel in 1..level
+        val nextConfig = getLevelConfig(if (atMax) level else (level + 1), isEnglish)
         val reqVal = nextConfig.first.toInt()
-        val currVal = currentProgress.toInt().coerceAtMost(reqVal)
+        val currVal = if (atMax) reqVal else currentProgress.toInt().coerceAtMost(reqVal)
+        val desc = if (atMax) {
+            if (isEnglish) "Completed! Maximum level reached." else "Ukończono! Osiągnięto maksymalny poziom."
+        } else {
+            nextConfig.third
+        }
         return BadgeModel(
             id = id,
             title = getLocalizedTitle(isEnglish),
-            description = nextConfig.third,
+            description = desc,
             icon = icon,
             level = level,
             currentProgress = currVal,
             maxProgress = reqVal,
-            pointsAwarded = nextConfig.second
+            pointsAwarded = nextConfig.second,
+            isMaxLevel = atMax
         )
     }
 }
@@ -206,7 +247,7 @@ data class AchievementTierColor(
 
 fun getAchievementTierColor(level: Int, isDark: Boolean = true): AchievementTierColor {
     return when (level) {
-        0 -> { // Level 0: Szary
+        0 -> {
             AchievementTierColor(
                 primary = androidx.compose.ui.graphics.Color(0xFF9E9E9E),
                 container = if (isDark) androidx.compose.ui.graphics.Color(0xFF1E232B) else androidx.compose.ui.graphics.Color(0xFFF1F5F9),
@@ -214,7 +255,7 @@ fun getAchievementTierColor(level: Int, isDark: Boolean = true): AchievementTier
                 text = if (isDark) androidx.compose.ui.graphics.Color(0xFF94A3B8) else androidx.compose.ui.graphics.Color(0xFF64748B)
             )
         }
-        1 -> { // Level 1: Zielony
+        1 -> {
             AchievementTierColor(
                 primary = androidx.compose.ui.graphics.Color(0xFF22C55E),
                 container = if (isDark) androidx.compose.ui.graphics.Color(0xFF0D2818) else androidx.compose.ui.graphics.Color(0xFFDCFCE7),
@@ -222,7 +263,7 @@ fun getAchievementTierColor(level: Int, isDark: Boolean = true): AchievementTier
                 text = if (isDark) androidx.compose.ui.graphics.Color(0xFF4ADE80) else androidx.compose.ui.graphics.Color(0xFF15803D)
             )
         }
-        2 -> { // Level 2: Niebieski
+        2 -> {
             AchievementTierColor(
                 primary = androidx.compose.ui.graphics.Color(0xFF3B82F6),
                 container = if (isDark) androidx.compose.ui.graphics.Color(0xFF0E2246) else androidx.compose.ui.graphics.Color(0xFFDBEAFE),
@@ -230,7 +271,7 @@ fun getAchievementTierColor(level: Int, isDark: Boolean = true): AchievementTier
                 text = if (isDark) androidx.compose.ui.graphics.Color(0xFF60A5FA) else androidx.compose.ui.graphics.Color(0xFF1D4ED8)
             )
         }
-        3 -> { // Level 3: Bursztyn / Pomarańcz
+        3 -> {
             AchievementTierColor(
                 primary = androidx.compose.ui.graphics.Color(0xFFF59E0B),
                 container = if (isDark) androidx.compose.ui.graphics.Color(0xFF3B2506) else androidx.compose.ui.graphics.Color(0xFFFEF3C7),
@@ -238,7 +279,7 @@ fun getAchievementTierColor(level: Int, isDark: Boolean = true): AchievementTier
                 text = if (isDark) androidx.compose.ui.graphics.Color(0xFFFBBF24) else androidx.compose.ui.graphics.Color(0xFFB45309)
             )
         }
-        4 -> { // Level 4: Rubin / Czerwień
+        4 -> {
             AchievementTierColor(
                 primary = androidx.compose.ui.graphics.Color(0xFFE11D48),
                 container = if (isDark) androidx.compose.ui.graphics.Color(0xFF3D0C1A) else androidx.compose.ui.graphics.Color(0xFFFFE4E6),
@@ -246,7 +287,7 @@ fun getAchievementTierColor(level: Int, isDark: Boolean = true): AchievementTier
                 text = if (isDark) androidx.compose.ui.graphics.Color(0xFFFB7185) else androidx.compose.ui.graphics.Color(0xFFBE123C)
             )
         }
-        else -> { // Level 5+: Fiolet / Purpura
+        else -> {
             AchievementTierColor(
                 primary = androidx.compose.ui.graphics.Color(0xFFA855F7),
                 container = if (isDark) androidx.compose.ui.graphics.Color(0xFF2E1065) else androidx.compose.ui.graphics.Color(0xFFF3E8FF),
@@ -357,7 +398,7 @@ object DefaultAchievements {
         ),
         Achievement(
             id = "ACH_WEEKEND",
-            title = "Weekendowy Wojownik",
+            title = "Weekendowiec",
             icon = Icons.Default.DateRange,
             metricType = Achievement.MetricType.WEEKEND_WORKOUTS,
             level = 0,
@@ -393,7 +434,8 @@ object DefaultAchievements {
             icon = Icons.Default.LocationCity,
             metricType = Achievement.MetricType.DISTINCT_DISTRICTS,
             level = 0,
-            currentProgress = 0.0
+            currentProgress = 0.0,
+            maxLevel = 5
         ),
         Achievement(
             id = "ACH_CO2_MILESTONE",
@@ -409,15 +451,106 @@ object DefaultAchievements {
             icon = Icons.Default.SportsScore,
             metricType = Achievement.MetricType.DEVICE_VARIETY,
             level = 0,
-            currentProgress = 0.0
+            currentProgress = 0.0,
+            maxLevel = 4
         ),
         Achievement(
             id = "ACH_DAILY_DOUBLE",
-            title = "Podwójne Doładowanie",
+            title = "Podwójna Moc",
             icon = Icons.Default.AllInclusive,
             metricType = Achievement.MetricType.DAILY_DOUBLE,
             level = 0,
             currentProgress = 0.0
+        ),
+        Achievement(
+            id = "ACH_EXPLORE_HISTORY",
+            title = "Kronikarz Mocy",
+            icon = Icons.Default.History,
+            metricType = Achievement.MetricType.EXPLORE_HISTORY,
+            level = 0,
+            currentProgress = 0.0,
+            maxLevel = 1
+        ),
+        Achievement(
+            id = "ACH_DARK_THEME",
+            title = "Władca Ciemności",
+            icon = Icons.Default.DarkMode,
+            metricType = Achievement.MetricType.DARK_THEME_TOGGLE,
+            level = 0,
+            currentProgress = 0.0,
+            maxLevel = 1
+        ),
+        Achievement(
+            id = "ACH_ABOUT_VIEWED",
+            title = "Świadomy Użytkownik",
+            icon = Icons.Default.Info,
+            metricType = Achievement.MetricType.ABOUT_VIEWED,
+            level = 0,
+            currentProgress = 0.0,
+            maxLevel = 1
+        ),
+        Achievement(
+            id = "ACH_PROFILE_CUSTOM",
+            title = "Własny Styl",
+            icon = Icons.Default.Face,
+            metricType = Achievement.MetricType.PROFILE_CUSTOM,
+            level = 0,
+            currentProgress = 0.0,
+            maxLevel = 1
+        ),
+        Achievement(
+            id = "ACH_ARCHIVE_VIEWED",
+            title = "Archiwista Biletów",
+            icon = Icons.Default.Archive,
+            metricType = Achievement.MetricType.ARCHIVE_VIEWED,
+            level = 0,
+            currentProgress = 0.0,
+            maxLevel = 1
+        ),
+        Achievement(
+            id = "ACH_QR_SCANNER",
+            title = "Radar Kinetyczny",
+            icon = Icons.Default.QrCodeScanner,
+            metricType = Achievement.MetricType.QR_SCANNER,
+            level = 0,
+            currentProgress = 0.0,
+            maxLevel = 1
+        ),
+        Achievement(
+            id = "ACH_MAP_NAVIGATOR",
+            title = "Nawigator Łodzi",
+            icon = Icons.Default.Navigation,
+            metricType = Achievement.MetricType.MAP_NAVIGATOR,
+            level = 0,
+            currentProgress = 0.0,
+            maxLevel = 1
+        ),
+        Achievement(
+            id = "ACH_WEEKLY_CHALLENGES",
+            title = "Plan Działania",
+            icon = Icons.Default.AssignmentTurnedIn,
+            metricType = Achievement.MetricType.WEEKLY_CHALLENGES,
+            level = 0,
+            currentProgress = 0.0,
+            maxLevel = 1
+        ),
+        Achievement(
+            id = "ACH_FIRST_REWARD",
+            title = "Pierwszy Bilet",
+            icon = Icons.Default.ConfirmationNumber,
+            metricType = Achievement.MetricType.FIRST_REWARD,
+            level = 0,
+            currentProgress = 0.0,
+            maxLevel = 1
+        ),
+        Achievement(
+            id = "ACH_ECO_CALC",
+            title = "Czysty Ślad",
+            icon = Icons.Default.Spa,
+            metricType = Achievement.MetricType.ECO_CALCULATOR_HERO,
+            level = 0,
+            currentProgress = 0.0,
+            maxLevel = 1
         )
     )
 }
@@ -474,12 +607,20 @@ fun evaluateAchievements(
     co2SavedKg: Double,
     streakDays: Int,
     redeemedRewardsCount: Int,
-    isEnglish: Boolean = false
+    isEnglish: Boolean = false,
+    isDarkTheme: Boolean = false
 ): AchievementEvaluationResult {
     var bonusPointsEarned = 0
     val messages = mutableListOf<String>()
 
-    val updated = currentAchievements.map { ach ->
+    val allAchievements = if (currentAchievements.size < DefaultAchievements.initialAchievements.size) {
+        val existingIds = currentAchievements.map { it.id }.toSet()
+        currentAchievements + DefaultAchievements.initialAchievements.filter { it.id !in existingIds }
+    } else {
+        currentAchievements
+    }
+
+    val updated = allAchievements.map { ach ->
         val rawMetric = when (ach.metricType) {
             Achievement.MetricType.WORKOUTS_COUNT -> workouts.size.toDouble()
             Achievement.MetricType.TOTAL_ENERGY_WH -> totalEnergyWh
@@ -500,7 +641,11 @@ fun evaluateAchievements(
                 it.dateText.contains("07:") || it.dateText.contains("08:") || it.dateText.contains("Rano") || (workouts.isNotEmpty() && it.id.hashCode() % 3 == 0)
             }.toDouble()
             Achievement.MetricType.WEEKEND_WORKOUTS -> workouts.count {
-                it.dateText.contains("Sob") || it.dateText.contains("Niedz") || (workouts.isNotEmpty() && it.id.hashCode() % 2 == 1)
+                val dow = if (it.timestampMs > 0L) getDayOfWeekIndex(it.timestampMs) else -1
+                val isWeekendDay = dow == 5 || dow == 6
+                val textMatch = it.dateText.contains("Sob") || it.dateText.contains("Niedz") || it.dateText.contains("Sat") || it.dateText.contains("Sun")
+                val isTodayWeekend = getDayOfWeekIndex(currentTimeMillis()).let { d -> d == 5 || d == 6 }
+                isWeekendDay || textMatch || (it.timestampMs <= 0L && isTodayWeekend)
             }.toDouble()
             Achievement.MetricType.FAST_SESSIONS -> workouts.count {
                 it.durationSeconds in 1..300 && it.generatedWh >= 5.0
@@ -511,12 +656,24 @@ fun evaluateAchievements(
             Achievement.MetricType.CO2_MILESTONES -> co2SavedKg
             Achievement.MetricType.DEVICE_VARIETY -> (workouts.map { it.stationName }.filter { it.isNotBlank() }.distinct().size).coerceAtMost(4).toDouble()
             Achievement.MetricType.DAILY_DOUBLE -> (workouts.size / 2).toDouble()
+            Achievement.MetricType.EXPLORE_HISTORY -> if (VoltUpStorage.getBoolean("ach_explore_history", false)) 1.0 else 0.0
+            Achievement.MetricType.DARK_THEME_TOGGLE -> if (isDarkTheme || VoltUpStorage.getBoolean("ach_dark_theme", false)) 1.0 else 0.0
+            Achievement.MetricType.ABOUT_VIEWED -> if (VoltUpStorage.getBoolean("ach_about_viewed", false)) 1.0 else 0.0
+            Achievement.MetricType.PROFILE_CUSTOM -> if (VoltUpStorage.getBoolean("ach_profile_custom", false)) 1.0 else 0.0
+            Achievement.MetricType.ARCHIVE_VIEWED -> if (VoltUpStorage.getBoolean("ach_archive_viewed", false)) 1.0 else 0.0
+            Achievement.MetricType.QR_SCANNER -> if (VoltUpStorage.getBoolean("ach_qr_scanner", false)) 1.0 else 0.0
+            Achievement.MetricType.MAP_NAVIGATOR -> if (VoltUpStorage.getBoolean("ach_map_navigator", false)) 1.0 else 0.0
+            Achievement.MetricType.WEEKLY_CHALLENGES -> if (VoltUpStorage.getBoolean("ach_weekly_challenges", false)) 1.0 else 0.0
+            Achievement.MetricType.FIRST_REWARD -> if (redeemedRewardsCount >= 1 || VoltUpStorage.getBoolean("ach_first_reward", false)) 1.0 else 0.0
+            Achievement.MetricType.ECO_CALCULATOR_HERO -> if (co2SavedKg >= 0.05) 1.0 else 0.0
         }
 
         var curLvl = ach.level
         var newPoints = 0
 
         while (true) {
+            val atMax = ach.maxLevel in 1..curLvl
+            if (atMax) break
             val nextConfig = ach.getLevelConfig(curLvl + 1, isEnglish = isEnglish)
             val reqVal = nextConfig.first
             if (rawMetric >= reqVal) {

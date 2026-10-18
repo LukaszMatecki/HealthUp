@@ -148,7 +148,7 @@ fun CouponCard(
     val splitRatio = 0.67f
     val isDark = isAppInDarkTheme()
 
-    val backgroundBrush = remember(isArchive, isAffordableOrActive, isDark) {
+    val backgroundBrush = remember(isArchive, isAffordableOrActive, isOwned, isDark) {
         when {
             isArchive -> {
                 if (isDark) {
@@ -159,7 +159,7 @@ fun CouponCard(
                     )
                 } else {
                     Brush.linearGradient(
-                        colors = listOf(Color(0xFFF1F5F9), Color(0xFFE2E8F0)),
+                        colors = listOf(Color(0xFFF8FAFC), Color(0xFFF1F5F9)),
                         start = Offset(0f, 0f),
                         end = Offset(400f, 400f)
                     )
@@ -180,11 +180,9 @@ fun CouponCard(
                 } else {
                     Brush.linearGradient(
                         colors = listOf(
-                            Color(0xFFF8FAFC),
-                            Color(0xFFEEF2F6),
-                            Color(0xFFE2E8F0),
-                            Color(0xFFECEFF4),
-                            Color(0xFFDFE5EC)
+                            Color(0xFFFFFFFF),
+                            Color(0xFFFAFBFC),
+                            Color(0xFFFFFFFF)
                         ),
                         start = Offset(0f, 0f),
                         end = Offset(450f, 250f)
@@ -200,7 +198,7 @@ fun CouponCard(
                     )
                 } else {
                     Brush.linearGradient(
-                        colors = listOf(Color(0xFFF1F5F9), Color(0xFFE2E8F0)),
+                        colors = listOf(Color(0xFFF8FAFC), Color(0xFFF1F5F9)),
                         start = Offset(0f, 0f),
                         end = Offset(400f, 400f)
                     )
@@ -211,7 +209,7 @@ fun CouponCard(
 
     val borderBrush = remember(isArchive, isAffordableOrActive, isOwned, isDark) {
         when {
-            isArchive -> SolidColor(Color(0xFF94A3B8).copy(alpha = 0.2f))
+            isArchive -> SolidColor(if (isDark) Color(0xFF94A3B8).copy(alpha = 0.2f) else Color(0xFF94A3B8).copy(alpha = 0.25f))
             isOwned -> {
                 if (isDark) {
                     Brush.linearGradient(
@@ -228,9 +226,9 @@ fun CouponCard(
                     Brush.linearGradient(
                         colors = listOf(
                             Color(0xFF00A35B).copy(alpha = 0.85f),
-                            Color(0xFF10B981).copy(alpha = 0.60f),
-                            Color(0xFF059669).copy(alpha = 0.90f),
-                            Color(0xFF00A35B).copy(alpha = 0.75f)
+                            Color(0xFF2D6A4F).copy(alpha = 0.60f),
+                            Color(0xFF00A35B).copy(alpha = 0.90f),
+                            Color(0xFF52B788).copy(alpha = 0.75f)
                         ),
                         start = Offset(0f, 0f),
                         end = Offset(400f, 200f)
@@ -252,34 +250,35 @@ fun CouponCard(
                 } else {
                     Brush.linearGradient(
                         colors = listOf(
-                            Color(0xFF0284C7).copy(alpha = 0.60f),
-                            Color(0xFF6366F1).copy(alpha = 0.35f),
-                            Color(0xFF0284C7).copy(alpha = 0.55f)
+                            Color(0xFF00A35B).copy(alpha = 0.60f),
+                            Color(0xFF52B788).copy(alpha = 0.35f),
+                            Color(0xFF00A35B).copy(alpha = 0.70f),
+                            Color(0xFF74C69D).copy(alpha = 0.45f)
                         ),
                         start = Offset(0f, 0f),
                         end = Offset(400f, 200f)
                     )
                 }
             }
-            else -> SolidColor(if (isDark) Color(0xFF94A3B8).copy(alpha = 0.25f) else Color(0xFFCBD5E1))
+            else -> SolidColor(if (isDark) Color(0xFF94A3B8).copy(alpha = 0.25f) else Color(0xFFE2E8F0))
         }
     }
 
     val textColor = if (isArchive) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-        else if (isAffordableOrActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+        else if (isAffordableOrActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
     val textLightColor = if (isArchive) (if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8))
-        else if (!isDark) Color(0xFF475569)
-        else MaterialTheme.colorScheme.onSurfaceVariant
+        else if (isAffordableOrActive) MaterialTheme.colorScheme.onSurfaceVariant
+        else (if (isDark) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF94A3B8))
 
     val ticketShape = remember { TicketShape(splitRatio = splitRatio) }
 
     val shouldShine = isAffordableOrActive && !isArchive
     val infiniteTransition = rememberInfiniteTransition(label = "couponSheenTransition")
     val sheenProgress by infiniteTransition.animateFloat(
-        initialValue = -0.5f,
-        targetValue = 1.5f,
+        initialValue = -1.0f,
+        targetValue = 2.2f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 3600, easing = FastOutSlowInEasing),
+            animation = tween(durationMillis = 6000, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "couponSheenProgress"
@@ -295,11 +294,12 @@ fun CouponCard(
                 clip = true
             }
             .shadow(
-                elevation = if (isArchive) 0.dp else if (isOwned) 5.dp else if (isAffordableOrActive) 3.dp else 1.dp,
+                elevation = if (isArchive) 0.dp else if (isOwned) 4.5.dp else if (isAffordableOrActive) 2.5.dp else 1.dp,
                 shape = ticketShape,
-                spotColor = if (isOwned) (if (isDark) Color(0xFF00C853).copy(alpha = 0.35f) else Color(0xFF00A35B).copy(alpha = 0.25f))
-                    else if (isAffordableOrActive && !isArchive) (if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color(0xFF64748B).copy(alpha = 0.25f))
-                    else Color.Transparent
+                spotColor = if (isOwned) (if (isDark) Color(0xFF00C853).copy(alpha = 0.35f) else Color(0xFF00A35B).copy(alpha = 0.20f))
+                    else if (isAffordableOrActive && !isArchive) (if (isDark) Color(0xFF00E5FF).copy(alpha = 0.2f) else Color(0xFF64748B).copy(alpha = 0.14f))
+                    else Color.Transparent,
+                ambientColor = if (!isDark && !isArchive) Color(0xFF000000).copy(alpha = 0.04f) else Color.Transparent
             )
             .background(backgroundBrush)
             .border(
@@ -322,11 +322,9 @@ fun CouponCard(
                             Color.Transparent
                         ) else listOf(
                             Color.Transparent,
-                            Color(0x25FFFFFF),
-                            Color(0x80FFFFFF),
-                            Color(0xB5FFFFFF),
-                            Color(0x80FFFFFF),
-                            Color(0x25FFFFFF),
+                            Color(0x0D64748B),
+                            Color(0x2864748B),
+                            Color(0x0D64748B),
                             Color.Transparent
                         ),
                         start = Offset(sheenX - width * 0.35f, 0f),
@@ -340,11 +338,13 @@ fun CouponCard(
         Canvas(modifier = Modifier.fillMaxSize()) {
             val splitX = size.width * splitRatio
             drawLine(
-                color = textLightColor.copy(alpha = 0.25f),
+                color = if (isDark) textLightColor.copy(alpha = 0.25f)
+                    else if (isAffordableOrActive && !isArchive) Color(0xFF00A35B).copy(alpha = 0.25f)
+                    else Color(0xFFCBD5E1),
                 start = Offset(splitX, 16.dp.toPx()),
                 end = Offset(splitX, size.height - 16.dp.toPx()),
-                pathEffect = PathEffect.dashPathEffect(floatArrayOf(16f, 14f), 0f),
-                strokeWidth = 2.5f,
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 10f), 0f),
+                strokeWidth = 2.dp.toPx(),
                 cap = StrokeCap.Round
             )
         }
@@ -1402,7 +1402,12 @@ fun RewardsScreen(
                                                 modifier = Modifier
                                                     .clip(RoundedCornerShape(20.dp))
                                                     .background(if (isSelected) greenPrimary else Color.Transparent)
-                                                    .clickable { couponFilter = filter }
+                                                    .clickable {
+                                                        couponFilter = filter
+                                                        if (filter == CouponTabFilter.ARCHIVE) {
+                                                            VoltUpStorage.setBoolean("ach_archive_viewed", true)
+                                                        }
+                                                    }
                                                     .padding(horizontal = 20.dp, vertical = 8.dp),
                                                 contentAlignment = Alignment.Center
                                             ) {
