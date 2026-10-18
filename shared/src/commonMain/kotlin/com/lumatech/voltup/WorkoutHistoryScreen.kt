@@ -40,7 +40,6 @@ fun WorkoutHistoryScreen(
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
-        // TopBar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -71,10 +70,9 @@ fun WorkoutHistoryScreen(
             )
         }
 
-        // Summary Card
-        val totalWh = workouts.sumOf { it.generatedWh }
-        val totalVp = workouts.sumOf { it.earnedPoints }
-        val totalMinutes = workouts.sumOf { it.durationSeconds } / 60
+        val totalWh = remember(workouts) { workouts.sumOf { it.generatedWh } }
+        val totalVp = remember(workouts) { workouts.sumOf { it.earnedPoints } }
+        val totalMinutes = remember(workouts) { workouts.sumOf { it.durationSeconds } / 60 }
 
         Surface(
             modifier = Modifier
@@ -206,7 +204,6 @@ fun WorkoutHistoryScreen(
                                 .padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            // Górny wiersz: Ikonka + Urządzenie i Miejsce + Chevron
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
@@ -282,13 +279,11 @@ fun WorkoutHistoryScreen(
                                 thickness = 1.dp
                             )
 
-                            // Dolny wiersz: Pigułki statystyk (Czas, Wh, VP, CO2)
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Czas trwania
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
                                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
@@ -313,7 +308,6 @@ fun WorkoutHistoryScreen(
                                     }
                                 }
 
-                                // Energia Wh
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
                                     color = primaryColor.copy(alpha = 0.12f)
@@ -327,7 +321,6 @@ fun WorkoutHistoryScreen(
                                     )
                                 }
 
-                                // VoltPoints
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
                                     color = EnergyYellow.copy(alpha = 0.15f)
@@ -361,9 +354,9 @@ fun WorkoutHistoryScreen(
         }
     }
 
-    if (selectedWorkout != null) {
+    selectedWorkout?.let { workout ->
         WorkoutDetailsDialog(
-            workout = selectedWorkout!!,
+            workout = workout,
             onDismiss = { selectedWorkout = null }
         )
     }

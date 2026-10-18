@@ -102,7 +102,6 @@ fun OnboardingScreen(
             Column(
                 modifier = Modifier.fillMaxSize()
             ) {
-                // Top bar z przyciskiem Pomiń
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -158,7 +157,6 @@ fun OnboardingScreen(
                     }
                 }
 
-                // Zawartość stron
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier
@@ -174,7 +172,6 @@ fun OnboardingScreen(
                     )
                 }
 
-                // Dolny pasek kontrolny: wskaźnik kroku + przycisk akcji
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -182,7 +179,6 @@ fun OnboardingScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-                    // Wskaźnik kroku (Dots Indicator)
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -210,7 +206,6 @@ fun OnboardingScreen(
                         }
                     }
 
-                    // Przycisk Dalej / Zaczynamy!
                     val isLastPage = pagerState.currentPage == pages.size - 1
                     Button(
                         onClick = {
@@ -249,7 +244,6 @@ fun OnboardingScreen(
                 }
             }
 
-            // Nakładka ładowania przy zakończeniu
             AnimatedVisibility(
                 visible = isCompleting,
                 enter = fadeIn(tween(200)),
@@ -341,7 +335,6 @@ private fun OnboardingPageContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Graficzny okrągły akcent z cieniem i ikoną
         Box(
             modifier = Modifier
                 .size(120.dp)

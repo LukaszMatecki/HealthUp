@@ -18,14 +18,12 @@ val strings: VoltUpStrings
     get() = getVoltUpStrings(LocalAppLanguage.current)
 
 interface VoltUpStrings {
-    // Nawigacja
     val tabHome: String
     val tabMap: String
     val tabRewards: String
     val tabProfile: String
     val scanQr: String
 
-    // Przyciski i akcje ogólne
     val cancel: String
     val confirm: String
     val save: String
@@ -37,7 +35,6 @@ interface VoltUpStrings {
     val reset: String
     val retry: String
 
-    // Logowanie i Rejestracja
     val loginHeader: String
     val loginSubtitle: String
     val emailLabel: String
@@ -67,7 +64,6 @@ interface VoltUpStrings {
     val backToLogin: String
     val resetLinkSentSuccess: String
 
-    // Ekran Główny (HomeScreen)
     val appCityTag: String
     val welcomeBack: String
     val totalEnergyWh: String
@@ -108,7 +104,6 @@ interface VoltUpStrings {
     val statusActiveOnline: String
     val statusInactive: String
 
-    // Ekran Treningu (WorkoutScreen)
     val workoutActiveTitle: String
     val workoutGenerating: String
     val workoutPaused: String
@@ -141,7 +136,6 @@ interface VoltUpStrings {
     val heartRateLabel: String
     val deviceIdLabel: String
 
-    // Ekran Nagród (RewardsScreen)
     val rewardsScreenTitle: String
     val catalogTab: String
     val myCouponsTab: String
@@ -178,7 +172,6 @@ interface VoltUpStrings {
     val tapToScanVehicleCode: String
     val ticketValidatedSuccess: String
 
-    // Ekran Mapy (StationsMapScreen)
     val mapScreenTitle: String
     val searchStationsPlaceholder: String
     val availableBikesLabel: String
@@ -186,7 +179,6 @@ interface VoltUpStrings {
     val startWorkoutAtStationBtn: String
     val distanceMeters: (Int) -> String
 
-    // Ekran Profilu (ProfileScreen)
     val profileScreenTitle: String
     val editProfileBtn: String
     val editProfileDialogTitle: String
@@ -206,7 +198,6 @@ interface VoltUpStrings {
     val signOutConfirmDesc: String
     val signOutBtn: String
 
-    // Ekran Ustawień (SettingsScreen)
     val settingsScreenTitle: String
     val appearanceSection: String
     val themeSystemTitle: String
@@ -254,7 +245,6 @@ interface VoltUpStrings {
     val copyrightNotice: String
     val awesomeBtn: String
 
-    // Zarządzanie Kontem (ManageAccountScreen)
     val manageAccountTitle: String
     val accountInfoSection: String
     val securitySection: String
@@ -265,7 +255,6 @@ interface VoltUpStrings {
     val deleteAccountConfirmDesc: String
     val deleteAccountPermanentlyBtn: String
 
-    // Zmiana Hasła (ChangePasswordDialog)
     val changePasswordDialogTitle: String
     val oldPasswordLabel: String
     val newPasswordLabel: String
@@ -273,7 +262,6 @@ interface VoltUpStrings {
     val saveNewPasswordBtn: String
     val changePasswordHelpText: String
 
-    // Osiągnięcia (AchievementsScreen)
     val achievementsScreenTitle: String
     val achievementProgressLabel: String
     val achievementCompleted: String
@@ -283,7 +271,6 @@ interface VoltUpStrings {
     val tabDistance: String
     val tabEco: String
 
-    // Motywy i Ustawienia
     val themesSection: String
     val themesSectionHeader: String
     val accountAndSecuritySection: String
@@ -308,7 +295,6 @@ interface VoltUpStrings {
     val appAuthorsSubtitle: String
     val aboutVoltUpAppSubtitle: String
 
-    // Osiągnięcia i Ranking (AchievementsScreen)
     val myAchievementsTitle: String
     val tabAchievements: String
     val tabLeaderboard: String
@@ -322,7 +308,6 @@ interface VoltUpStrings {
     val rankOutsideTop: (Int) -> String
     val placeRank: (Int) -> String
 
-    // Onboarding
     val onboardingWelcomeTitle: String
     val onboardingWelcomeSubtitle: String
     val onboardingWelcomeDesc: String
@@ -337,7 +322,6 @@ interface VoltUpStrings {
     val onboardingSkipBtn: String
     val onboardingInitializing: String
 
-    // Pomoc i Autorzy
     val helpGuideTitle: String
     val helpTabFaq: String
     val helpTabSupport: String
@@ -345,18 +329,15 @@ interface VoltUpStrings {
     val authorsTeamTitle: String
     val authorsTeamDesc: String
 
-    // Bilety i Ważność
     val instantValidity: String
     val daysValidity: (Int) -> String
     val minutesValidity: (Int) -> String
 
-    // Urządzenia
     val deviceBike: String
     val deviceStepper: String
     val deviceCrossTrainer: String
     val deviceSwing: String
 
-    // Skaner QR
     val qrScannerTitle: String
     val qrScannerInstruction: String
     val qrManualCodePlaceholder: String
@@ -364,13 +345,11 @@ interface VoltUpStrings {
     val qrSimulateBtn: String
     val clearQueryBtn: String
 
-    // Workout & Device ID
     val statusOnline: String
     val statusPaused: String
     val workoutStart: String
     val workoutPausedShort: String
 
-    // Historia Treningów
     val workoutHistorySection: String
     val workoutHistoryEmpty: String
     val workoutDetailsTitle: String
@@ -382,7 +361,6 @@ interface VoltUpStrings {
     val workoutDetailsCo2: String
     val workoutDetailsDate: String
 
-    // Onboarding powiadomienia
     val enableNotificationsBtn: String
     val notificationsEnabledStatus: String
     val notificationPermissionDialogTitle: String
@@ -390,7 +368,6 @@ interface VoltUpStrings {
     val allowBtn: String
     val notNowBtn: String
 
-    // Nowe klucze historii i wyzwań
     val workoutHistoryTileTitle: String
     val workoutHistoryTileSubtitle: String
     val workoutHistoryScreenTitle: String

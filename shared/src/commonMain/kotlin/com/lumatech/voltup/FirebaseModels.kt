@@ -1,9 +1,4 @@
 package com.lumatech.voltup
-
-/**
- * Model tabeli Użytkowników (users)
- * Główna reprezentacja konta i stanu portfela użytkownika w Firebase Firestore.
- */
 data class VoltUpUser(
     val userId: String = "",
     val email: String = "",
@@ -54,11 +49,6 @@ data class VoltUpUser(
         }
     }
 }
-
-/**
- * Model tabeli Historii Sesji Treningowych (workout_sessions)
- * Każdy ukończony trening na stacji miejskiej zapisuje jeden wiersz/dokument.
- */
 data class WorkoutSessionDto(
     val sessionId: String = "",
     val userId: String = "",
@@ -104,11 +94,6 @@ data class WorkoutSessionDto(
         }
     }
 }
-
-/**
- * Model tabeli Osiągnięć Użytkownika (user_achievements)
- * Przechowuje postęp w poziomowalnych osiągnięciach.
- */
 data class UserAchievementDto(
     val userId: String = "",
     val achievementId: String = "",
@@ -136,11 +121,6 @@ data class UserAchievementDto(
         }
     }
 }
-
-/**
- * Model tabeli Wyzwań Tygodniowych (user_challenges)
- * Stan wyzwań tygodniowych przypisanych do danego tygodnia i użytkownika.
- */
 data class UserChallengeDto(
     val id: String = "",
     val userId: String = "",
@@ -180,11 +160,6 @@ data class UserChallengeDto(
         }
     }
 }
-
-/**
- * Model tabeli Odebranych Kuponów (user_coupons / redeemed_rewards)
- * Bilet lub kupon odebrany przez użytkownika ze sklepu nagród.
- */
 data class UserCouponDto(
     val couponId: String = "",
     val userId: String = "",
@@ -227,11 +202,6 @@ data class UserCouponDto(
         }
     }
 }
-
-/**
- * Model tabeli Ustawień (user_settings)
- * Ustawienia preferencji synchronizowane z chmurą Firebase.
- */
 data class UserSettingsDto(
     val userId: String = "",
     val themeMode: String = "SYSTEM",
@@ -259,11 +229,6 @@ data class UserSettingsDto(
         }
     }
 }
-
-/**
- * Model tabeli Urządzeń Miejskich (devices)
- * Stacje i urządzenia kinetyczne (rowery, steppery, orbitreki, huśtawki) w Łodzi.
- */
 data class KineticDeviceDto(
     val deviceId: String = "",
     val name: String = "",

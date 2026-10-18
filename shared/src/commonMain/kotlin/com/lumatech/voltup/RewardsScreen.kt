@@ -26,6 +26,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -51,7 +52,6 @@ class TicketShape(
         val path = Path().apply {
             val splitX = size.width * splitRatio
 
-            // Lewy górny róg
             moveTo(0f, cornerRadius)
             arcTo(
                 rect = Rect(0f, 0f, 2 * cornerRadius, 2 * cornerRadius),
@@ -60,9 +60,7 @@ class TicketShape(
                 forceMoveTo = false
             )
 
-            // Górna krawędź do wycięcia
             lineTo(splitX - cutoutRadius, 0f)
-            // Górne wycięcie
             arcTo(
                 rect = Rect(
                     left = splitX - cutoutRadius,
@@ -74,10 +72,8 @@ class TicketShape(
                 sweepAngleDegrees = -180f,
                 forceMoveTo = false
             )
-            // Górna krawędź od wycięcia do prawego górnego rogu
             lineTo(size.width - cornerRadius, 0f)
 
-            // Prawy górny róg
             arcTo(
                 rect = Rect(size.width - 2 * cornerRadius, 0f, size.width, 2 * cornerRadius),
                 startAngleDegrees = 270f,
@@ -85,7 +81,6 @@ class TicketShape(
                 forceMoveTo = false
             )
 
-            // Prawa krawędź z NOWYM WYCIĘCIEM na środku
             val rightCutoutY = size.height / 2f
             lineTo(size.width, rightCutoutY - cutoutRadius)
             arcTo(
@@ -101,7 +96,6 @@ class TicketShape(
             )
             lineTo(size.width, size.height - cornerRadius)
 
-            // Prawy dolny róg
             arcTo(
                 rect = Rect(size.width - 2 * cornerRadius, size.height - 2 * cornerRadius, size.width, size.height),
                 startAngleDegrees = 0f,
@@ -109,9 +103,7 @@ class TicketShape(
                 forceMoveTo = false
             )
 
-            // Dolna krawędź do wycięcia
             lineTo(splitX + cutoutRadius, size.height)
-            // Dolne wycięcie
             arcTo(
                 rect = Rect(
                     left = splitX - cutoutRadius,
@@ -123,10 +115,8 @@ class TicketShape(
                 sweepAngleDegrees = -180f,
                 forceMoveTo = false
             )
-            // Dolna krawędź od wycięcia do lewego dolnego rogu
             lineTo(cornerRadius, size.height)
 
-            // Lewy dolny róg
             arcTo(
                 rect = Rect(0f, size.height - 2 * cornerRadius, 2 * cornerRadius, size.height),
                 startAngleDegrees = 90f,
@@ -134,7 +124,6 @@ class TicketShape(
                 forceMoveTo = false
             )
 
-            // Lewa krawędź
             lineTo(0f, cornerRadius)
             close()
         }
@@ -152,77 +141,221 @@ fun CouponCard(
     isAffordableOrActive: Boolean,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     isArchive: Boolean = false,
+    isOwned: Boolean = false,
     onDelete: (() -> Unit)? = null,
     onClick: () -> Unit
 ) {
     val splitRatio = 0.67f
     val isDark = isAppInDarkTheme()
 
-    val backgroundColor = if (isArchive) {
-        if (isDark) Color(0xFF15181E) else Color(0xFFF1F5F9)
-    } else if (isAffordableOrActive) {
-        MaterialTheme.colorScheme.surface
-    } else {
-        if (isDark) Color(0xFF13171E) else Color(0xFFF1F5F9)
+    val backgroundBrush = remember(isArchive, isAffordableOrActive, isDark) {
+        when {
+            isArchive -> {
+                if (isDark) {
+                    Brush.linearGradient(
+                        colors = listOf(Color(0xFF13161C), Color(0xFF171B22)),
+                        start = Offset(0f, 0f),
+                        end = Offset(400f, 400f)
+                    )
+                } else {
+                    Brush.linearGradient(
+                        colors = listOf(Color(0xFFF1F5F9), Color(0xFFE2E8F0)),
+                        start = Offset(0f, 0f),
+                        end = Offset(400f, 400f)
+                    )
+                }
+            }
+            isAffordableOrActive -> {
+                if (isDark) {
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color(0xFF161A23),
+                            Color(0xFF1B2230),
+                            Color(0xFF181E2B),
+                            Color(0xFF151922)
+                        ),
+                        start = Offset(0f, 0f),
+                        end = Offset(500f, 300f)
+                    )
+                } else {
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color(0xFFF8FAFC),
+                            Color(0xFFEEF2F6),
+                            Color(0xFFE2E8F0),
+                            Color(0xFFECEFF4),
+                            Color(0xFFDFE5EC)
+                        ),
+                        start = Offset(0f, 0f),
+                        end = Offset(450f, 250f)
+                    )
+                }
+            }
+            else -> {
+                if (isDark) {
+                    Brush.linearGradient(
+                        colors = listOf(Color(0xFF12151B), Color(0xFF161921)),
+                        start = Offset(0f, 0f),
+                        end = Offset(400f, 400f)
+                    )
+                } else {
+                    Brush.linearGradient(
+                        colors = listOf(Color(0xFFF1F5F9), Color(0xFFE2E8F0)),
+                        start = Offset(0f, 0f),
+                        end = Offset(400f, 400f)
+                    )
+                }
+            }
+        }
     }
 
-    val borderColor = if (isArchive) {
-        MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
-    } else if (isAffordableOrActive) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-    } else {
-        if (isDark) MaterialTheme.colorScheme.outline.copy(alpha = 0.4f) else MaterialTheme.colorScheme.surfaceVariant
+    val borderBrush = remember(isArchive, isAffordableOrActive, isOwned, isDark) {
+        when {
+            isArchive -> SolidColor(Color(0xFF94A3B8).copy(alpha = 0.2f))
+            isOwned -> {
+                if (isDark) {
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color(0xFF00C853).copy(alpha = 0.90f),
+                            Color(0xFF69F0AE).copy(alpha = 0.65f),
+                            Color(0xFF00C853).copy(alpha = 0.95f),
+                            Color(0xFFB9F6CA).copy(alpha = 0.55f)
+                        ),
+                        start = Offset(0f, 0f),
+                        end = Offset(400f, 200f)
+                    )
+                } else {
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color(0xFF00A35B).copy(alpha = 0.85f),
+                            Color(0xFF10B981).copy(alpha = 0.60f),
+                            Color(0xFF059669).copy(alpha = 0.90f),
+                            Color(0xFF00A35B).copy(alpha = 0.75f)
+                        ),
+                        start = Offset(0f, 0f),
+                        end = Offset(400f, 200f)
+                    )
+                }
+            }
+            isAffordableOrActive -> {
+                if (isDark) {
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color(0xFF00E5FF).copy(alpha = 0.65f),
+                            Color(0xFF8B5CF6).copy(alpha = 0.40f),
+                            Color(0xFF00E5FF).copy(alpha = 0.70f),
+                            Color(0xFF38BDF8).copy(alpha = 0.35f)
+                        ),
+                        start = Offset(0f, 0f),
+                        end = Offset(400f, 200f)
+                    )
+                } else {
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color(0xFF0284C7).copy(alpha = 0.60f),
+                            Color(0xFF6366F1).copy(alpha = 0.35f),
+                            Color(0xFF0284C7).copy(alpha = 0.55f)
+                        ),
+                        start = Offset(0f, 0f),
+                        end = Offset(400f, 200f)
+                    )
+                }
+            }
+            else -> SolidColor(if (isDark) Color(0xFF94A3B8).copy(alpha = 0.25f) else Color(0xFFCBD5E1))
+        }
     }
 
     val textColor = if (isArchive) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
         else if (isAffordableOrActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
-    val textLightColor = if (isArchive) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
-        else if (isAffordableOrActive) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+    val textLightColor = if (isArchive) (if (isDark) Color(0xFF64748B) else Color(0xFF94A3B8))
+        else if (!isDark) Color(0xFF475569)
+        else MaterialTheme.colorScheme.onSurfaceVariant
 
     val ticketShape = remember { TicketShape(splitRatio = splitRatio) }
+
+    val shouldShine = isAffordableOrActive && !isArchive
+    val infiniteTransition = rememberInfiniteTransition(label = "couponSheenTransition")
+    val sheenProgress by infiniteTransition.animateFloat(
+        initialValue = -0.5f,
+        targetValue = 1.5f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 3600, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "couponSheenProgress"
+    )
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(150.dp)
             .padding(vertical = 4.dp)
+            .graphicsLayer {
+                shape = ticketShape
+                clip = true
+            }
             .shadow(
-                elevation = if (isArchive) 0.dp else if (isAffordableOrActive) 4.dp else 1.dp,
+                elevation = if (isArchive) 0.dp else if (isOwned) 5.dp else if (isAffordableOrActive) 3.dp else 1.dp,
                 shape = ticketShape,
-                spotColor = if (isAffordableOrActive && !isArchive) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.Transparent
+                spotColor = if (isOwned) (if (isDark) Color(0xFF00C853).copy(alpha = 0.35f) else Color(0xFF00A35B).copy(alpha = 0.25f))
+                    else if (isAffordableOrActive && !isArchive) (if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color(0xFF64748B).copy(alpha = 0.25f))
+                    else Color.Transparent
             )
-            .clip(ticketShape)
-            .background(backgroundColor)
+            .background(backgroundBrush)
             .border(
-                width = if (isAffordableOrActive && !isArchive) 1.5.dp else 1.dp,
-                color = borderColor,
+                width = if (isOwned && !isArchive) 1.8.dp else if (isAffordableOrActive && !isArchive) 1.4.dp else 1.dp,
+                brush = borderBrush,
                 shape = ticketShape
             )
+            .drawWithContent {
+                drawContent()
+                if (shouldShine) {
+                    val width = size.width
+                    val height = size.height
+                    val sheenX = width * sheenProgress
+                    val sheenBrush = Brush.linearGradient(
+                        colors = if (isDark) listOf(
+                            Color.Transparent,
+                            Color(0x0600E5FF),
+                            Color(0x1CE0E7FF),
+                            Color(0x08A78BFA),
+                            Color.Transparent
+                        ) else listOf(
+                            Color.Transparent,
+                            Color(0x25FFFFFF),
+                            Color(0x80FFFFFF),
+                            Color(0xB5FFFFFF),
+                            Color(0x80FFFFFF),
+                            Color(0x25FFFFFF),
+                            Color.Transparent
+                        ),
+                        start = Offset(sheenX - width * 0.35f, 0f),
+                        end = Offset(sheenX + width * 0.35f, height)
+                    )
+                    drawRect(brush = sheenBrush)
+                }
+            }
             .clickable(enabled = (isAffordableOrActive && !isArchive), onClick = onClick)
     ) {
-        // Przerywana linia zagięcia
         Canvas(modifier = Modifier.fillMaxSize()) {
             val splitX = size.width * splitRatio
-
             drawLine(
-                color = textLightColor.copy(alpha = 0.3f),
+                color = textLightColor.copy(alpha = 0.25f),
                 start = Offset(splitX, 16.dp.toPx()),
                 end = Offset(splitX, size.height - 16.dp.toPx()),
-                pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 15f), 0f),
-                strokeWidth = 3f,
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(16f, 14f), 0f),
+                strokeWidth = 2.5f,
                 cap = StrokeCap.Round
             )
         }
 
         Row(modifier = Modifier.fillMaxSize()) {
-            // Lewa sekcja (Informacje)
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
                     .fillMaxWidth(splitRatio)
                     .padding(start = 18.dp, end = 10.dp, top = 14.dp, bottom = 10.dp)
             ) {
-                // Partner (Ikonka + nazwa) na samej górze
                 Row(
                     modifier = Modifier.align(Alignment.TopStart),
                     verticalAlignment = Alignment.CenterVertically,
@@ -234,6 +367,7 @@ fun CouponCard(
                             .clip(CircleShape)
                             .background(
                                 if (isArchive) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                else if (isOwned) (if (isDark) Color(0xFF00C853).copy(alpha = 0.20f) else Color(0xFF00A35B).copy(alpha = 0.15f))
                                 else if (isAffordableOrActive) MaterialTheme.colorScheme.primaryContainer
                                 else MaterialTheme.colorScheme.surfaceVariant
                             ),
@@ -242,7 +376,10 @@ fun CouponCard(
                         Icon(
                             imageVector = icon,
                             contentDescription = null,
-                            tint = if (isArchive) textLightColor else if (isAffordableOrActive) MaterialTheme.colorScheme.primary else textLightColor,
+                            tint = if (isArchive) textLightColor
+                                else if (isOwned) (if (isDark) Color(0xFF00C853) else Color(0xFF00A35B))
+                                else if (isAffordableOrActive) MaterialTheme.colorScheme.primary
+                                else textLightColor,
                             modifier = Modifier.size(15.dp)
                         )
                     }
@@ -254,7 +391,6 @@ fun CouponCard(
                     )
                 }
 
-                // Główny tekst (Tytuł i podtytuł) na środku biletu
                 Column(
                     modifier = Modifier.align(Alignment.CenterStart),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
@@ -279,7 +415,6 @@ fun CouponCard(
                 }
             }
 
-            // Prawa sekcja (Wartość / Akcja / Kasownik / Kosz w archiwum)
             Column(
                 modifier = Modifier
                     .fillMaxHeight()
@@ -323,7 +458,9 @@ fun CouponCard(
                         text = mainValue,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Black,
-                        color = if (isAffordableOrActive) MaterialTheme.colorScheme.primary else textColor,
+                        color = if (isOwned) (if (isDark) Color(0xFF00C853) else Color(0xFF00A35B))
+                            else if (isAffordableOrActive) MaterialTheme.colorScheme.primary
+                            else textColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -331,7 +468,9 @@ fun CouponCard(
                         Spacer(modifier = Modifier.height(4.dp))
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = if (isAffordableOrActive) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
+                            color = if (isOwned) (if (isDark) Color(0xFF00C853).copy(alpha = 0.20f) else Color(0xFF00A35B).copy(alpha = 0.15f))
+                                else if (isAffordableOrActive) MaterialTheme.colorScheme.primaryContainer
+                                else Color.Transparent
                         ) {
                             Text(
                                 text = valueLabel,
@@ -340,7 +479,9 @@ fun CouponCard(
                                     letterSpacing = 0.2.sp
                                 ),
                                 fontWeight = FontWeight.ExtraBold,
-                                color = if (isAffordableOrActive) MaterialTheme.colorScheme.primary else textLightColor,
+                                color = if (isOwned) (if (isDark) Color(0xFF00C853) else Color(0xFF00A35B))
+                                    else if (isAffordableOrActive) MaterialTheme.colorScheme.primary
+                                    else textLightColor,
                                 maxLines = 1,
                                 softWrap = false,
                                 overflow = TextOverflow.Ellipsis,
@@ -631,7 +772,6 @@ fun VehicleScannerFullscreenDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -672,7 +812,6 @@ fun VehicleScannerFullscreenDialog(
                     }
                 }
 
-                // Countdown timer pill (30s)
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = if (secondsLeft <= 8) Color(0xFFFF5252).copy(alpha = 0.15f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
@@ -701,7 +840,6 @@ fun VehicleScannerFullscreenDialog(
                     }
                 }
 
-                // Viewfinder Box with actual CameraPreview
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -721,7 +859,6 @@ fun VehicleScannerFullscreenDialog(
                         modifier = Modifier.fillMaxSize()
                     )
 
-                    // Scanning laser
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(0.85f)
@@ -741,7 +878,6 @@ fun VehicleScannerFullscreenDialog(
                         )
                     }
 
-                    // Vehicle sticker badge
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
@@ -1038,7 +1174,8 @@ fun RewardsScreen(
         }
     }
 
-    val primaryColor = MaterialTheme.colorScheme.primary
+    val isDark = isAppInDarkTheme()
+    val primaryColor = if (isDark) Color(0xFF00C853) else MaterialTheme.colorScheme.primary
 
     val pagerState = rememberPagerState(initialPage = activeSubTab) { 2 }
 
@@ -1238,7 +1375,6 @@ fun RewardsScreen(
                             }
                         }
                     } else {
-                        // Moje Kody / My Coupons
                         Column(modifier = Modifier.fillMaxSize()) {
                             Row(
                                 modifier = Modifier
@@ -1256,6 +1392,7 @@ fun RewardsScreen(
                                         modifier = Modifier.padding(4.dp),
                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
+                                        val greenPrimary = if (isDark) Color(0xFF00C853) else Color(0xFF00A35B)
                                         listOf(
                                             CouponTabFilter.ACTIVE to "${strings.tabActiveCoupons} (${activeCoupons.size})",
                                             CouponTabFilter.ARCHIVE to "${strings.tabArchiveCoupons} (${archiveCoupons.size})"
@@ -1264,7 +1401,7 @@ fun RewardsScreen(
                                             Box(
                                                 modifier = Modifier
                                                     .clip(RoundedCornerShape(20.dp))
-                                                    .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                                                    .background(if (isSelected) greenPrimary else Color.Transparent)
                                                     .clickable { couponFilter = filter }
                                                     .padding(horizontal = 20.dp, vertical = 8.dp),
                                                 contentAlignment = Alignment.Center
@@ -1353,6 +1490,7 @@ fun RewardsScreen(
                                                     isAffordableOrActive = true,
                                                     icon = cardIcon,
                                                     isArchive = false,
+                                                    isOwned = true,
                                                     onClick = {
                                                         when {
                                                             !isTimedTicket -> {
@@ -1375,7 +1513,6 @@ fun RewardsScreen(
                                         }
                                     }
                                 } else {
-                                    // Archiwum
                                     if (archiveCoupons.isEmpty()) {
                                         Box(modifier = Modifier.fillMaxSize().padding(48.dp), contentAlignment = Alignment.Center) {
                                             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -1429,6 +1566,7 @@ fun RewardsScreen(
                                                         isAffordableOrActive = false,
                                                         icon = item.reward.icon,
                                                         isArchive = true,
+                                                        isOwned = true,
                                                         onDelete = { onDeleteCoupon(item) },
                                                         onClick = {}
                                                     )
@@ -1444,78 +1582,66 @@ fun RewardsScreen(
                 }
             }
 
-            if (confirmActivationTicket != null) {
-                val ticket = confirmActivationTicket!!
+            confirmActivationTicket?.let { ticket ->
                 ConfirmTicketActivationDialog(
                     ticket = ticket,
                     onConfirm = {
-                        val t = confirmActivationTicket!!
                         confirmActivationTicket = null
-                        onSetCouponReadyToScan(t)
-                        promptValidationTicket = t.copy(isReadyToScan = true)
+                        onSetCouponReadyToScan(ticket)
+                        promptValidationTicket = ticket.copy(isReadyToScan = true)
                     },
                     onDismiss = { confirmActivationTicket = null }
                 )
             }
 
-            if (promptValidationTicket != null) {
-                val ticket = promptValidationTicket!!
+            promptValidationTicket?.let { ticket ->
                 VehicleValidationPromptDialog(
                     ticket = ticket,
                     onValidateTicket = {
-                        val t = promptValidationTicket!!
                         promptValidationTicket = null
-                        scannerVehicleTicket = t
+                        scannerVehicleTicket = ticket
                     },
                     onDismiss = { promptValidationTicket = null }
                 )
             }
 
-            if (scannerVehicleTicket != null) {
-                val ticket = scannerVehicleTicket!!
+            scannerVehicleTicket?.let { ticket ->
                 VehicleScannerFullscreenDialog(
                     ticket = ticket,
                     onCodeScanned = {
-                        val t = scannerVehicleTicket!!
                         scannerVehicleTicket = null
-                        successValidationTicket = t
+                        successValidationTicket = ticket
                     },
                     onTimeout = {
-                        val t = scannerVehicleTicket!!
                         scannerVehicleTicket = null
-                        timeoutValidationTicket = t
+                        timeoutValidationTicket = ticket
                     },
                     onDismiss = { scannerVehicleTicket = null }
                 )
             }
 
-            if (timeoutValidationTicket != null) {
-                val ticket = timeoutValidationTicket!!
+            timeoutValidationTicket?.let { ticket ->
                 ValidationTimeoutDialog(
                     onRetry = {
-                        val t = timeoutValidationTicket!!
                         timeoutValidationTicket = null
-                        scannerVehicleTicket = t
+                        scannerVehicleTicket = ticket
                     },
                     onDismiss = { timeoutValidationTicket = null }
                 )
             }
 
-            if (successValidationTicket != null) {
-                val ticket = successValidationTicket!!
+            successValidationTicket?.let { ticket ->
                 TicketValidationSuccessDialog(
                     ticket = ticket,
                     onDismiss = {
-                        val t = successValidationTicket!!
                         successValidationTicket = null
-                        onActivateReward(t)
+                        onActivateReward(ticket)
                         SnackbarHelper.show(strings.ticketValidatedSuccess, icon = Icons.Default.CheckCircle)
                     }
                 )
             }
 
-            if (viewingCouponCodeModal != null) {
-                val coupon = viewingCouponCodeModal!!
+            viewingCouponCodeModal?.let { coupon ->
                 Dialog(
                     onDismissRequest = { viewingCouponCodeModal = null },
                     properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -1793,7 +1919,7 @@ fun SleekRewardFilterChip(text: String, isSelected: Boolean, onClick: () -> Unit
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
         )
     }
 }

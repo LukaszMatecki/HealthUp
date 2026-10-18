@@ -201,6 +201,15 @@ class IosMockDatabaseService : VoltUpDatabaseService {
         if (idx != -1) devices[idx] = device else devices.add(device)
         return true
     }
+
+    override fun clearCache() {
+        mockUser = null
+        sessions.clear()
+        achievements.clear()
+        challenges.clear()
+        coupons.clear()
+        settings = null
+    }
 }
 
 private val iosAuthService by lazy { IosMockAuthService() }

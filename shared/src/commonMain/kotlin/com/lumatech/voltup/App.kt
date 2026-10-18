@@ -10,6 +10,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -202,9 +203,35 @@ fun App() {
         }
     }
 
+    fun resetAppStateToDefaults() {
+        dbService.clearCache()
+        userStats = UserStats(
+            points = 0,
+            rankingPoints = 0,
+            totalEnergyWh = 0.0,
+            weeklyEnergyWh = 0.0,
+            co2SavedKg = 0.0,
+            userName = "Użytkownik VoltUp",
+            avatarId = 1,
+            level = 0,
+            levelTitle = "Nowicjusz VoltUp",
+            streakDays = 1,
+            recentWorkouts = emptyList(),
+            accountCreatedAt = 0L
+        )
+        achievements = DefaultAchievements.initialAchievements.map {
+            it.copy(level = 0, currentProgress = 0.0)
+        }
+        challenges = MockData.sampleChallenges.map {
+            it.copy(currentValue = 0.0, currentProgress = 0.0f, isCompleted = false, isClaimed = false)
+        }
+        redeemedRewards = emptyList()
+    }
+
     LaunchedEffect(currentAuthUser) {
         val user = currentAuthUser
         if (user == null) {
+            resetAppStateToDefaults()
             isAutoLoggingIn = false
             if (currentScreen != Screen.Login && currentScreen != Screen.Register && currentScreen != Screen.ForgotPassword && currentScreen != Screen.Onboarding) {
                 currentScreen = Screen.Login
@@ -214,7 +241,9 @@ fun App() {
 
     LaunchedEffect(currentAuthUser?.userId) {
         val u = currentAuthUser
-        if (u != null) {
+        if (u == null) {
+            resetAppStateToDefaults()
+        } else {
             val freshUser = dbService.getUser(u.userId) ?: u
             val workouts = dbService.getWorkoutSessions(u.userId)
             val loadedSettings = dbService.getUserSettings(u.userId)
@@ -263,30 +292,38 @@ fun App() {
                 )
             }
 
-            if (loadedAchievements.isNotEmpty()) {
-                achievements = achievements.map { ach ->
-                    val match = loadedAchievements.firstOrNull { it.achievementId == ach.id }
-                    if (match != null) {
-                        ach.copy(
-                            level = match.currentLevel,
-                            currentProgress = match.currentProgress
-                        )
-                    } else ach
+            achievements = DefaultAchievements.initialAchievements.map { ach ->
+                val match = loadedAchievements.firstOrNull { it.achievementId == ach.id }
+                if (match != null) {
+                    ach.copy(
+                        level = match.currentLevel,
+                        currentProgress = match.currentProgress
+                    )
+                } else {
+                    ach.copy(level = 0, currentProgress = 0.0)
                 }
             }
 
-            if (loadedChallenges.isNotEmpty()) {
-                challenges = challenges.map { ch ->
-                    val match = loadedChallenges.firstOrNull { it.challengeId == ch.id }
-                    if (match != null) {
-                        val currVal = if (match.currentValue > 0) match.currentValue else (match.currentProgress * ch.targetValue).toDouble()
-                        ch.copy(
-                            currentValue = currVal,
-                            currentProgress = match.currentProgress,
-                            isCompleted = match.isCompleted,
-                            isClaimed = match.isClaimed
-                        )
-                    } else ch
+            challenges = MockData.sampleChallenges.map { ch ->
+                val cleanId = ch.id.removePrefix("${u.userId}_")
+                val match = loadedChallenges.firstOrNull {
+                    it.challengeId == ch.id || it.challengeId == cleanId || it.challengeId == "${u.userId}_${ch.id}"
+                }
+                if (match != null) {
+                    val currVal = if (match.currentValue > 0) match.currentValue else (match.currentProgress * ch.targetValue)
+                    ch.copy(
+                        currentValue = currVal,
+                        currentProgress = match.currentProgress,
+                        isCompleted = match.isCompleted,
+                        isClaimed = match.isClaimed
+                    )
+                } else {
+                    ch.copy(
+                        currentValue = 0.0,
+                        currentProgress = 0.0f,
+                        isCompleted = false,
+                        isClaimed = false
+                    )
                 }
             }
 
@@ -317,6 +354,8 @@ fun App() {
                             validityMinutes = c.validityMinutes
                         )
                     }
+            } else {
+                redeemedRewards = emptyList()
             }
         }
     }
@@ -494,11 +533,13 @@ fun App() {
                                         VoltUpStorage.setBoolean(VoltUpPreferenceKeys.KEY_REMEMBER_ME, false)
                                         VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_PASSWORD, "")
                                         authService.signOut()
+                                        resetAppStateToDefaults()
                                         currentScreen = Screen.Login
                                         SnackbarHelper.show("Wylogowano z konta.")
                                     }
                                 },
                                 onAccountDeleted = {
+                                    resetAppStateToDefaults()
                                     currentScreen = Screen.Login
                                     SnackbarHelper.show("Twoje konto zostało usunięte.")
                                 }
@@ -524,7 +565,7 @@ fun App() {
 
                         is Screen.WorkoutHistory -> {
                             WorkoutHistoryScreen(
-                                workouts = userStats.recentWorkouts.ifEmpty { MockData.sampleRecentWorkouts },
+                                workouts = userStats.recentWorkouts,
                                 onNavigateBack = { currentScreen = Screen.Main }
                             )
                         }
@@ -582,7 +623,6 @@ fun App() {
 
                                     currentAuthUser?.let { u ->
                                         coroutineScope.launch {
-                                            // Tabela 2: workout_sessions
                                             dbService.saveWorkoutSession(
                                                 WorkoutSessionDto(
                                                     sessionId = workoutRecord.id,
@@ -599,7 +639,6 @@ fun App() {
                                                 )
                                             )
 
-                                            // Tabela 1: users (aktualizacja punktów, energii, CO2, poziomu)
                                             dbService.updateUserStats(
                                                 userId = u.userId,
                                                 pointsDelta = earnedPoints + evalResult.bonusPointsEarned,
@@ -609,20 +648,18 @@ fun App() {
                                                 rankingPointsDelta = 0
                                             )
 
-                                            // Tabela 3: user_achievements
                                             achievements.forEach { ach ->
                                                 dbService.saveAchievement(
                                                     UserAchievementDto(
                                                         userId = u.userId,
                                                         achievementId = ach.id,
                                                         currentLevel = ach.level,
-                                                        currentProgress = ach.currentProgress.toDouble(),
+                                                        currentProgress = ach.currentProgress,
                                                         updatedAt = 0L
                                                     )
                                                 )
                                             }
 
-                                            // Tabela 4: user_challenges
                                             challenges.forEach { ch ->
                                                 dbService.saveChallenge(
                                                     UserChallengeDto(
@@ -925,6 +962,7 @@ fun App() {
                                                         VoltUpStorage.setBoolean(VoltUpPreferenceKeys.KEY_REMEMBER_ME, false)
                                                         VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_PASSWORD, "")
                                                         authService.signOut()
+                                                        resetAppStateToDefaults()
                                                         currentScreen = Screen.Login
                                                         SnackbarHelper.show("Wylogowano z konta.")
                                                     }
@@ -946,7 +984,11 @@ fun App() {
                     modifier = Modifier
                         .fillMaxSize()
                         .background(Color.Black.copy(alpha = 0.65f))
-                        .clickable(enabled = false) {},
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = {}
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Surface(
@@ -990,7 +1032,12 @@ fun App() {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background),
+                        .background(MaterialTheme.colorScheme.background)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = {}
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(

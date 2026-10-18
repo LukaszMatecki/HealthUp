@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.DirectionsBike
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -88,7 +89,6 @@ fun ManageAccountScreen(
             contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // Profil Użytkownika - Hero Card
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -172,7 +172,6 @@ fun ManageAccountScreen(
                 }
             }
 
-            // Sekcja Danych Konta
             item {
                 Text(
                     text = if (isEnglish) "ACCOUNT INFO" else "DANE KONTA",
@@ -238,7 +237,6 @@ fun ManageAccountScreen(
                 }
             }
 
-            // Sekcja Akcji i Bezpieczeństwa
             item {
                 Text(
                     text = if (isEnglish) "SECURITY & ACCOUNT" else "BEZPIECZEŃSTWO I KONTO",
@@ -273,7 +271,7 @@ fun ManageAccountScreen(
                         )
 
                         AccountActionRow(
-                            icon = Icons.Default.ExitToApp,
+                            icon = Icons.AutoMirrored.Filled.ExitToApp,
                             title = if (isEnglish) "Sign out" else "Wyloguj się",
                             subtitle = if (isEnglish) "End current session on this device" else "Zakończ bieżącą sesję na urządzeniu",
                             iconTint = Color(0xFFFFA000),
@@ -299,7 +297,6 @@ fun ManageAccountScreen(
         }
     }
 
-    // Dialog 1: Zmiana hasła (czyste białe tło, RoundedCornerShape(24.dp), ikona w okręgu, styl WorkoutScreen)
     if (showChangePasswordDialog) {
         Dialog(
             onDismissRequest = { if (!isChangingPassword) showChangePasswordDialog = false },
@@ -486,7 +483,6 @@ fun ManageAccountScreen(
         }
     }
 
-    // Dialog 2: Wylogowanie (styl WorkoutScreen)
     if (showSignOutDialog) {
         val warnColor = MaterialTheme.colorScheme.error
         Dialog(
@@ -513,7 +509,7 @@ fun ManageAccountScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.ExitToApp,
+                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
                             contentDescription = null,
                             tint = warnColor,
                             modifier = Modifier.size(40.dp)
@@ -570,7 +566,6 @@ fun ManageAccountScreen(
         }
     }
 
-    // Dialog 3: Usunięcie konta (styl WorkoutScreen)
     if (showDeleteAccountDialog) {
         val deleteRedColor = MaterialTheme.colorScheme.error
         Dialog(

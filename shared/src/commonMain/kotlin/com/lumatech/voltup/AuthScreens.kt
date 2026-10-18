@@ -37,6 +37,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.launch
 
+private val EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$".toRegex()
+
 @Composable
 fun LoginScreen(
     authService: VoltUpAuthService,
@@ -78,7 +80,6 @@ fun LoginScreen(
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Logo i branding
             Surface(
                 modifier = Modifier.size(72.dp),
                 shape = CircleShape,
@@ -126,7 +127,6 @@ fun LoginScreen(
                 modifier = Modifier.padding(top = 4.dp, bottom = 24.dp)
             )
 
-            // Karta formularza logowania
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(24.dp),
@@ -145,7 +145,6 @@ fun LoginScreen(
                         letterSpacing = 1.sp
                     )
 
-                    // Pole E-mail
                     OutlinedTextField(
                         value = email,
                         onValueChange = {
@@ -177,7 +176,6 @@ fun LoginScreen(
                         )
                     )
 
-                    // Pole Hasło
                     OutlinedTextField(
                         value = password,
                         onValueChange = {
@@ -221,7 +219,6 @@ fun LoginScreen(
                         )
                     )
 
-                    // Zapamiętaj mnie oraz Nie pamiętasz hasła
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -266,7 +263,6 @@ fun LoginScreen(
                         )
                     }
 
-                    // Komunikat błędu
                     AnimatedVisibility(
                         visible = errorMessage != null,
                         enter = fadeIn() + expandVertically(),
@@ -301,24 +297,33 @@ fun LoginScreen(
                         }
                     }
 
-                    // Przycisk Zaloguj się
                     Button(
                         onClick = {
                             focusManager.clearFocus()
-                            if (email.isBlank() || password.isBlank()) {
+                            val cleanEmail = email.trim()
+                            val cleanPassword = password.trim()
+                            if (cleanEmail.isBlank() || cleanPassword.isBlank()) {
                                 errorMessage = "Podaj adres e-mail oraz hasło."
+                                return@Button
+                            }
+                            if (!EMAIL_REGEX.matches(cleanEmail)) {
+                                errorMessage = "Podaj poprawny format adresu e-mail."
+                                return@Button
+                            }
+                            if (cleanPassword.length < 6) {
+                                errorMessage = "Hasło musi mieć co najmniej 6 znaków."
                                 return@Button
                             }
                             isLoading = true
                             errorMessage = null
                             coroutineScope.launch {
-                                val result = authService.signIn(email, password)
+                                val result = authService.signIn(cleanEmail, cleanPassword)
                                 isLoading = false
                                 if (result.isSuccess && result.user != null) {
-                                    VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_EMAIL, email.trim())
+                                    VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_EMAIL, cleanEmail)
                                     VoltUpStorage.setBoolean(VoltUpPreferenceKeys.KEY_REMEMBER_ME, rememberMe)
                                     if (rememberMe) {
-                                        VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_PASSWORD, password)
+                                        VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_PASSWORD, cleanPassword)
                                     } else {
                                         VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_PASSWORD, "")
                                     }
@@ -357,7 +362,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Przejście do rejestracji
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
@@ -426,7 +430,6 @@ fun RegisterScreen(
                 .padding(horizontal = 24.dp, vertical = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Przycisk powrotu
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -475,7 +478,6 @@ fun RegisterScreen(
                         letterSpacing = 1.sp
                     )
 
-                    // Pole Imię / Nazwa użytkownika
                     OutlinedTextField(
                         value = userName,
                         onValueChange = {
@@ -507,7 +509,6 @@ fun RegisterScreen(
                         )
                     )
 
-                    // Pole E-mail
                     OutlinedTextField(
                         value = email,
                         onValueChange = {
@@ -539,7 +540,6 @@ fun RegisterScreen(
                         )
                     )
 
-                    // Wybór ikony profilu
                     Text(
                         text = "WYBIERZ AWATAR PROFILU",
                         style = MaterialTheme.typography.labelSmall,
@@ -572,7 +572,6 @@ fun RegisterScreen(
                         }
                     }
 
-                    // Pole Hasło
                     OutlinedTextField(
                         value = password,
                         onValueChange = {
@@ -613,7 +612,6 @@ fun RegisterScreen(
                         )
                     )
 
-                    // Pole Powtórz Hasło
                     OutlinedTextField(
                         value = confirmPassword,
                         onValueChange = {
@@ -645,7 +643,6 @@ fun RegisterScreen(
                         )
                     )
 
-                    // Komunikat błędu
                     AnimatedVisibility(
                         visible = errorMessage != null,
                         enter = fadeIn() + expandVertically(),
@@ -680,23 +677,31 @@ fun RegisterScreen(
                         }
                     }
 
-                    // Przycisk Zarejestruj się
                     Button(
                         onClick = {
                             focusManager.clearFocus()
-                            if (userName.isBlank()) {
+                            val cleanName = userName.trim()
+                            val cleanEmail = email.trim()
+                            val cleanPass = password.trim()
+                            val cleanConfirm = confirmPassword.trim()
+
+                            if (cleanName.isBlank()) {
                                 errorMessage = "Wpisz swoje imię lub pseudonim."
                                 return@Button
                             }
-                            if (email.isBlank()) {
+                            if (cleanName.length > 30) {
+                                errorMessage = "Imię lub pseudonim może mieć maksymalnie 30 znaków."
+                                return@Button
+                            }
+                            if (cleanEmail.isBlank() || !EMAIL_REGEX.matches(cleanEmail)) {
                                 errorMessage = "Wpisz poprawny adres e-mail."
                                 return@Button
                             }
-                            if (password.length < 6) {
+                            if (cleanPass.length < 6) {
                                 errorMessage = "Hasło musi mieć co najmniej 6 znaków."
                                 return@Button
                             }
-                            if (password != confirmPassword) {
+                            if (cleanPass != cleanConfirm) {
                                 errorMessage = "Hasła nie są identyczne."
                                 return@Button
                             }
@@ -705,16 +710,16 @@ fun RegisterScreen(
                             errorMessage = null
                             coroutineScope.launch {
                                 val result = authService.signUp(
-                                    email = email,
-                                    password = password,
-                                    userName = userName,
+                                    email = cleanEmail,
+                                    password = cleanPass,
+                                    userName = cleanName,
                                     avatarId = selectedAvatarId
                                 )
                                 isLoading = false
                                 if (result.isSuccess && result.user != null) {
-                                    VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_EMAIL, email.trim())
+                                    VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_EMAIL, cleanEmail)
                                     VoltUpStorage.setBoolean(VoltUpPreferenceKeys.KEY_REMEMBER_ME, true)
-                                    VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_PASSWORD, password)
+                                    VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_PASSWORD, cleanPass)
                                     onRegisterSuccess(result.user)
                                 } else {
                                     errorMessage = result.errorMessage ?: "Błąd rejestracji. Spróbuj ponownie."
@@ -977,14 +982,15 @@ fun ForgotPasswordScreen(
                         Button(
                             onClick = {
                                 focusManager.clearFocus()
-                                if (email.isBlank()) {
-                                    errorMessage = "Wprowadź adres e-mail."
+                                val cleanEmail = email.trim()
+                                if (cleanEmail.isBlank() || !EMAIL_REGEX.matches(cleanEmail)) {
+                                    errorMessage = "Wprowadź poprawny adres e-mail."
                                     return@Button
                                 }
                                 isLoading = true
                                 errorMessage = null
                                 coroutineScope.launch {
-                                    val result = authService.sendPasswordReset(email)
+                                    val result = authService.sendPasswordReset(cleanEmail)
                                     isLoading = false
                                     if (result.isSuccess) {
                                         isSubmittedSuccess = true

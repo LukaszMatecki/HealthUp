@@ -150,7 +150,6 @@ fun ProfileScreen(
                     ) {
                         StreakPill(streakDays = stats.streakDays)
 
-                        // Odsunięto ikonę edycji bardziej w lewo (spacedBy z 12.dp na 20.dp)
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(22.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -693,9 +692,9 @@ fun ProfileScreen(
         }
     }
 
-    if (selectedWorkoutDetail != null) {
+    selectedWorkoutDetail?.let { detail ->
         WorkoutDetailsDialog(
-            workout = selectedWorkoutDetail!!,
+            workout = detail,
             onDismiss = { selectedWorkoutDetail = null }
         )
     }
@@ -786,7 +785,6 @@ fun WorkoutDetailsDialog(
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
 
-                // Detail Rows
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     WorkoutDetailRow(label = strings.workoutDetailsDevice, value = workout.stationName)
                     WorkoutDetailRow(label = strings.workoutDetailsPlace, value = workout.stationLocation)
@@ -838,7 +836,6 @@ private fun WorkoutDetailRow(
     }
 }
 
-// Uproszczony, czystszy UI wyzwania z rozwijaniem szczegółów
 @Composable
 fun ModernChallengeCard(
     challenge: Challenge,
@@ -887,7 +884,6 @@ fun ModernChallengeCard(
                 .animateContentSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Tytuł, ikona rozwijania i nagrody
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -931,12 +927,10 @@ fun ModernChallengeCard(
                     }
                 }
 
-                // Nagrody skrótowe
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    // Ranking Points pill
                     Surface(
                         shape = CircleShape,
                         color = primaryColor.copy(alpha = 0.12f)
@@ -961,7 +955,6 @@ fun ModernChallengeCard(
                         }
                     }
 
-                    // VoltPoints pill (zunifikowane gwiazdki w odcieniu bursztynowym/złotym)
                     Surface(
                         shape = CircleShape,
                         color = warningYellow.copy(alpha = 0.15f)
@@ -988,7 +981,6 @@ fun ModernChallengeCard(
                 }
             }
 
-            // Krótki opis
             Text(
                 text = localizedDescription,
                 style = MaterialTheme.typography.bodyMedium,
@@ -996,7 +988,6 @@ fun ModernChallengeCard(
                 lineHeight = 18.sp
             )
 
-            // Sekcja rozwijana (szczegóły i dokładne liczby)
             if (isExpanded) {
                 Surface(
                     shape = RoundedCornerShape(14.dp),
@@ -1091,7 +1082,6 @@ fun ModernChallengeCard(
                 }
             }
 
-            // Przycisk lub pasek postępu
             if (challenge.isCompleted && !challenge.isClaimed) {
                 Button(
                     onClick = { if (!isClaiming) isClaiming = true },

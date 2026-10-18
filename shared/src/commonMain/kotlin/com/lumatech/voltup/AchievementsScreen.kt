@@ -13,7 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.HelpOutline
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material3.*
@@ -239,7 +239,7 @@ private fun AchievementCard(badge: BadgeModel) {
     val iconBgColor = tierColor.container
     val borderColor = tierColor.border
     val textColor = if (isLocked) tierColor.text else MaterialTheme.colorScheme.onSurface
-    val iconVector = if (isLocked) Icons.Default.HelpOutline else badge.icon
+    val iconVector = if (isLocked) Icons.AutoMirrored.Filled.HelpOutline else badge.icon
 
     Surface(
         modifier = Modifier.fillMaxWidth(),

@@ -39,11 +39,13 @@ val LightError = Color(0xFFDC2626)
 val LightErrorContainer = Color(0xFFFEE2E2)
 val LightOnErrorContainer = Color(0xFF991B1B)
 
+val VoltUpPrimaryGreen = Color(0xFF00C853)
+
 private val VoltUpDarkColorScheme = darkColorScheme(
-    primary = ElectricVoltGreen,
-    onPrimary = Color.Black,
+    primary = VoltUpPrimaryGreen,
+    onPrimary = Color.White,
     primaryContainer = DarkSurfaceVariant,
-    onPrimaryContainer = ElectricVoltGreen,
+    onPrimaryContainer = VoltUpPrimaryGreen,
     secondary = Color(0xFF38BDF8),
     onSecondary = Color.Black,
     background = DarkBackground,

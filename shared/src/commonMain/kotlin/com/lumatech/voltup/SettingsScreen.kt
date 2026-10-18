@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -121,7 +122,6 @@ fun SettingsScreen(
                             .padding(8.dp)
                             .animateContentSize()
                     ) {
-                        // Dropdown wyboru motywu
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -224,7 +224,6 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                         )
 
-                        // Dropdown wyboru języka
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -436,7 +435,7 @@ fun SettingsScreen(
                         )
 
                         SettingActionRow(
-                            icon = Icons.Default.HelpOutline,
+                            icon = Icons.AutoMirrored.Filled.HelpOutline,
                             title = strings.helpAndGuideTitle,
                             subtitle = strings.helpAndGuideSubtitle,
                             titleColor = MaterialTheme.colorScheme.onSurface,

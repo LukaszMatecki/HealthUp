@@ -82,19 +82,40 @@ actual fun GoogleMapView(
         }
     }
 
+    fun isLocationGranted(): Boolean {
+        val fine = androidx.core.content.ContextCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.ACCESS_FINE_LOCATION
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        val coarse = androidx.core.content.ContextCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        return fine || coarse
+    }
+
     var hasLocationPermission by remember {
-        mutableStateOf(
-            androidx.core.content.ContextCompat.checkSelfPermission(
-                context,
-                android.Manifest.permission.ACCESS_FINE_LOCATION
-            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-        )
+        mutableStateOf(isLocationGranted())
     }
 
     val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
     ) { isGranted ->
-        hasLocationPermission = isGranted
+        hasLocationPermission = isGranted || isLocationGranted()
+    }
+
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                val granted = isLocationGranted()
+                hasLocationPermission = granted
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -109,12 +130,12 @@ actual fun GoogleMapView(
     var userLocation by remember { mutableStateOf<android.location.Location?>(null) }
 
     fun refreshLocation() {
-        if (hasLocationPermission) {
+        if (isLocationGranted()) {
             try {
                 val gpsLoc = locationManager?.getLastKnownLocation(android.location.LocationManager.GPS_PROVIDER)
                 val netLoc = locationManager?.getLastKnownLocation(android.location.LocationManager.NETWORK_PROVIDER)
                 userLocation = gpsLoc ?: netLoc
-            } catch (_: SecurityException) {}
+            } catch (_: SecurityException) {} catch (_: Exception) {}
         }
     }
 
@@ -187,9 +208,10 @@ actual fun GoogleMapView(
             val normalStationIcon = remember(context) { createStationMarkerBitmap(context, false) }
             val selectedStationIcon = remember(context) { createStationMarkerBitmap(context, true) }
 
-            val mapProperties = remember(isDark, hasLocationPermission) {
+            val actualGranted = isLocationGranted()
+            val mapProperties = remember(isDark, hasLocationPermission, actualGranted) {
                 MapProperties(
-                    isMyLocationEnabled = hasLocationPermission,
+                    isMyLocationEnabled = hasLocationPermission && actualGranted,
                     mapStyleOptions = if (isDark) MapStyleOptions(DARK_MAP_STYLE_JSON) else null
                 )
             }
@@ -237,7 +259,6 @@ actual fun GoogleMapView(
             )
         }
 
-        // Przyciski kontrolne mapy (GPS + Reset na Centrum Łodzi)
         Column(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -245,12 +266,15 @@ actual fun GoogleMapView(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalAlignment = Alignment.End
         ) {
-            if (hasLocationPermission) {
-                Surface(
-                    modifier = Modifier
-                        .size(38.dp)
-                        .clip(CircleShape)
-                        .clickable {
+            Surface(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(CircleShape)
+                    .clickable {
+                        if (!isLocationGranted()) {
+                            permissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
+                        } else {
+                            hasLocationPermission = true
                             refreshLocation()
                             centerUserTrigger++
                             if (hasApiKey) {
@@ -267,24 +291,23 @@ actual fun GoogleMapView(
                                     } catch (_: Exception) {}
                                 }
                             }
-                        },
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-                    shape = CircleShape,
-                    shadowElevation = 3.dp,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        androidx.compose.material3.Icon(
-                            imageVector = Icons.Default.MyLocation,
-                            contentDescription = "Wyśrodkuj na mojej lokalizacji",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(19.dp)
-                        )
-                    }
+                        }
+                    },
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+                shape = CircleShape,
+                shadowElevation = 3.dp,
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    androidx.compose.material3.Icon(
+                        imageVector = Icons.Default.MyLocation,
+                        contentDescription = "Wyśrodkuj na mojej lokalizacji",
+                        tint = if (hasLocationPermission) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(19.dp)
+                    )
                 }
             }
 
-            // Przycisk wyśrodkowania na centrum Łodzi (reset widoku)
             Surface(
                 modifier = Modifier
                     .size(38.dp)
@@ -408,28 +431,24 @@ private fun InteractiveSchematicMap(
             val pX = panOffset.x
             val pY = panOffset.y
 
-            // Park na Zdrowiu
             drawRoundRect(
                 color = parkColor,
                 topLeft = Offset(size.width * 0.10f + pX, size.height * 0.22f + pY),
                 size = Size(size.width * 0.24f, size.height * 0.26f),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(16f, 16f)
             )
-            // Park Poniatowskiego - obejmuje stację PP-1
             drawRoundRect(
                 color = parkColor,
                 topLeft = Offset(size.width * 0.26f + pX, size.height * 0.40f + pY),
                 size = Size(size.width * 0.26f, size.height * 0.26f),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(16f, 16f)
             )
-            // Park Źródliska & Księży Młyn
             drawRoundRect(
                 color = parkColor,
                 topLeft = Offset(size.width * 0.62f + pX, size.height * 0.46f + pY),
                 size = Size(size.width * 0.24f, size.height * 0.24f),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(16f, 16f)
             )
-            // Park Matejki - stacja PM-1
             drawRoundRect(
                 color = parkColor,
                 topLeft = Offset(size.width * 0.70f + pX, size.height * 0.14f + pY),
@@ -467,7 +486,6 @@ private fun InteractiveSchematicMap(
             }
         }
 
-        // Pinezki stacji kinetycznych (zielone punkty)
         stations.forEach { station ->
             val isSelected = station.id == selectedStation?.id
             val posX = width * station.mapCoordinatesX + panXDp
@@ -489,7 +507,6 @@ private fun InteractiveSchematicMap(
                     )
                 }
 
-                // Zewnętrzny obrys transparentny w środku
                 Box(
                     modifier = Modifier
                         .size(if (isSelected) 24.dp else 20.dp)
@@ -500,7 +517,6 @@ private fun InteractiveSchematicMap(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Zielone kółko w środku, powiększone bliżej obrysu (pusto między obrysem a kółkiem)
                     Box(
                         modifier = Modifier
                             .size(if (isSelected) 15.dp else 12.dp)
@@ -511,7 +527,6 @@ private fun InteractiveSchematicMap(
             }
         }
 
-        // Pinezka użytkownika (niebieska)
         if (hasLocationPermission) {
             val userPosX = width * userNormX + panXDp
             val userPosY = height * userNormY + panYDp
@@ -589,7 +604,6 @@ private fun createStationMarkerBitmap(
         val canvas = android.graphics.Canvas(bitmap)
         val center = sizePx / 2f
 
-        // Zewnętrzny obrys kółka (transparentne w środku)
         val ringPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
             color = android.graphics.Color.parseColor("#00A35B")
             style = android.graphics.Paint.Style.STROKE
@@ -598,7 +612,6 @@ private fun createStationMarkerBitmap(
         val ringRadius = center - (2.5f * density)
         canvas.drawCircle(center, center, ringRadius, ringPaint)
 
-        // Zielone kółko w środku, powiększone bliżej obrysu
         val dotPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
             color = android.graphics.Color.parseColor("#00A35B")
             style = android.graphics.Paint.Style.FILL

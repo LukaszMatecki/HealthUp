@@ -118,18 +118,6 @@ fun StationsMapScreen(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     shape = RoundedCornerShape(24.dp)
                 )
-                // BLOKADA PRZECHWYTYWANIA SWIPE PRZEZ RODZICA (np. HorizontalPager)
-                .pointerInput(Unit) {
-                    awaitPointerEventScope {
-                        while (true) {
-                            // Dziecko (mapa) przetwarza zdarzenie pierwsze, następnie to my blokujemy przekazanie go dalej
-                            val event = awaitPointerEvent(PointerEventPass.Main)
-                            event.changes.forEach { change ->
-                                change.consume()
-                            }
-                        }
-                    }
-                }
         ) {
             GoogleMapView(
                 modifier = Modifier.fillMaxSize(),

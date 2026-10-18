@@ -45,7 +45,6 @@ object SnackbarHelper {
     private val _currentMessage = mutableStateOf<SnackbarMessage?>(null)
     val currentMessage: State<SnackbarMessage?> = _currentMessage
 
-    // Zachowanie kompatybilności wstecznej
     val message: State<SnackbarMessage?> = _currentMessage
 
     private var messageIdCounter = 0L
@@ -89,12 +88,10 @@ fun VoltUpSnackbarHost(
     LaunchedEffect(currentMsg?.id) {
         if (currentMsg == null) return@LaunchedEffect
 
-        // 1. Reset do stanu początkowego (ukryte koło u góry)
         expansion.snapTo(0f)
         offsetY.snapTo(-70f)
         alpha.snapTo(0f)
 
-        // 2. Faza wejścia: koło wyjeżdża z góry ekranu lekko w dół, opacity się zwiększa
         coroutineScope {
             launch {
                 alpha.animateTo(1f, animationSpec = tween(320, easing = LinearEasing))
@@ -104,17 +101,13 @@ fun VoltUpSnackbarHost(
             }
         }
 
-        // 3. Zatrzymanie i rozwinięcie: koło rozwija się w kapsułkę (pill), pokazując komunikat
         delay(40.milliseconds)
         expansion.animateTo(1f, animationSpec = tween(380, easing = FastOutSlowInEasing))
 
-        // 4. Czas wyświetlania (hold na przeczytanie komunikatu)
         delay(2400.milliseconds)
 
-        // 5. Zwijanie: kapsułka zwija się z powrotem do idealnego koła
         expansion.animateTo(0f, animationSpec = tween(340, easing = FastOutSlowInEasing))
 
-        // 6. Faza wyjścia: koło zanika i płynie w górę poza ekran
         coroutineScope {
             launch {
                 alpha.animateTo(0f, animationSpec = tween(280, easing = LinearEasing))
@@ -124,7 +117,6 @@ fun VoltUpSnackbarHost(
             }
         }
 
-        // 7. Kolejka: przejście do następnego oczekującego komunikatu
         SnackbarHelper.onAnimationCompleted()
     }
 
@@ -173,7 +165,6 @@ fun VoltUpSnackbarHost(
                         .padding(start = 7.dp, end = dynamicEndPadding),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Ikonka w delikatnym zielonym tle (spójnym z przyciskiem skanowania, bez neonu)
                     Box(
                         modifier = Modifier
                             .size(34.dp)
@@ -189,7 +180,6 @@ fun VoltUpSnackbarHost(
                         )
                     }
 
-                    // Tekst komunikatu pojawia się płynnie podczas rozszerzania kapsułki
                     if (expansion.value > 0.18f) {
                         val textAlpha = ((expansion.value - 0.18f) / 0.82f).coerceIn(0f, 1f)
                         Spacer(modifier = Modifier.width(10.dp))

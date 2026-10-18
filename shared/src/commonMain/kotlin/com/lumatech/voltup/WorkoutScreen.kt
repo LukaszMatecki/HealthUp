@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsBike
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -556,7 +557,7 @@ fun WorkoutScreen(
                                 Text(strings.distanceLabel, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text("${distanceKm.formatOneDecimal()} km", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
                             }
-                            Icon(Icons.Default.DirectionsBike, contentDescription = null, tint = rpmGradient[0], modifier = Modifier.size(24.dp))
+                            Icon(Icons.AutoMirrored.Filled.DirectionsBike, contentDescription = null, tint = rpmGradient[0], modifier = Modifier.size(24.dp))
                         }
                     }
                     Card(
@@ -584,7 +585,6 @@ fun WorkoutScreen(
                 }
             }
 
-            // Panel z ID urządzenia pod tętnem i voltpoints
             Card(
                 modifier = Modifier
                     .fillMaxWidth()

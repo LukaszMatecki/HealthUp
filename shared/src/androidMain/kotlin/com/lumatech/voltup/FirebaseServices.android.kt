@@ -31,7 +31,6 @@ fun initVoltUpFirebase(context: android.content.Context) {
         var projectId = "voltup-21c34"
         var storageBucket = "voltup-21c34.firebasestorage.app"
 
-        // Próba odczytania bezpośrednio z assets/google-services.json
         try {
             val jsonString = context.assets.open("google-services.json").bufferedReader().use { it.readText() }
             val root = org.json.JSONObject(jsonString)
@@ -206,10 +205,8 @@ class AndroidFirebaseAuthService : VoltUpAuthService {
                 createdAt = System.currentTimeMillis()
             )
 
-            // Zapisz użytkownika w Firestore (Tabela 1: users)
             dbService.saveUser(newUser)
 
-            // Zainicjalizuj domyślne ustawienia (Tabela 6: user_settings)
             dbService.saveUserSettings(
                 UserSettingsDto(
                     userId = fbUser.uid,
@@ -220,10 +217,8 @@ class AndroidFirebaseAuthService : VoltUpAuthService {
                 )
             )
 
-            // Zainicjalizuj początkowe osiągnięcia (Tabela 3: user_achievements)
             initializeDefaultAchievements(fbUser.uid, dbService)
 
-            // Zainicjalizuj wyzwania tygodniowe (Tabela 4: user_challenges)
             initializeDefaultChallenges(fbUser.uid, dbService)
 
             _currentUser.value = newUser
@@ -270,7 +265,6 @@ class AndroidFirebaseAuthService : VoltUpAuthService {
             val user = auth.currentUser ?: return AuthResult(false, null, "Brak zalogowanego użytkownika.")
             val email = user.email ?: return AuthResult(false, null, "Brak przypisanego adresu e-mail.")
 
-            // 1. Weryfikacja dotychczasowego hasła w Firebase Auth przez ponowne uwierzytelnienie
             try {
                 val credential = EmailAuthProvider.getCredential(email, cleanOld)
                 user.reauthenticate(credential).await()
@@ -279,7 +273,6 @@ class AndroidFirebaseAuthService : VoltUpAuthService {
                 return AuthResult(false, null, "Aktualne hasło jest nieprawidłowe.")
             }
 
-            // 2. Po potwierdzeniu z bazą - zmiana hasła
             user.updatePassword(cleanNew).await()
             AuthResult(isSuccess = true)
         } catch (e: FirebaseAuthException) {
@@ -309,6 +302,7 @@ class AndroidFirebaseAuthService : VoltUpAuthService {
             user.delete().await()
             dbService.deleteUser(uid)
             _currentUser.value = null
+            dbService.clearCache()
             AuthResult(isSuccess = true)
         } catch (e: FirebaseAuthException) {
             Log.e(TAG, "Błąd usuwania konta: ${e.errorCode}")
@@ -330,6 +324,7 @@ class AndroidFirebaseAuthService : VoltUpAuthService {
             Log.e(TAG, "Błąd signOut: ${e.message}")
         }
         _currentUser.value = null
+        dbService.clearCache()
     }
 
     private fun mapFirebaseError(e: FirebaseAuthException): String {
@@ -394,7 +389,7 @@ class AndroidFirebaseAuthService : VoltUpAuthService {
                 userId = userId,
                 achievementId = ach.id,
                 currentLevel = 0,
-                currentProgress = if (ach.id == "ACH_STREAK") 1.0 else 0.0,
+                currentProgress = 0.0,
                 updatedAt = System.currentTimeMillis()
             )
         }
@@ -429,7 +424,6 @@ class AndroidFirestoreService : VoltUpDatabaseService {
         FirebaseFirestore.getInstance()
     }
 
-    // Pamięć podręczna w razie braku połączenia lub pracy w trybie offline
     private val memoryUsers = mutableMapOf<String, VoltUpUser>()
     private val memorySettings = mutableMapOf<String, UserSettingsDto>()
     private val memoryWorkouts = mutableListOf<WorkoutSessionDto>()
@@ -437,7 +431,6 @@ class AndroidFirestoreService : VoltUpDatabaseService {
     private val memoryChallenges = mutableMapOf<String, UserChallengeDto>()
     private val memoryCoupons = mutableListOf<UserCouponDto>()
 
-    // 1. users
     override suspend fun saveUser(user: VoltUpUser): Boolean {
         memoryUsers[user.userId] = user
         return try {
@@ -455,8 +448,9 @@ class AndroidFirestoreService : VoltUpDatabaseService {
     override suspend fun getUser(userId: String): VoltUpUser? {
         return try {
             val doc = firestore.collection("users").document(userId).get().await()
-            if (doc.exists() && doc.data != null) {
-                val user = VoltUpUser.fromMap(doc.data!!)
+            val data = doc.data
+            if (doc.exists() && data != null) {
+                val user = VoltUpUser.fromMap(data)
                 memoryUsers[userId] = user
                 user
             } else {
@@ -480,8 +474,9 @@ class AndroidFirestoreService : VoltUpDatabaseService {
                 .get()
                 .await()
             val doc = snapshot.documents.firstOrNull()
-            if (doc != null && doc.data != null) {
-                val user = VoltUpUser.fromMap(doc.data!!)
+            val data = doc?.data
+            if (doc != null && data != null) {
+                val user = VoltUpUser.fromMap(data)
                 memoryUsers[user.userId] = user
                 user
             } else null
@@ -532,7 +527,6 @@ class AndroidFirestoreService : VoltUpDatabaseService {
         }
     }
 
-    // 2. workout_sessions (podkolekcja users/{userId}/workout_sessions)
     override suspend fun saveWorkoutSession(session: WorkoutSessionDto): Boolean {
         val realSessionId = if (session.sessionId.isNotBlank()) session.sessionId else UUID.randomUUID().toString()
         val toSave = session.copy(sessionId = realSessionId)
@@ -576,7 +570,6 @@ class AndroidFirestoreService : VoltUpDatabaseService {
         }
     }
 
-    // 3. user_achievements (podkolekcja users/{userId}/user_achievements)
     override suspend fun saveAchievement(achievement: UserAchievementDto): Boolean {
         val key = "${achievement.userId}_${achievement.achievementId}"
         memoryAchievements[key] = achievement
@@ -617,17 +610,18 @@ class AndroidFirestoreService : VoltUpDatabaseService {
         }
     }
 
-    // 4. user_challenges (podkolekcja users/{userId}/user_challenges)
     override suspend fun saveChallenge(challenge: UserChallengeDto): Boolean {
-        val id = if (challenge.id.isNotBlank()) challenge.id else challenge.challengeId
-        val toSave = challenge.copy(id = id)
-        memoryChallenges["${challenge.userId}_${id}"] = toSave
+        val cleanChallengeId = challenge.challengeId.removePrefix("${challenge.userId}_")
+        val id = if (challenge.id.isNotBlank()) challenge.id else cleanChallengeId
+        val toSave = challenge.copy(id = id, challengeId = cleanChallengeId)
+        val key = "${challenge.userId}_$cleanChallengeId"
+        memoryChallenges[key] = toSave
 
         return try {
             firestore.collection("users")
                 .document(challenge.userId)
                 .collection("user_challenges")
-                .document(challenge.challengeId)
+                .document(cleanChallengeId)
                 .set(toSave.toMap())
                 .await()
             true
@@ -649,7 +643,10 @@ class AndroidFirestoreService : VoltUpDatabaseService {
                 doc.data?.let { UserChallengeDto.fromMap(it) }
             }
             if (list.isNotEmpty()) {
-                list.forEach { memoryChallenges["${it.userId}_${it.challengeId}"] = it }
+                list.forEach { 
+                    val cleanId = it.challengeId.removePrefix("${it.userId}_")
+                    memoryChallenges["${it.userId}_$cleanId"] = it 
+                }
                 list
             } else {
                 memoryChallenges.values.filter { it.userId == userId }
@@ -686,7 +683,6 @@ class AndroidFirestoreService : VoltUpDatabaseService {
         }
     }
 
-    // 5. user_coupons
     override suspend fun saveCoupon(coupon: UserCouponDto): Boolean {
         val realId = if (coupon.couponId.isNotBlank()) coupon.couponId else UUID.randomUUID().toString()
         val toSave = coupon.copy(couponId = realId)
@@ -781,7 +777,6 @@ class AndroidFirestoreService : VoltUpDatabaseService {
         }
     }
 
-    // 6. user_settings (zapisywane bezpośrednio w dokumencie users/{userId})
     override suspend fun saveUserSettings(settings: UserSettingsDto): Boolean {
         memorySettings[settings.userId] = settings
         return try {
@@ -807,8 +802,8 @@ class AndroidFirestoreService : VoltUpDatabaseService {
     override suspend fun getUserSettings(userId: String): UserSettingsDto? {
         return try {
             val doc = firestore.collection("users").document(userId).get().await()
-            if (doc.exists() && doc.data != null) {
-                val data = doc.data!!
+            val data = doc.data
+            if (doc.exists() && data != null) {
                 val s = UserSettingsDto(
                     userId = userId,
                     themeMode = (data["theme_mode"] as? String) ?: "SYSTEM",
@@ -827,7 +822,6 @@ class AndroidFirestoreService : VoltUpDatabaseService {
         }
     }
 
-    // 7. Globalny Ranking (Leaderboard) - TYLKO PRAWDZIWE KONTA Z BAZY DANYCH
     override suspend fun getLeaderboard(limit: Int): List<LeaderboardUser> {
         val currentUid = try { FirebaseAuth.getInstance().currentUser?.uid } catch (_: Exception) { null }
 
@@ -866,7 +860,6 @@ class AndroidFirestoreService : VoltUpDatabaseService {
         }
     }
 
-    // 8. Usunięcie konta użytkownika i powiązanych danych
     override suspend fun deleteUser(userId: String): Boolean {
         memoryUsers.remove(userId)
         memorySettings.remove(userId)
@@ -905,7 +898,6 @@ class AndroidFirestoreService : VoltUpDatabaseService {
         }
     }
 
-    // 9. Tabela Urządzeń Miejskich (devices)
     private val defaultDevices = listOf(
         KineticStation(
             id = "PC-1",
@@ -1052,7 +1044,6 @@ class AndroidFirestoreService : VoltUpDatabaseService {
                 doc.data?.let { KineticDeviceDto.fromMap(it).toKineticStation().let(::cleanStation) }
             }
 
-            // Upewnij się, że wszystkie 8 urządzeń znajduje się w bazie Firestore z aktualnymi współrzędnymi
             val resolvedList = mutableListOf<KineticStation>()
             for (defaultDev in defaultDevices) {
                 val cleanedDefault = cleanStation(defaultDev)
@@ -1067,7 +1058,6 @@ class AndroidFirestoreService : VoltUpDatabaseService {
                 }
                 resolvedList.add(target)
 
-                // Jeśli w bazie brakowało stacji lub miała nieaktualne współrzędne/nazwę, zaktualizuj ją w Firestore
                 if (existing == null ||
                     existing.latitude != defaultDev.latitude ||
                     existing.longitude != defaultDev.longitude ||
@@ -1103,6 +1093,15 @@ class AndroidFirestoreService : VoltUpDatabaseService {
             Log.w(TAG, "Zapis urządzenia w Firestore: ${e.message}")
             true
         }
+    }
+
+    override fun clearCache() {
+        memoryUsers.clear()
+        memorySettings.clear()
+        memoryWorkouts.clear()
+        memoryAchievements.clear()
+        memoryChallenges.clear()
+        memoryCoupons.clear()
     }
 }
 

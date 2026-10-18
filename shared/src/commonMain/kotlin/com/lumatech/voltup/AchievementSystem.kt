@@ -1,6 +1,7 @@
 package com.lumatech.voltup
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.vector.ImageVector
 
@@ -381,7 +382,7 @@ object DefaultAchievements {
         Achievement(
             id = "ACH_MARATHON",
             title = "Maratończyk Mocy",
-            icon = Icons.Default.DirectionsRun,
+            icon = Icons.AutoMirrored.Filled.DirectionsRun,
             metricType = Achievement.MetricType.LONG_SESSIONS,
             level = 0,
             currentProgress = 0.0

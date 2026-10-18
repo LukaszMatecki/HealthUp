@@ -130,7 +130,6 @@ actual fun CameraPreview(
 
                             Spacer(modifier = Modifier.height(4.dp))
 
-                            // Pierwszy przycisk: wyśrodkowany, długi (fillMaxWidth)
                             Button(
                                 onClick = {
                                     showPermissionDialog = false
@@ -151,7 +150,6 @@ actual fun CameraPreview(
                                 Text("Przejdź do ustawień", fontWeight = FontWeight.Bold)
                             }
 
-                            // Drugi przycisk: wyśrodkowany, długi (fillMaxWidth), szarawe tło
                             Button(
                                 onClick = { showPermissionDialog = false },
                                 modifier = Modifier
@@ -172,9 +170,18 @@ actual fun CameraPreview(
                 )
             }
 
-            // Przycisk nad kamerą (górna część ekranu, powyżej celownika)
             Button(
-                onClick = { showPermissionDialog = true },
+                onClick = {
+                    val activity = context as? android.app.Activity
+                    val shouldShowRationale = activity?.let {
+                        androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale(it, Manifest.permission.CAMERA)
+                    } ?: false
+                    if (shouldShowRationale) {
+                        showPermissionDialog = true
+                    } else {
+                        launcher.launch(Manifest.permission.CAMERA)
+                    }
+                },
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .padding(top = 90.dp),
@@ -196,12 +203,20 @@ actual fun CameraPreview(
         }
     } else {
         var isScanned by remember { mutableStateOf(false) }
+        val executor = remember { Executors.newSingleThreadExecutor() }
+
+        DisposableEffect(Unit) {
+            onDispose {
+                try {
+                    executor.shutdown()
+                } catch (_: Exception) {}
+            }
+        }
 
         AndroidView(
             modifier = modifier,
             factory = { ctx ->
                 val previewView = PreviewView(ctx)
-                val executor = Executors.newSingleThreadExecutor()
                 val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
 
                 cameraProviderFuture.addListener({

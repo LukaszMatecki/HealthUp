@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -69,7 +70,6 @@ fun HelpGuideScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Segmented Tab Selector (podobny do zakładki Nagrody)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -322,7 +322,7 @@ private fun SupportTabContent(uriHandler: androidx.compose.ui.platform.UriHandle
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
-                        Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(if (isEnglish) "Contact us" else "Napisz do nas", fontWeight = FontWeight.Bold)
                     }
