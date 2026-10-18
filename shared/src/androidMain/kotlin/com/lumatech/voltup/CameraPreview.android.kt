@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -100,6 +101,8 @@ actual fun CameraPreview(
             if (showPermissionDialog) {
                 AlertDialog(
                     onDismissRequest = { showPermissionDialog = false },
+                    properties = DialogProperties(usePlatformDefaultWidth = false),
+                    modifier = Modifier.fillMaxWidth(0.92f),
                     shape = RoundedCornerShape(24.dp),
                     containerColor = MaterialTheme.colorScheme.surface,
                     title = {

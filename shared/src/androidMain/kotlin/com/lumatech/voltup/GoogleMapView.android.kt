@@ -41,15 +41,25 @@ import kotlinx.coroutines.launch
 
 private const val DARK_MAP_STYLE_JSON = """[
   {"elementType": "geometry", "stylers": [{"color": "#181C23"}]},
+  {"elementType": "labels.icon", "stylers": [{"visibility": "off"}]},
   {"elementType": "labels.text.fill", "stylers": [{"color": "#94A3B8"}]},
   {"elementType": "labels.text.stroke", "stylers": [{"color": "#181C23"}]},
-  {"featureType": "administrative", "elementType": "country", "stylers": [{"color": "#94A3B8"}]},
+  {"featureType": "administrative", "elementType": "geometry", "stylers": [{"color": "#334155"}]},
+  {"featureType": "administrative.country", "elementType": "labels.text.fill", "stylers": [{"color": "#94A3B8"}]},
+  {"featureType": "administrative.locality", "elementType": "labels.text.fill", "stylers": [{"color": "#CBD5E1"}]},
+  {"featureType": "landscape", "elementType": "geometry", "stylers": [{"color": "#14181F"}]},
   {"featureType": "poi", "elementType": "labels.text.fill", "stylers": [{"color": "#64748B"}]},
   {"featureType": "poi.park", "elementType": "geometry", "stylers": [{"color": "#112217"}]},
   {"featureType": "poi.park", "elementType": "labels.text.fill", "stylers": [{"color": "#00E676"}]},
-  {"featureType": "road", "elementType": "geometry", "stylers": [{"color": "#222731"}]},
+  {"featureType": "road", "elementType": "geometry", "stylers": [{"color": "#1E2530"}]},
+  {"featureType": "road", "elementType": "geometry.fill", "stylers": [{"color": "#1E2530"}]},
   {"featureType": "road", "elementType": "labels.text.fill", "stylers": [{"color": "#94A3B8"}]},
-  {"featureType": "water", "elementType": "geometry", "stylers": [{"color": "#0E1116"}]}
+  {"featureType": "road.arterial", "elementType": "geometry", "stylers": [{"color": "#283140"}]},
+  {"featureType": "road.highway", "elementType": "geometry", "stylers": [{"color": "#334155"}]},
+  {"featureType": "transit", "elementType": "geometry", "stylers": [{"color": "#1E2530"}]},
+  {"featureType": "transit", "elementType": "labels.text.fill", "stylers": [{"color": "#64748B"}]},
+  {"featureType": "water", "elementType": "geometry", "stylers": [{"color": "#0B0E14"}]},
+  {"featureType": "water", "elementType": "labels.text.fill", "stylers": [{"color": "#475569"}]}
 ]"""
 
 @Composable
@@ -59,7 +69,7 @@ actual fun GoogleMapView(
     selectedStation: KineticStation?,
     onStationSelected: (KineticStation) -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppInDarkTheme()
     val hasApiKey = GOOGLE_MAPS_API_KEY.isNotBlank() && GOOGLE_MAPS_API_KEY != "YOUR_GOOGLE_MAPS_API_KEY_HERE"
 
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -177,13 +187,17 @@ actual fun GoogleMapView(
             val normalStationIcon = remember(context) { createStationMarkerBitmap(context, false) }
             val selectedStationIcon = remember(context) { createStationMarkerBitmap(context, true) }
 
+            val mapProperties = remember(isDark, hasLocationPermission) {
+                MapProperties(
+                    isMyLocationEnabled = hasLocationPermission,
+                    mapStyleOptions = if (isDark) MapStyleOptions(DARK_MAP_STYLE_JSON) else null
+                )
+            }
+
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
                 cameraPositionState = cameraPositionState,
-                properties = MapProperties(
-                    isMyLocationEnabled = hasLocationPermission,
-                    mapStyleOptions = if (isDark) MapStyleOptions(DARK_MAP_STYLE_JSON) else null
-                ),
+                properties = mapProperties,
                 uiSettings = MapUiSettings(
                     zoomControlsEnabled = false,
                     myLocationButtonEnabled = false,
@@ -297,10 +311,10 @@ actual fun GoogleMapView(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     androidx.compose.material3.Icon(
-                        imageVector = Icons.Default.LocationCity,
+                        imageVector = Icons.Default.Explore,
                         contentDescription = "Wyśrodkuj na Centrum Łodzi",
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(19.dp)
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
@@ -384,6 +398,9 @@ private fun InteractiveSchematicMap(
         }
 
         Canvas(modifier = Modifier.fillMaxSize()) {
+            val baseBg = if (isDark) Color(0xFF14181F) else Color(0xFFF8FAFC)
+            drawRect(color = baseBg)
+
             val gridColor = if (isDark) Color(0xFF222731) else Color(0xFFE2E8F0)
             val streetColor = if (isDark) Color(0xFF1E232B) else Color(0xFFEDF2F7)
             val parkColor = if (isDark) Color(0xFF112217) else Color(0xFFE8F5E9)
@@ -472,23 +489,21 @@ private fun InteractiveSchematicMap(
                     )
                 }
 
-                // Zewnętrzny obrys lekko oddalony od małego zielonego kółka z cieniem
+                // Zewnętrzny obrys transparentny w środku
                 Box(
                     modifier = Modifier
                         .size(if (isSelected) 24.dp else 20.dp)
-                        .shadow(elevation = 2.dp, shape = CircleShape)
-                        .background(if (isDark) DarkSurface else LightSurface, CircleShape)
                         .border(
-                            1.5.dp,
-                            if (isSelected) LightPrimary else LightPrimary.copy(alpha = 0.85f),
+                            1.6.dp,
+                            if (isSelected) LightPrimary else LightPrimary.copy(alpha = 0.9f),
                             CircleShape
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Grube zielone kółko w środku
+                    // Zielone kółko w środku, powiększone bliżej obrysu (pusto między obrysem a kółkiem)
                     Box(
                         modifier = Modifier
-                            .size(if (isSelected) 13.dp else 10.dp)
+                            .size(if (isSelected) 15.dp else 12.dp)
                             .clip(CircleShape)
                             .background(LightPrimary)
                     )
@@ -574,35 +589,21 @@ private fun createStationMarkerBitmap(
         val canvas = android.graphics.Canvas(bitmap)
         val center = sizePx / 2f
 
-        // Cień pod markerem
-        val shadowPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-            color = android.graphics.Color.parseColor("#33000000")
-            style = android.graphics.Paint.Style.FILL
-        }
-        canvas.drawCircle(center, center + (1f * density), center - (1.5f * density), shadowPaint)
-
-        // Tło wypełnienia wewnątrz obrysu dla kontrastu
-        val bgPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-            color = android.graphics.Color.WHITE
-            style = android.graphics.Paint.Style.FILL
-        }
-        val ringRadius = center - (2.5f * density)
-        canvas.drawCircle(center, center, ringRadius, bgPaint)
-
-        // Zewnętrzny obrys lekko oddalony od kółka
+        // Zewnętrzny obrys kółka (transparentne w środku)
         val ringPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
             color = android.graphics.Color.parseColor("#00A35B")
             style = android.graphics.Paint.Style.STROKE
-            strokeWidth = 1.6f * density
+            strokeWidth = 1.8f * density
         }
+        val ringRadius = center - (2.5f * density)
         canvas.drawCircle(center, center, ringRadius, ringPaint)
 
-        // Grube zielone kółko w środku
+        // Zielone kółko w środku, powiększone bliżej obrysu
         val dotPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
             color = android.graphics.Color.parseColor("#00A35B")
             style = android.graphics.Paint.Style.FILL
         }
-        val dotRadius = (if (isSelected) 6.0f else 4.6f) * density
+        val dotRadius = (if (isSelected) 6.8f else 5.4f) * density
         canvas.drawCircle(center, center, dotRadius, dotPaint)
 
         com.google.android.gms.maps.model.BitmapDescriptorFactory.fromBitmap(bitmap)

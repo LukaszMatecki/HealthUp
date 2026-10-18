@@ -146,6 +146,7 @@ fun VoltUpSnackbarHost(
         val baseCircleSize = 48.dp
         val maxPillWidth = 310.dp
         val animatedWidth = baseCircleSize + ((maxPillWidth - baseCircleSize) * expansion.value)
+        val dynamicEndPadding = 7.dp + (7.dp * expansion.value)
 
         Box(
             modifier = modifier
@@ -169,7 +170,7 @@ fun VoltUpSnackbarHost(
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(start = 7.dp, end = 12.dp),
+                        .padding(start = 7.dp, end = dynamicEndPadding),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Ikonka w delikatnym zielonym tle (spójnym z przyciskiem skanowania, bez neonu)

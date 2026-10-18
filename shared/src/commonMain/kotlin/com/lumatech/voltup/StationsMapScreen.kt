@@ -56,10 +56,12 @@ fun StationsMapScreen(
         }
     }
 
-    val filteredStations = remember(searchQuery, selectedDeviceType, deviceList) {
+    val currentStrings = strings
+    val filteredStations = remember(searchQuery, selectedDeviceType, deviceList, currentStrings) {
         deviceList.filter { station ->
             val matchesQuery = searchQuery.isBlank() ||
                     station.name.contains(searchQuery, ignoreCase = true) ||
+                    station.getLocalizedName(currentStrings).contains(searchQuery, ignoreCase = true) ||
                     station.location.contains(searchQuery, ignoreCase = true) ||
                     station.id.contains(searchQuery, ignoreCase = true)
             val matchesType = selectedDeviceType == null || station.type == selectedDeviceType
@@ -83,13 +85,19 @@ fun StationsMapScreen(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "Mapa ",
+                    text = "${strings.mapScreenTitle} ",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    text = "VoltUp",
+                    text = "Volt",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "Up",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Light,
                     color = MaterialTheme.colorScheme.onBackground
@@ -142,7 +150,7 @@ fun StationsMapScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp),
-            placeholder = { Text("Szukaj stacji lub parku...", fontSize = 15.sp) },
+            placeholder = { Text(strings.searchStationsPlaceholder, fontSize = 15.sp) },
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Search,
@@ -154,7 +162,7 @@ fun StationsMapScreen(
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
                     IconButton(onClick = { searchQuery = "" }) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = "Wyczyść", modifier = Modifier.size(18.dp))
+                        Icon(imageVector = Icons.Default.Close, contentDescription = strings.clearQueryBtn, modifier = Modifier.size(18.dp))
                     }
                 }
             },
@@ -177,7 +185,7 @@ fun StationsMapScreen(
             item {
                 val isAllSelected = selectedDeviceType == null
                 SleekFilterChip(
-                    text = "Wszystkie",
+                    text = strings.categoryAll,
                     isSelected = isAllSelected,
                     onClick = { selectedDeviceType = null }
                 )
@@ -185,7 +193,7 @@ fun StationsMapScreen(
             items(DeviceType.entries) { type ->
                 val isSelected = selectedDeviceType == type
                 SleekFilterChip(
-                    text = type.displayName,
+                    text = type.getLocalizedName(strings),
                     isSelected = isSelected,
                     onClick = { selectedDeviceType = if (isSelected) null else type }
                 )
@@ -246,7 +254,7 @@ fun StationsMapScreen(
 
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = station.name,
+                                    text = station.getLocalizedName(strings),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 15.sp,
                                     color = MaterialTheme.colorScheme.onSurface
@@ -276,7 +284,7 @@ fun StationsMapScreen(
                                         tint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimaryContainer
                                     )
                                     Text(
-                                        text = "Skanuj",
+                                        text = strings.scanQr,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimaryContainer
@@ -325,12 +333,12 @@ fun StationsMapScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(
-                                        text = "Dzielnica: ${station.district}",
+                                        text = "${strings.districtLabel}: ${station.district}",
                                         fontSize = 12.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Text(
-                                        text = "Moc max: ${station.maxPowerW} W",
+                                        text = "${strings.maxPowerLabel}: ${station.maxPowerW} W",
                                         fontSize = 12.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -341,7 +349,7 @@ fun StationsMapScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(
-                                        text = if (station.isOnline) "Status: Aktywna (Online)" else "Status: Nieaktywna",
+                                        text = if (station.isOnline) strings.statusActiveOnline else strings.statusInactive,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = if (station.isOnline) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error

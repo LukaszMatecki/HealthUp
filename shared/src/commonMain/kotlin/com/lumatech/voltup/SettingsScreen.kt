@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.tooling.preview.Preview
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -38,8 +39,7 @@ fun SettingsScreen(
     userEmail: String = "",
     onSignOut: () -> Unit = {},
     onNavigateToManageAccount: () -> Unit = {},
-    onNavigateToHelpGuide: () -> Unit = {},
-    onNavigateToAuthors: () -> Unit = {}
+    onNavigateToHelpGuide: () -> Unit = {}
 ) {
     CommonBackHandler(enabled = true, onBack = onNavigateBack)
 
@@ -53,12 +53,14 @@ fun SettingsScreen(
     var isThemeExpanded by remember { mutableStateOf(false) }
     var isLanguageExpanded by remember { mutableStateOf(false) }
 
+    val strings = strings
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = "Ustawienia",
+                        text = strings.settingsScreenTitle,
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp
                     )
@@ -67,7 +69,7 @@ fun SettingsScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Wróć"
+                            contentDescription = strings.back
                         )
                     }
                 },
@@ -87,7 +89,27 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             item {
-                SettingsSectionHeader("WYGLĄD")
+                SettingsSectionHeader(strings.accountAndSecuritySection)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                ) {
+                    Column(modifier = Modifier.padding(8.dp)) {
+                        SettingActionRow(
+                            icon = Icons.Default.ManageAccounts,
+                            title = strings.manageAccountTitle,
+                            subtitle = strings.manageAccountSubtitleDesc,
+                            titleColor = MaterialTheme.colorScheme.onSurface,
+                            onClick = onNavigateToManageAccount
+                        )
+                    }
+                }
+            }
+
+            item {
+                SettingsSectionHeader(strings.themesSectionHeader)
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
@@ -129,7 +151,7 @@ fun SettingsScreen(
                                 }
                                 Column {
                                     Text(
-                                        text = "Motyw aplikacji",
+                                        text = strings.themesSection,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 15.sp,
                                         color = MaterialTheme.colorScheme.onSurface
@@ -162,10 +184,11 @@ fun SettingsScreen(
                                             .fillMaxWidth()
                                             .clip(RoundedCornerShape(12.dp))
                                             .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color.Transparent)
-                                            .clickable {
-                                                onSettingsChanged(settings.copy(themeMode = mode))
-                                                isThemeExpanded = false
-                                            }
+                                        .clickable {
+                                            onSettingsChanged(settings.copy(themeMode = mode))
+                                            VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_THEME, mode.name)
+                                            isThemeExpanded = false
+                                        }
                                             .padding(horizontal = 14.dp, vertical = 10.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.SpaceBetween
@@ -231,7 +254,7 @@ fun SettingsScreen(
                                 }
                                 Column {
                                     Text(
-                                        text = "Język aplikacji",
+                                        text = strings.appLanguageTitle,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 15.sp,
                                         color = MaterialTheme.colorScheme.onSurface
@@ -264,10 +287,11 @@ fun SettingsScreen(
                                             .fillMaxWidth()
                                             .clip(RoundedCornerShape(12.dp))
                                             .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color.Transparent)
-                                            .clickable {
-                                                onSettingsChanged(settings.copy(language = lang))
-                                                isLanguageExpanded = false
-                                            }
+                                        .clickable {
+                                            onSettingsChanged(settings.copy(language = lang))
+                                            VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_LANGUAGE, lang.name)
+                                            isLanguageExpanded = false
+                                        }
                                             .padding(horizontal = 14.dp, vertical = 10.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.SpaceBetween
@@ -295,7 +319,7 @@ fun SettingsScreen(
             }
 
             item {
-                SettingsSectionHeader("TRENING I POWIADOMIENIA")
+                SettingsSectionHeader(strings.workoutAndNotificationsSection)
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
@@ -305,8 +329,8 @@ fun SettingsScreen(
                     Column(modifier = Modifier.padding(8.dp)) {
                         SettingSwitchRow(
                             icon = Icons.Default.NotificationsActive,
-                            title = "Dźwięki powiadomień",
-                            subtitle = "Sygnały audio po zakończeniu sesji",
+                            title = strings.notificationSoundsTitle,
+                            subtitle = strings.notificationSoundsSubtitle,
                             checked = settings.soundEffectsEnabled,
                             onCheckedChange = { onSettingsChanged(settings.copy(soundEffectsEnabled = it)) }
                         )
@@ -318,8 +342,8 @@ fun SettingsScreen(
 
                         SettingSwitchRow(
                             icon = Icons.Default.MotionPhotosPause,
-                            title = "Automatyczna pauza",
-                            subtitle = "Zatrzymuj czas przy braku ruchu",
+                            title = strings.autoPauseTitle,
+                            subtitle = strings.autoPauseSubtitle,
                             checked = settings.autoPauseWhenIdle,
                             onCheckedChange = { onSettingsChanged(settings.copy(autoPauseWhenIdle = it)) }
                         )
@@ -331,17 +355,33 @@ fun SettingsScreen(
 
                         SettingSwitchRow(
                             icon = Icons.Default.Timer,
-                            title = "Codzienne przypomnienie",
-                            subtitle = "Krótki impuls o aktywności",
+                            title = strings.dailyRemindersTitle,
+                            subtitle = strings.dailyReminderSubtitleShort,
                             checked = settings.dailyReminders,
                             onCheckedChange = { onSettingsChanged(settings.copy(dailyReminders = it)) }
+                        )
+
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        )
+
+                        SettingSwitchRow(
+                            icon = Icons.Default.BrightnessHigh,
+                            title = strings.keepScreenOnTitle,
+                            subtitle = strings.keepScreenOnSubtitle,
+                            checked = settings.keepScreenOn,
+                            onCheckedChange = {
+                                onSettingsChanged(settings.copy(keepScreenOn = it))
+                                VoltUpStorage.setBoolean(VoltUpPreferenceKeys.KEY_KEEP_SCREEN_ON, it)
+                            }
                         )
                     }
                 }
             }
 
             item {
-                SettingsSectionHeader("DANE I RESET")
+                SettingsSectionHeader(strings.dataAndResetSection)
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
@@ -351,8 +391,8 @@ fun SettingsScreen(
                     Column(modifier = Modifier.padding(8.dp)) {
                         SettingActionRow(
                             icon = Icons.Default.DeleteOutline,
-                            title = "Wyczyść historię treningów",
-                            subtitle = "Usuwa lokalnie zapisane sesje",
+                            title = strings.clearHistoryTitle,
+                            subtitle = strings.clearWorkoutHistorySubtitle,
                             titleColor = MaterialTheme.colorScheme.error,
                             onClick = { showClearHistoryDialog = true }
                         )
@@ -364,8 +404,8 @@ fun SettingsScreen(
 
                         SettingActionRow(
                             icon = Icons.Default.Restore,
-                            title = "Przywróć ustawienia domyślne",
-                            subtitle = "Resetuje motyw i preferencje",
+                            title = strings.resetDefaultsTitle,
+                            subtitle = strings.resetDefaultsSubtitleShort,
                             titleColor = MaterialTheme.colorScheme.onSurface,
                             onClick = { showResetDefaultsDialog = true }
                         )
@@ -374,27 +414,7 @@ fun SettingsScreen(
             }
 
             item {
-                SettingsSectionHeader("KONTO I BEZPIECZEŃSTWO")
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                ) {
-                    Column(modifier = Modifier.padding(8.dp)) {
-                        SettingActionRow(
-                            icon = Icons.Default.ManageAccounts,
-                            title = "Zarządzaj kontem",
-                            subtitle = if (userEmail.isNotBlank()) userEmail else "Dane profilu, zmiana hasła i opcje konta",
-                            titleColor = MaterialTheme.colorScheme.onSurface,
-                            onClick = onNavigateToManageAccount
-                        )
-                    }
-                }
-            }
-
-            item {
-                SettingsSectionHeader("O APLIKACJI")
+                SettingsSectionHeader(strings.aboutAppSection)
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
@@ -404,8 +424,8 @@ fun SettingsScreen(
                     Column(modifier = Modifier.padding(8.dp)) {
                         SettingActionRow(
                             icon = Icons.Default.StarRate,
-                            title = "Oceń naszą aplikację",
-                            subtitle = "Podziel się opinią o VoltUp",
+                            title = strings.rateOurAppTitle,
+                            subtitle = strings.rateOurAppSubtitle,
                             titleColor = MaterialTheme.colorScheme.onSurface,
                             onClick = { showRateAppDialog = true }
                         )
@@ -417,24 +437,12 @@ fun SettingsScreen(
 
                         SettingActionRow(
                             icon = Icons.Default.HelpOutline,
-                            title = "Pomoc i instrukcja",
-                            subtitle = "Jak korzystać ze stacji i zdobywać nagrody",
+                            title = strings.helpAndGuideTitle,
+                            subtitle = strings.helpAndGuideSubtitle,
                             titleColor = MaterialTheme.colorScheme.onSurface,
                             onClick = onNavigateToHelpGuide
                         )
 
-                        HorizontalDivider(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                        )
-
-                        SettingActionRow(
-                            icon = Icons.Default.Group,
-                            title = "Autorzy Aplikacji",
-                            subtitle = "Twórcy projektu VoltUp",
-                            titleColor = MaterialTheme.colorScheme.onSurface,
-                            onClick = onNavigateToAuthors
-                        )
 
                         HorizontalDivider(
                             modifier = Modifier.padding(horizontal = 16.dp),
@@ -443,8 +451,8 @@ fun SettingsScreen(
 
                         SettingActionRow(
                             icon = Icons.Default.Info,
-                            title = "O aplikacji VoltUp",
-                            subtitle = "Wersja 1.00",
+                            title = strings.aboutAppMenuTitle,
+                            subtitle = strings.aboutVoltUpAppSubtitle,
                             titleColor = MaterialTheme.colorScheme.onSurface,
                             onClick = { showAboutDialog = true }
                         )
@@ -460,11 +468,14 @@ fun SettingsScreen(
 
     if (showClearHistoryDialog) {
         val errColor = MaterialTheme.colorScheme.error
-        Dialog(onDismissRequest = { showClearHistoryDialog = false }) {
+        Dialog(
+            onDismissRequest = { showClearHistoryDialog = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
             Surface(
                 shape = RoundedCornerShape(24.dp),
-                color = Color.White,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+                color = MaterialTheme.colorScheme.surface,
+                modifier = Modifier.fillMaxWidth(0.92f).padding(horizontal = 4.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
@@ -487,16 +498,16 @@ fun SettingsScreen(
                     }
 
                     Text(
-                        text = "Wyczyścić historię?",
+                        text = strings.clearHistoryConfirmTitle,
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp,
-                        color = Color.Black
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     Text(
-                        text = "Zapisana historia odbytych sesji zostanie trwale usunięta. Twoje VoltPoints pozostaną bezpieczne.",
+                        text = strings.clearHistoryConfirmDesc,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
 
@@ -518,7 +529,7 @@ fun SettingsScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = errColor, contentColor = Color.White),
                             shape = CircleShape
                         ) {
-                            Text("Usuń dane", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text(strings.deleteDataBtn, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
 
                         Button(
@@ -527,9 +538,9 @@ fun SettingsScreen(
                                 .fillMaxWidth()
                                 .height(48.dp),
                             shape = CircleShape,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF3F4F6), contentColor = Color.DarkGray)
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurface)
                         ) {
-                            Text("Anuluj", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text(strings.cancel, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
                     }
                 }
@@ -539,11 +550,14 @@ fun SettingsScreen(
 
     if (showResetDefaultsDialog) {
         val primaryColor = MaterialTheme.colorScheme.primary
-        Dialog(onDismissRequest = { showResetDefaultsDialog = false }) {
+        Dialog(
+            onDismissRequest = { showResetDefaultsDialog = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
             Surface(
                 shape = RoundedCornerShape(24.dp),
-                color = Color.White,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+                color = MaterialTheme.colorScheme.surface,
+                modifier = Modifier.fillMaxWidth(0.92f).padding(horizontal = 4.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
@@ -566,16 +580,16 @@ fun SettingsScreen(
                     }
 
                     Text(
-                        text = "Przywrócić domyślne?",
+                        text = strings.resetDefaultsConfirmTitle,
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp,
-                        color = Color.Black
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     Text(
-                        text = "Wszystkie opcje motywu oraz powiadomień zostaną zresetowane do wartości początkowych.",
+                        text = strings.resetDefaultsConfirmDesc,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
 
@@ -594,10 +608,10 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(48.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = Color.White),
+                            colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = MaterialTheme.colorScheme.onPrimary),
                             shape = CircleShape
                         ) {
-                            Text("Przywróć", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text(strings.resetDefaultsBtn, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
 
                         Button(
@@ -606,9 +620,9 @@ fun SettingsScreen(
                                 .fillMaxWidth()
                                 .height(48.dp),
                             shape = CircleShape,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF3F4F6), contentColor = Color.DarkGray)
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurface)
                         ) {
-                            Text("Anuluj", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text(strings.cancel, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
                     }
                 }
@@ -630,22 +644,25 @@ fun SettingsScreen(
     if (showSignOutDialog) {
         AlertDialog(
             onDismissRequest = { showSignOutDialog = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+            modifier = Modifier.fillMaxWidth(0.92f),
             shape = RoundedCornerShape(24.dp),
-            title = { Text("Wylogować się?", fontWeight = FontWeight.Bold) },
-            text = { Text("Czy na pewno chcesz zakończyć sesję i wylogować się z aplikacji VoltUp?") },
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = { Text(strings.signOutConfirmTitle, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
+            text = { Text(strings.signOutConfirmDesc, color = MaterialTheme.colorScheme.onSurfaceVariant) },
             confirmButton = {
                 Button(
                     onClick = {
                         showSignOutDialog = false
                         onSignOut()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError)
                 ) {
-                    Text("Wyloguj", fontWeight = FontWeight.Bold)
+                    Text(strings.signOutBtn, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showSignOutDialog = false }) { Text("Anuluj") }
+                TextButton(onClick = { showSignOutDialog = false }) { Text(strings.cancel, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
         )
     }
@@ -826,13 +843,12 @@ fun SettingActionRow(
 
             Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
                 Text(
-                    text = title,
-                    fontWeight = FontWeight.Medium,
+                    text = formatVoltUpAnnotated(title, FontWeight.Medium),
                     fontSize = 15.sp,
                     color = titleColor
                 )
                 Text(
-                    text = subtitle,
+                    text = formatVoltUpAnnotated(subtitle, FontWeight.Normal),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = 16.sp
@@ -850,14 +866,18 @@ fun SettingActionRow(
 
 @Composable
 fun RateAppDialog(onDismiss: () -> Unit) {
+    val strings = strings
     var selectedStars by remember { mutableStateOf(5) }
     val uriHandler = LocalUriHandler.current
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Surface(
             shape = RoundedCornerShape(24.dp),
-            color = Color.White,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.fillMaxWidth(0.92f).padding(horizontal = 4.dp)
         ) {
             Column(
                 modifier = Modifier.padding(24.dp),
@@ -868,7 +888,7 @@ fun RateAppDialog(onDismiss: () -> Unit) {
                     modifier = Modifier
                         .size(64.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFFEF3C7)),
+                        .background(Color(0xFFF59E0B).copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -879,17 +899,32 @@ fun RateAppDialog(onDismiss: () -> Unit) {
                     )
                 }
 
-                Text(
-                    text = "Oceń VoltUp",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    color = Color(0xFF111827)
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    val rateWord = if (strings is VoltUpEnglishStrings) "Rate " else "Oceń "
+                    Text(
+                        text = rateWord,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Volt",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "Up",
+                        fontWeight = FontWeight.Light,
+                        fontSize = 20.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
 
                 Text(
-                    text = "Twoja opinia pomaga nam rozwijać sieć miejskich stacji kinetycznych w Łodzi!",
+                    text = strings.rateAppDialogDesc,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF6B7280),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
 
@@ -904,8 +939,8 @@ fun RateAppDialog(onDismiss: () -> Unit) {
                         ) {
                             Icon(
                                 imageVector = if (starIndex <= selectedStars) Icons.Default.Star else Icons.Default.StarBorder,
-                                contentDescription = "$starIndex gwiazdek",
-                                tint = if (starIndex <= selectedStars) Color(0xFFF59E0B) else Color(0xFFD1D5DB),
+                                contentDescription = "$starIndex",
+                                tint = if (starIndex <= selectedStars) Color(0xFFF59E0B) else MaterialTheme.colorScheme.surfaceVariant,
                                 modifier = Modifier.size(36.dp)
                             )
                         }
@@ -913,7 +948,7 @@ fun RateAppDialog(onDismiss: () -> Unit) {
                 }
 
                 Surface(
-                    color = Color(0xFFF9FAFB),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -925,7 +960,7 @@ fun RateAppDialog(onDismiss: () -> Unit) {
                             else -> "Pracujemy nad tym, aby stacje działały jeszcze lepiej!"
                         },
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF4B5563),
+                        color = MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(12.dp)
                     )
@@ -947,14 +982,14 @@ fun RateAppDialog(onDismiss: () -> Unit) {
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
-                        Text("Wyślij ocenę", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
+                        Text(strings.submitRatingBtn, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
                     }
 
                     TextButton(
                         onClick = onDismiss,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Może później", color = Color(0xFF6B7280))
+                        Text(strings.maybeLaterBtn, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -964,11 +999,15 @@ fun RateAppDialog(onDismiss: () -> Unit) {
 
 @Composable
 fun AboutAppDialog(onDismiss: () -> Unit) {
-    Dialog(onDismissRequest = onDismiss) {
+    val strings = strings
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Surface(
             shape = RoundedCornerShape(24.dp),
-            color = Color.White,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.fillMaxWidth(0.92f).padding(horizontal = 4.dp)
         ) {
             Column(
                 modifier = Modifier.padding(24.dp),
@@ -979,7 +1018,7 @@ fun AboutAppDialog(onDismiss: () -> Unit) {
                     modifier = Modifier
                         .size(64.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFD1FAE5)),
+                        .background(Color(0xFF10B981).copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -991,39 +1030,47 @@ fun AboutAppDialog(onDismiss: () -> Unit) {
                 }
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "VoltUp",
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 24.sp,
-                        color = Color(0xFF111827)
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "Volt",
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 24.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Up",
+                            fontWeight = FontWeight.Light,
+                            fontSize = 24.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                     Spacer(modifier = Modifier.height(10.dp))
                     Surface(
-                        color = Color(0xFFF3F4F6),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            text = "Wersja 1.00",
+                            text = strings.versionLabel,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF4B5563),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                         )
                     }
                 }
 
                 Text(
-                    text = "VoltUp to miejski ekosystem kinetyczny promujący zdrowy styl życia oraz zrównoważoną energię w Łodzi. Każdy Twój ruch przekształca się w czystą energię elektryczną, pomagając zasilać zielone miasto.",
+                    text = strings.aboutAppDialogDesc,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF4B5563),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     lineHeight = 20.sp
                 )
 
                 Text(
-                    text = "© 2026 VoltUp Team. Wszelkie prawa zastrzeżone.",
+                    text = strings.copyrightNotice,
                     fontSize = 11.sp,
-                    color = Color(0xFF9CA3AF),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     textAlign = TextAlign.Center
                 )
 
@@ -1033,7 +1080,7 @@ fun AboutAppDialog(onDismiss: () -> Unit) {
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Text("Super", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
+                    Text(strings.close, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
                 }
             }
         }

@@ -4,6 +4,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -19,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -35,6 +37,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.seconds
@@ -102,21 +105,32 @@ fun WorkoutScreen(
 
     val earnedPoints = (totalGeneratedWh * 0.2).toInt()
     val co2Saved = totalGeneratedWh * 0.0007
+    val strings = strings
+    val isDark = isAppInDarkTheme()
+
     val caloriesBurned = (totalGeneratedWh * 0.7 + (secondsElapsed * 0.08)).roundToInt()
     val distanceKm = (secondsElapsed * 0.0065) + (totalGeneratedWh * 0.012)
 
     val primaryColor = MaterialTheme.colorScheme.primary
     val surfaceVariantColor = MaterialTheme.colorScheme.surfaceVariant
     val warningColor = Color(0xFFF59E0B)
-    val cancelRedColor = Color(0xFFEF4444)
+    val cancelRedColor = MaterialTheme.colorScheme.error
     val caloriesColor = Color(0xFFFF4757)
 
     val energyGradient = listOf(Color(0xFFFFB75E), Color(0xFFED8F03))
     val resistanceGradient = listOf(Color(0xFF38EF7D), Color(0xFF11998E))
     val rpmGradient = listOf(Color(0xFF56CCF2), Color(0xFF2F80ED))
 
-    val caloriesPillGradient = listOf(Color(0xFFFFE4E6), Color(0xFFFFD1D1))
-    val timePillGradient = listOf(Color(0xFFE0E7FF), Color(0xFFD4E4FF))
+    val caloriesPillGradient = if (isDark) {
+        listOf(Color(0xFFB91C1C), Color(0xFFEF4444))
+    } else {
+        listOf(Color(0xFFDC2626), Color(0xFFF87171))
+    }
+    val timePillGradient = if (isDark) {
+        listOf(Color(0xFF1D4ED8), Color(0xFF3B82F6))
+    } else {
+        listOf(Color(0xFF2563EB), Color(0xFF60A5FA))
+    }
 
     val animatedWatts by animateIntAsState(
         targetValue = if (hasStarted && !isPaused && !showCompletionModal && !showCancelConfirmModal) currentWatts else 0,
@@ -154,7 +168,7 @@ fun WorkoutScreen(
                         .padding(end = 12.dp)
                 ) {
                     Text(
-                        text = station.name,
+                        text = station.getLocalizedName(strings),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Black,
                         color = MaterialTheme.colorScheme.onBackground,
@@ -172,16 +186,8 @@ fun WorkoutScreen(
                     )
                 }
 
-                val statusText = when {
-                    !hasStarted -> "GOTOWY"
-                    isPaused -> "WSTRZYMANO"
-                    else -> "AKTYWNY"
-                }
-                val statusColor = when {
-                    !hasStarted -> primaryColor
-                    isPaused -> warningColor
-                    else -> primaryColor
-                }
+                val statusText = if (isPaused) strings.statusPaused else strings.statusOnline
+                val statusColor = if (isPaused) warningColor else primaryColor
 
                 Surface(
                     shape = CircleShape,
@@ -257,7 +263,7 @@ fun WorkoutScreen(
                     ) {
                         if (!hasStarted) {
                             Text(
-                                text = "START",
+                                text = strings.workoutStart,
                                 fontSize = 42.sp,
                                 fontWeight = FontWeight.Black,
                                 color = primaryColor,
@@ -271,7 +277,7 @@ fun WorkoutScreen(
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "KLIKNIJ ABY ROZPOCZĄĆ",
+                                text = strings.workoutClickToStart,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Black,
                                 letterSpacing = 1.sp,
@@ -279,7 +285,7 @@ fun WorkoutScreen(
                             )
                         } else {
                             Text(
-                                text = if (isPaused) "PAUZA" else animatedWatts.toString(),
+                                text = if (isPaused) strings.workoutPausedShort else animatedWatts.toString(),
                                 fontSize = if (isPaused) 36.sp else 64.sp,
                                 fontWeight = FontWeight.Light,
                                 color = if (isPaused) warningColor else MaterialTheme.colorScheme.onBackground,
@@ -291,7 +297,7 @@ fun WorkoutScreen(
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = if (isPaused) "KLIKNIJ BY WZNOWIĆ" else "WATY (MOC)",
+                                text = if (isPaused) strings.workoutClickToResume else strings.workoutWattsLabel,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Black,
                                 letterSpacing = 2.sp,
@@ -323,7 +329,7 @@ fun WorkoutScreen(
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = if (!hasStarted || isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
-                                contentDescription = if (!hasStarted || isPaused) "Start/Wznów" else "Pauza",
+                                contentDescription = if (!hasStarted || isPaused) strings.resumeBtn else strings.pauseBtn,
                                 tint = if (!hasStarted || isPaused) warningColor else MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(24.dp)
                             )
@@ -344,7 +350,7 @@ fun WorkoutScreen(
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = Icons.Default.Check,
-                                contentDescription = "Zakończ sesję",
+                                contentDescription = strings.finishWorkoutBtn,
                                 tint = Color.White,
                                 modifier = Modifier.size(28.dp)
                             )
@@ -362,7 +368,7 @@ fun WorkoutScreen(
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = Icons.Default.Stop,
-                                contentDescription = "Anuluj",
+                                contentDescription = strings.cancelWorkoutBtn,
                                 tint = cancelRedColor,
                                 modifier = Modifier.size(24.dp)
                             )
@@ -377,9 +383,9 @@ fun WorkoutScreen(
             ) {
                 StatPill(
                     icon = Icons.Default.LocalFireDepartment,
-                    iconTint = caloriesColor,
+                    iconTint = Color.White,
                     text = "$caloriesBurned Kcal",
-                    textColor = Color(0xFF9F1239),
+                    textColor = Color.White,
                     gradientColors = caloriesPillGradient,
                     pattern = StatPattern.CIRCLES,
                     modifier = Modifier.weight(1f)
@@ -387,9 +393,9 @@ fun WorkoutScreen(
 
                 StatPill(
                     icon = Icons.Default.Schedule,
-                    iconTint = Color(0xFF2563EB),
+                    iconTint = Color.White,
                     text = secondsElapsed.formatSeconds(),
-                    textColor = Color(0xFF1E40AF),
+                    textColor = Color.White,
                     gradientColors = timePillGradient,
                     pattern = StatPattern.WAVES,
                     modifier = Modifier.weight(1f)
@@ -412,7 +418,7 @@ fun WorkoutScreen(
                     MiniRingGauge(
                         progress = (totalGeneratedWh / 5.0).toFloat().coerceIn(0f, 1f),
                         gradientColors = energyGradient,
-                        title = "Energia"
+                        title = strings.generatedEnergy
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(text = totalGeneratedWh.formatOneDecimal(), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
@@ -425,7 +431,7 @@ fun WorkoutScreen(
                     MiniRingGauge(
                         progress = resistanceLevel / 10f,
                         gradientColors = resistanceGradient,
-                        title = "Opór"
+                        title = strings.resistanceLevel
                     ) {
                         Box(
                             modifier = Modifier
@@ -438,7 +444,7 @@ fun WorkoutScreen(
                                         dragAccumulator += dragAmount
                                         if (dragAccumulator > 30f) {
                                             if (resistanceLevel > 1) resistanceLevel--
-                                            dragAccumulator = 0f
+                                             dragAccumulator = 0f
                                         } else if (dragAccumulator < -30f) {
                                             if (resistanceLevel < 10) resistanceLevel++
                                             dragAccumulator = 0f
@@ -464,7 +470,7 @@ fun WorkoutScreen(
                     MiniRingGauge(
                         progress = (currentRpm / 100f).coerceIn(0f, 1f),
                         gradientColors = rpmGradient,
-                        title = "Prędkość"
+                        title = strings.speedLabel
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(text = currentRpm.toString(), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
@@ -517,7 +523,7 @@ fun WorkoutScreen(
                             )
                         }
                         Text(
-                            text = "VoltPoints",
+                            text = strings.voltPoints,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -547,7 +553,7 @@ fun WorkoutScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column(verticalArrangement = Arrangement.Center) {
-                                Text("Dystans", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(strings.distanceLabel, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text("${distanceKm.formatOneDecimal()} km", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
                             }
                             Icon(Icons.Default.DirectionsBike, contentDescription = null, tint = rpmGradient[0], modifier = Modifier.size(24.dp))
@@ -569,7 +575,7 @@ fun WorkoutScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column(verticalArrangement = Arrangement.Center) {
-                                Text("Tętno", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(strings.heartRateLabel, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text("$currentHeartRate BPM", fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSurface)
                             }
                             Icon(Icons.Default.Favorite, contentDescription = null, tint = caloriesColor, modifier = Modifier.size(24.dp))
@@ -602,19 +608,19 @@ fun WorkoutScreen(
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(CircleShape)
-                                .background(LightPrimary.copy(alpha = 0.12f)),
+                                .background(primaryColor.copy(alpha = 0.12f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.QrCodeScanner,
                                 contentDescription = null,
-                                tint = LightPrimary,
+                                tint = primaryColor,
                                 modifier = Modifier.size(22.dp)
                             )
                         }
                         Column(verticalArrangement = Arrangement.Center) {
                             Text(
-                                text = "ID URZĄDZENIA",
+                                text = strings.deviceIdLabel,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 1.sp,
@@ -629,42 +635,40 @@ fun WorkoutScreen(
                         }
                     }
 
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-                    ) {
-                        Text(
-                            text = station.qrCodeId,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    HologramDeviceBadge(
+                        deviceId = station.qrCodeId,
+                        isDark = isDark
+                    )
                 }
             }
         }
     }
 
     if (showCompletionModal) {
+        val nowMs = currentTimeMillis()
         val record = WorkoutSessionRecord(
             id = "W-${(100000..999999).random()}",
             stationName = station.name,
             stationLocation = station.location,
-            dateText = "Dzisiaj",
+            dateText = formatSessionDate(nowMs),
             durationSeconds = secondsElapsed,
             generatedWh = totalGeneratedWh,
             earnedPoints = earnedPoints,
             co2SavedKg = co2Saved,
             caloriesKcal = caloriesBurned,
-            timestampMs = currentTimeMillis()
+            timestampMs = nowMs
         )
 
-        Dialog(onDismissRequest = { showCompletionModal = false }) {
+        Dialog(
+            onDismissRequest = { showCompletionModal = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
             Surface(
                 shape = RoundedCornerShape(24.dp),
-                color = Color.White,
-                modifier = Modifier.fillMaxWidth()
+                color = MaterialTheme.colorScheme.surface,
+                modifier = Modifier
+                    .fillMaxWidth(0.92f)
+                    .padding(horizontal = 4.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
@@ -687,21 +691,21 @@ fun WorkoutScreen(
                     }
 
                     Text(
-                        text = "Podsumowanie Sesji",
+                        text = strings.workoutSummaryTitle,
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp,
-                        color = Color.Black
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     Text(
-                        text = "Świetna robota! Wygenerowana przez Ciebie energia właśnie zasiliła miejską sieć w Łodzi.",
+                        text = strings.workoutSummaryDesc,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
 
                     Surface(
-                        color = Color(0xFFF3F4F6),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -710,20 +714,20 @@ fun WorkoutScreen(
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Wygenerowano:", style = MaterialTheme.typography.bodyMedium, color = Color.DarkGray)
+                                Text(strings.generatedEnergy + ":", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text("${totalGeneratedWh.formatOneDecimal()} Wh", fontWeight = FontWeight.ExtraBold, color = primaryColor)
                             }
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Zdobyte punkty:", style = MaterialTheme.typography.bodyMedium, color = Color.DarkGray)
+                                Text(strings.voltPoints + ":", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text("+$earnedPoints VoltPoints", fontWeight = FontWeight.ExtraBold, color = warningColor)
                             }
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Czas sesji:", style = MaterialTheme.typography.bodyMedium, color = Color.DarkGray)
-                                Text(secondsElapsed.formatSeconds(), fontWeight = FontWeight.Bold, color = Color.Black)
+                                Text(strings.sessionDuration + ":", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(secondsElapsed.formatSeconds(), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                             }
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Spalone kalorie:", style = MaterialTheme.typography.bodyMedium, color = Color.DarkGray)
-                                Text("$caloriesBurned kcal", fontWeight = FontWeight.Bold, color = Color.Black)
+                                Text(strings.caloriesBurned + ":", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("$caloriesBurned kcal", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                             }
                         }
                     }
@@ -739,10 +743,10 @@ fun WorkoutScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(48.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = Color.White),
+                            colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = MaterialTheme.colorScheme.onPrimary),
                             shape = CircleShape
                         ) {
-                            Text("Zapisz i odbierz punkty", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text(strings.saveAndClaimPointsBtn, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
 
                         Button(
@@ -751,9 +755,9 @@ fun WorkoutScreen(
                                 .fillMaxWidth()
                                 .height(48.dp),
                             shape = CircleShape,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF3F4F6), contentColor = Color.DarkGray)
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurface)
                         ) {
-                            Text("Kontynuuj trening", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text(strings.continueWorkoutBtn, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
                     }
                 }
@@ -762,11 +766,16 @@ fun WorkoutScreen(
     }
 
     if (showCancelConfirmModal) {
-        Dialog(onDismissRequest = { showCancelConfirmModal = false }) {
+        Dialog(
+            onDismissRequest = { showCancelConfirmModal = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
             Surface(
                 shape = RoundedCornerShape(24.dp),
-                color = Color.White,
-                modifier = Modifier.fillMaxWidth()
+                color = MaterialTheme.colorScheme.surface,
+                modifier = Modifier
+                    .fillMaxWidth(0.92f)
+                    .padding(horizontal = 4.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
@@ -789,16 +798,16 @@ fun WorkoutScreen(
                     }
 
                     Text(
-                        text = "Anulować trening?",
+                        text = strings.cancelConfirmTitle,
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp,
-                        color = Color.Black
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     Text(
-                        text = "Cały postęp tej sesji oraz wygenerowana energia zostaną utracone.",
+                        text = strings.cancelConfirmDesc,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
 
@@ -816,7 +825,7 @@ fun WorkoutScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = cancelRedColor, contentColor = Color.White),
                             shape = CircleShape
                         ) {
-                            Text("Przerwij", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text(strings.discardSessionBtn, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
 
                         Button(
@@ -825,9 +834,9 @@ fun WorkoutScreen(
                                 .fillMaxWidth()
                                 .height(48.dp),
                             shape = CircleShape,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF3F4F6), contentColor = Color.DarkGray)
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurface)
                         ) {
-                            Text("Wznów trening", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text(strings.backToWorkoutBtn, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
                     }
                 }
@@ -921,6 +930,93 @@ fun StatPill(
                 color = textColor,
                 maxLines = 1,
                 softWrap = false
+            )
+        }
+    }
+}
+
+@Composable
+fun HologramDeviceBadge(deviceId: String, isDark: Boolean) {
+    val infiniteTransition = rememberInfiniteTransition(label = "hologramTransition")
+    val sheenProgress by infiniteTransition.animateFloat(
+        initialValue = -0.6f,
+        targetValue = 1.6f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "hologramSheen"
+    )
+
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = if (isDark) listOf(
+                        Color(0xFF282536),
+                        Color(0xFF383147),
+                        Color(0xFF2E2B3E),
+                        Color(0xFF423758)
+                    ) else listOf(
+                        Color(0xFFEDE9F6),
+                        Color(0xFFE2DCF2),
+                        Color(0xFFF3F0FA),
+                        Color(0xFFDCD4F0)
+                    ),
+                    start = Offset(0f, 0f),
+                    end = Offset(220f, 220f)
+                )
+            )
+            .border(
+                width = 1.dp,
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFF9D84D8).copy(alpha = 0.65f),
+                        Color(0xFF6B6285).copy(alpha = 0.35f),
+                        Color(0xFFBAA7E8).copy(alpha = 0.75f),
+                        Color(0xFF7B709B).copy(alpha = 0.45f)
+                    )
+                ),
+                shape = RoundedCornerShape(12.dp)
+            )
+            .drawWithContent {
+                drawContent()
+                val width = size.width
+                val height = size.height
+                val sheenX = width * sheenProgress
+                val sheenBrush = Brush.linearGradient(
+                    colors = listOf(
+                        Color.Transparent,
+                        Color(0x22A78BFA),
+                        Color(0x77DDD6FE),
+                        Color(0x33E0E7FF),
+                        Color.Transparent
+                    ),
+                    start = Offset(sheenX - width * 0.4f, 0f),
+                    end = Offset(sheenX + width * 0.4f, height)
+                )
+                drawRect(brush = sheenBrush)
+            }
+            .padding(horizontal = 14.dp, vertical = 7.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF8B5CF6))
+            )
+            Text(
+                text = deviceId,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.8.sp,
+                color = if (isDark) Color(0xFFDDD6FE) else Color(0xFF4C3A6E)
             )
         }
     }

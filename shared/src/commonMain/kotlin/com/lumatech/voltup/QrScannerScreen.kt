@@ -175,13 +175,13 @@ fun QrScannerScreen(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Wróć",
+                        contentDescription = strings.back,
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)
                     )
                 }
                 Text(
-                    text = "Skanuj QR",
+                    text = strings.qrScannerTitle,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
@@ -191,7 +191,7 @@ fun QrScannerScreen(
             Spacer(modifier = Modifier.weight(1f))
 
             Text(
-                text = "Skieruj aparat na kod QR na urządzeniu, aby rozpocząć trening.",
+                text = strings.qrScannerInstruction,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 40.dp),
@@ -207,7 +207,7 @@ fun QrScannerScreen(
                 value = manualCode,
                 onValueChange = { manualCode = it },
                 placeholder = {
-                    Text("Wpisz kod ręcznie", fontSize = 14.sp, color = Color.White.copy(alpha = 0.5f))
+                    Text(strings.qrManualCodePlaceholder, fontSize = 14.sp, color = Color.White.copy(alpha = 0.5f))
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -241,7 +241,7 @@ fun QrScannerScreen(
                         }) {
                             Icon(
                                 Icons.Default.ArrowForward,
-                                contentDescription = "Zatwierdź",
+                                contentDescription = strings.qrSubmitBtn,
                                 tint = primaryColor
                             )
                         }
@@ -265,7 +265,7 @@ fun QrScannerScreen(
                     color = Color.White.copy(alpha = 0.15f)
                 ) {
                     Text(
-                        text = "Symuluj",
+                        text = strings.qrSimulateBtn,
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
                         color = Color.White,
                         fontWeight = FontWeight.Bold,

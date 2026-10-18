@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -39,6 +40,8 @@ fun ManageAccountScreen(
 ) {
     CommonBackHandler(enabled = true, onBack = onNavigateBack)
 
+    val strings = strings
+    val isEnglish = strings is VoltUpEnglishStrings
     val coroutineScope = rememberCoroutineScope()
     val primaryColor = MaterialTheme.colorScheme.primary
 
@@ -57,7 +60,7 @@ fun ManageAccountScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Zarządzaj kontem",
+                        text = strings.manageAccountTitle,
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp
                     )
@@ -66,7 +69,7 @@ fun ManageAccountScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Wróć"
+                            contentDescription = strings.back
                         )
                     }
                 },
@@ -172,7 +175,7 @@ fun ManageAccountScreen(
             // Sekcja Danych Konta
             item {
                 Text(
-                    text = "DANE KONTA",
+                    text = if (isEnglish) "ACCOUNT INFO" else "DANE KONTA",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -189,8 +192,8 @@ fun ManageAccountScreen(
                     Column(modifier = Modifier.padding(8.dp)) {
                         AccountInfoRow(
                             icon = Icons.Default.Email,
-                            label = "Adres e-mail",
-                            value = userEmail.ifBlank { "Brak danych" }
+                            label = if (isEnglish) "Email address" else "Adres e-mail",
+                            value = userEmail.ifBlank { if (isEnglish) "No data" else "Brak danych" }
                         )
 
                         HorizontalDivider(
@@ -200,7 +203,7 @@ fun ManageAccountScreen(
 
                         AccountInfoRow(
                             icon = Icons.Default.Badge,
-                            label = "Nazwa wyświetlana",
+                            label = if (isEnglish) "Display name" else "Nazwa wyświetlana",
                             value = userStats.userName
                         )
 
@@ -211,8 +214,25 @@ fun ManageAccountScreen(
 
                         AccountInfoRow(
                             icon = Icons.Default.LocalFireDepartment,
-                            label = "Seria treningowa",
-                            value = "${userStats.streakDays} dni z rzędu"
+                            label = if (isEnglish) "Workout streak" else "Seria treningowa",
+                            value = if (isEnglish) "${userStats.streakDays} days in a row" else "${userStats.streakDays} dni z rzędu"
+                        )
+
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                        )
+
+                        val createdDateStr = if (userStats.accountCreatedAt > 0L) {
+                            formatSessionDate(userStats.accountCreatedAt)
+                        } else {
+                            if (isEnglish) "Recent" else "Niedawno"
+                        }
+
+                        AccountInfoRow(
+                            icon = Icons.Default.CalendarToday,
+                            label = if (isEnglish) "Account created" else "Data utworzenia konta",
+                            value = createdDateStr
                         )
                     }
                 }
@@ -221,7 +241,7 @@ fun ManageAccountScreen(
             // Sekcja Akcji i Bezpieczeństwa
             item {
                 Text(
-                    text = "BEZPIECZEŃSTWO I KONTO",
+                    text = if (isEnglish) "SECURITY & ACCOUNT" else "BEZPIECZEŃSTWO I KONTO",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -238,8 +258,8 @@ fun ManageAccountScreen(
                     Column(modifier = Modifier.padding(8.dp)) {
                         AccountActionRow(
                             icon = Icons.Default.LockReset,
-                            title = "Zmień hasło",
-                            subtitle = "Zaktualizuj swoje hasło do logowania",
+                            title = if (isEnglish) "Change password" else "Zmień hasło",
+                            subtitle = if (isEnglish) "Update your login password" else "Zaktualizuj swoje hasło do logowania",
                             iconTint = primaryColor,
                             onClick = {
                                 newPasswordText = ""
@@ -254,8 +274,8 @@ fun ManageAccountScreen(
 
                         AccountActionRow(
                             icon = Icons.Default.ExitToApp,
-                            title = "Wyloguj się",
-                            subtitle = "Zakończ bieżącą sesję na urządzeniu",
+                            title = if (isEnglish) "Sign out" else "Wyloguj się",
+                            subtitle = if (isEnglish) "End current session on this device" else "Zakończ bieżącą sesję na urządzeniu",
                             iconTint = Color(0xFFFFA000),
                             onClick = { showSignOutDialog = true }
                         )
@@ -267,8 +287,8 @@ fun ManageAccountScreen(
 
                         AccountActionRow(
                             icon = Icons.Default.DeleteForever,
-                            title = "Usuń konto",
-                            subtitle = "Trwałe usunięcie konta i danych z bazy",
+                            title = if (isEnglish) "Delete account" else "Usuń konto",
+                            subtitle = if (isEnglish) "Permanently remove account and data" else "Trwałe usunięcie konta i danych z bazy",
                             titleColor = MaterialTheme.colorScheme.error,
                             iconTint = MaterialTheme.colorScheme.error,
                             onClick = { showDeleteAccountDialog = true }
@@ -281,13 +301,16 @@ fun ManageAccountScreen(
 
     // Dialog 1: Zmiana hasła (czyste białe tło, RoundedCornerShape(24.dp), ikona w okręgu, styl WorkoutScreen)
     if (showChangePasswordDialog) {
-        Dialog(onDismissRequest = { if (!isChangingPassword) showChangePasswordDialog = false }) {
+        Dialog(
+            onDismissRequest = { if (!isChangingPassword) showChangePasswordDialog = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
             Surface(
                 shape = RoundedCornerShape(24.dp),
-                color = Color.White,
+                color = MaterialTheme.colorScheme.surface,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp)
+                    .fillMaxWidth(0.92f)
+                    .padding(horizontal = 4.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
@@ -313,13 +336,13 @@ fun ManageAccountScreen(
                         text = "Zmień hasło",
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp,
-                        color = Color.Black
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     Text(
                         text = "Wprowadź dotychczasowe hasło oraz nowe bezpieczne hasło (minimum 6 znaków).",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
 
@@ -332,14 +355,14 @@ fun ManageAccountScreen(
                         shape = RoundedCornerShape(14.dp),
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Black,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                             focusedBorderColor = primaryColor,
-                            unfocusedBorderColor = Color(0xFFD1D5DB),
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.18f),
                             focusedLabelColor = primaryColor,
-                            unfocusedLabelColor = Color.Gray
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     )
 
@@ -352,14 +375,14 @@ fun ManageAccountScreen(
                         shape = RoundedCornerShape(14.dp),
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Black,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                             focusedBorderColor = primaryColor,
-                            unfocusedBorderColor = Color(0xFFD1D5DB),
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.18f),
                             focusedLabelColor = primaryColor,
-                            unfocusedLabelColor = Color.Gray
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     )
 
@@ -372,14 +395,14 @@ fun ManageAccountScreen(
                         shape = RoundedCornerShape(14.dp),
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Black,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
                             focusedBorderColor = primaryColor,
-                            unfocusedBorderColor = Color(0xFFD1D5DB),
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.18f),
                             focusedLabelColor = primaryColor,
-                            unfocusedLabelColor = Color.Gray
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     )
 
@@ -450,7 +473,10 @@ fun ManageAccountScreen(
                                 .fillMaxWidth()
                                 .height(48.dp),
                             shape = CircleShape,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF3F4F6), contentColor = Color.DarkGray)
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            )
                         ) {
                             Text("Anuluj", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
@@ -462,14 +488,17 @@ fun ManageAccountScreen(
 
     // Dialog 2: Wylogowanie (styl WorkoutScreen)
     if (showSignOutDialog) {
-        val warnColor = Color(0xFFFFA000)
-        Dialog(onDismissRequest = { showSignOutDialog = false }) {
+        val warnColor = MaterialTheme.colorScheme.error
+        Dialog(
+            onDismissRequest = { showSignOutDialog = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
             Surface(
                 shape = RoundedCornerShape(24.dp),
-                color = Color.White,
+                color = MaterialTheme.colorScheme.surface,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp)
+                    .fillMaxWidth(0.92f)
+                    .padding(horizontal = 4.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
@@ -492,16 +521,16 @@ fun ManageAccountScreen(
                     }
 
                     Text(
-                        text = "Wylogować się?",
+                        text = strings.signOutConfirmTitle,
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp,
-                        color = Color.Black
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     Text(
-                        text = "Czy na pewno chcesz zakończyć bieżącą sesję na urządzeniu?",
+                        text = strings.signOutConfirmDesc,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
 
@@ -519,10 +548,10 @@ fun ManageAccountScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(48.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = warnColor, contentColor = Color.White),
+                            colors = ButtonDefaults.buttonColors(containerColor = warnColor, contentColor = MaterialTheme.colorScheme.onError),
                             shape = CircleShape
                         ) {
-                            Text("Wyloguj się", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text(strings.signOutBtn, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
 
                         Button(
@@ -531,9 +560,9 @@ fun ManageAccountScreen(
                                 .fillMaxWidth()
                                 .height(48.dp),
                             shape = CircleShape,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF3F4F6), contentColor = Color.DarkGray)
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurface)
                         ) {
-                            Text("Anuluj", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text(strings.cancel, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
                     }
                 }
@@ -543,14 +572,17 @@ fun ManageAccountScreen(
 
     // Dialog 3: Usunięcie konta (styl WorkoutScreen)
     if (showDeleteAccountDialog) {
-        val deleteRedColor = Color(0xFFE53935)
-        Dialog(onDismissRequest = { if (!isDeletingAccount) showDeleteAccountDialog = false }) {
+        val deleteRedColor = MaterialTheme.colorScheme.error
+        Dialog(
+            onDismissRequest = { if (!isDeletingAccount) showDeleteAccountDialog = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
             Surface(
                 shape = RoundedCornerShape(24.dp),
-                color = Color.White,
+                color = MaterialTheme.colorScheme.surface,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp)
+                    .fillMaxWidth(0.92f)
+                    .padding(horizontal = 4.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
@@ -573,16 +605,16 @@ fun ManageAccountScreen(
                     }
 
                     Text(
-                        text = "Usunąć konto?",
+                        text = strings.deleteAccountConfirmTitle,
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp,
-                        color = Color.Black
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     Text(
-                        text = "Ta operacja jest nieodwracalna. Twój profil, punkty VoltPoints oraz historia treningów zostaną trwale skasowane.",
+                        text = strings.deleteAccountConfirmDesc,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
 
@@ -612,11 +644,11 @@ fun ManageAccountScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(48.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = deleteRedColor, contentColor = Color.White),
+                            colors = ButtonDefaults.buttonColors(containerColor = deleteRedColor, contentColor = MaterialTheme.colorScheme.onError),
                             shape = CircleShape
                         ) {
                             Text(
-                                text = if (isDeletingAccount) "Usuwanie..." else "Usuń trwale konto",
+                                text = if (isDeletingAccount) strings.delete else strings.deleteAccountPermanentlyBtn,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp
                             )
@@ -629,9 +661,9 @@ fun ManageAccountScreen(
                                 .fillMaxWidth()
                                 .height(48.dp),
                             shape = CircleShape,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF3F4F6), contentColor = Color.DarkGray)
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurface)
                         ) {
-                            Text("Anuluj", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text(strings.cancel, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
                     }
                 }

@@ -16,11 +16,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsBike
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -31,14 +34,14 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.tooling.preview.Preview
+import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
 fun StreakPill(streakDays: Int) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppInDarkTheme()
     val containerColor = if (isDark) Color(0xFF4A1200) else Color(0xFFFFEAE0)
     val contentColor = if (isDark) Color(0xFFFF7043) else Color(0xFFD84315)
 
@@ -76,16 +79,19 @@ fun ProfileScreen(
     onUpdateUserProfile: (newName: String, newAvatarId: Int) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenAchievements: () -> Unit = {},
+    onOpenWorkoutHistory: () -> Unit = {},
     userEmail: String = "",
     authService: VoltUpAuthService? = null,
     onSignOut: () -> Unit = {}
 ) {
+    val strings = strings
     var showEditProfileDialog by remember { mutableStateOf(false) }
     var showSignOutDialog by remember { mutableStateOf(false) }
+    var selectedWorkoutDetail by remember { mutableStateOf<WorkoutSessionRecord?>(null) }
     val coroutineScope = rememberCoroutineScope()
 
     val primaryColor = MaterialTheme.colorScheme.primary
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppInDarkTheme()
 
     LazyColumn(
         modifier = Modifier
@@ -100,15 +106,22 @@ fun ProfileScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val isEnglish = strings is VoltUpEnglishStrings
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Profil ",
+                        text = if (isEnglish) "Profile " else "Profil ",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
-                        text = "VoltUp",
+                        text = "Volt",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        text = "Up",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Light,
                         color = MaterialTheme.colorScheme.onBackground
@@ -139,7 +152,7 @@ fun ProfileScreen(
 
                         // Odsunięto ikonę edycji bardziej w lewo (spacedBy z 12.dp na 20.dp)
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(22.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             IconButton(
@@ -151,7 +164,7 @@ fun ProfileScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Edit,
-                                    contentDescription = "Edytuj dane profilu",
+                                    contentDescription = strings.editProfileBtn,
                                     modifier = Modifier.size(18.dp),
                                     tint = MaterialTheme.colorScheme.onSurface
                                 )
@@ -166,7 +179,7 @@ fun ProfileScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Settings,
-                                    contentDescription = "Ustawienia",
+                                    contentDescription = strings.settingsMenu,
                                     modifier = Modifier.size(18.dp),
                                     tint = MaterialTheme.colorScheme.onSurface
                                 )
@@ -180,8 +193,8 @@ fun ProfileScreen(
                                     .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f))
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.ExitToApp,
-                                    contentDescription = "Wyloguj się",
+                                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                                    contentDescription = strings.signOutMenu,
                                     modifier = Modifier.size(18.dp),
                                     tint = MaterialTheme.colorScheme.error
                                 )
@@ -227,7 +240,7 @@ fun ProfileScreen(
                             color = primaryColor.copy(alpha = 0.12f)
                         ) {
                             Text(
-                                text = "Poziom ${stats.level}",
+                                text = strings.levelLabel(stats.level),
                                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
@@ -235,8 +248,9 @@ fun ProfileScreen(
                             )
                         }
 
+                        val effectiveLevelPts = stats.rankingPoints
                         val (minPts, maxPts) = getLevelThresholds(stats.level)
-                        val currentLvlPts = (stats.points - minPts).coerceAtLeast(0)
+                        val currentLvlPts = (effectiveLevelPts - minPts).coerceAtLeast(0)
                         val reqLvlPts = (maxPts - minPts).coerceAtLeast(1)
                         val progressFraction = (currentLvlPts.toFloat() / reqLvlPts.toFloat()).coerceIn(0f, 1f)
 
@@ -270,7 +284,7 @@ fun ProfileScreen(
                             }
 
                             Text(
-                                text = "${stats.points}/$maxPts pkt",
+                                text = "$effectiveLevelPts/$maxPts ${strings.levelPointsSuffix}",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -289,12 +303,12 @@ fun ProfileScreen(
                     ) {
                         ProfileStatNumber(
                             value = formatEnergySmart(stats.totalEnergyWh),
-                            label = "Wygenerowano",
+                            label = strings.generatedEnergy,
                             valueColor = MaterialTheme.colorScheme.onSurface
                         )
                         ProfileStatNumber(
                             value = formatCo2Smart(stats.co2SavedKg),
-                            label = "Mniej CO2",
+                            label = strings.co2Reduction,
                             valueColor = primaryColor
                         )
                     }
@@ -342,14 +356,78 @@ fun ProfileScreen(
                         }
                         Column {
                             Text(
-                                text = "Osiągnięcia i Odznaki",
+                                text = strings.achievementsScreenTitle,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            val unlockedText = if (strings is VoltUpEnglishStrings) "${achievements.count { it.level > 0 }} of ${achievements.size} unlocked" else "${achievements.count { it.level > 0 }} z ${achievements.size} odblokowane"
+                            Text(
+                                text = unlockedText,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                }
+            }
+        }
+
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(24.dp))
+                    .clickable { onOpenWorkoutHistory() },
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        val histBgColor = if (isDark) Color(0xFF1E3A5F) else Color(0xFFE3F2FD)
+                        val histIconColor = if (isDark) Color(0xFF64B5F6) else Color(0xFF1976D2)
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(histBgColor),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Timer,
+                                contentDescription = null,
+                                tint = histIconColor,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        Column {
+                            Text(
+                                text = strings.workoutHistoryTileTitle,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 15.sp,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "${achievements.count { it.level > 0 }} z ${achievements.size} odblokowane",
+                                text = strings.workoutHistoryTileSubtitle,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -367,7 +445,7 @@ fun ProfileScreen(
 
         item {
             Text(
-                text = "WYZWANIA TYGODNIOWE",
+                text = strings.weeklyChallengesSection,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
@@ -387,7 +465,7 @@ fun ProfileScreen(
                 ) {
                     Box(modifier = Modifier.padding(32.dp), contentAlignment = Alignment.Center) {
                         Text(
-                            text = "Wszystkie wyzwania na ten tydzień ukończone. Dobra robota!",
+                            text = strings.allWeeklyChallengesCompleted,
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -421,11 +499,13 @@ fun ProfileScreen(
 
         AlertDialog(
             onDismissRequest = { showEditProfileDialog = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+            modifier = Modifier.fillMaxWidth(0.92f),
             shape = RoundedCornerShape(28.dp),
             containerColor = MaterialTheme.colorScheme.surface,
             title = {
                 Text(
-                    text = "Edytuj profil",
+                    text = strings.editProfileDialogTitle,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -436,7 +516,7 @@ fun ProfileScreen(
                     OutlinedTextField(
                         value = editName,
                         onValueChange = { editName = it },
-                        label = { Text("Imię i nazwisko") },
+                        label = { Text(strings.fullNameLabel) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp),
@@ -449,7 +529,7 @@ fun ProfileScreen(
                     )
 
                     Text(
-                        text = "Wybierz ikonę profilu",
+                        text = strings.chooseProfileAvatar,
                         style = MaterialTheme.typography.labelSmall,
                         color = primaryColor,
                         fontWeight = FontWeight.Bold
@@ -497,17 +577,17 @@ fun ProfileScreen(
                             showEditProfileDialog = false
                         },
                         modifier = Modifier.fillMaxWidth().height(48.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = Color.White),
+                        colors = ButtonDefaults.buttonColors(containerColor = primaryColor, contentColor = MaterialTheme.colorScheme.onPrimary),
                         shape = CircleShape
                     ) {
-                        Text("Zapisz zmiany", fontWeight = FontWeight.ExtraBold)
+                        Text(strings.saveChanges, fontWeight = FontWeight.ExtraBold)
                     }
 
                     TextButton(
                         onClick = { showEditProfileDialog = false },
                         modifier = Modifier.fillMaxWidth().height(44.dp)
                     ) {
-                        Text("Anuluj", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(strings.cancel, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             },
@@ -516,51 +596,244 @@ fun ProfileScreen(
     }
 
     if (showSignOutDialog) {
-        AlertDialog(
+        Dialog(
             onDismissRequest = { showSignOutDialog = false },
-            shape = RoundedCornerShape(28.dp),
-            containerColor = MaterialTheme.colorScheme.surface,
-            title = {
-                Text(
-                    text = "Wylogować się?",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            },
-            text = {
-                Text(
-                    text = "Czy na pewno chcesz zakończyć sesję i wylogować się z konta VoltUp?",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            },
-            confirmButton = {
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            val warnColor = Color(0xFFFFA000)
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                modifier = Modifier
+                    .fillMaxWidth(0.92f)
+                    .padding(horizontal = 4.dp)
+            ) {
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Button(
-                        onClick = {
-                            showSignOutDialog = false
-                            onSignOut()
-                        },
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = Color.White),
-                        shape = CircleShape
+                    Box(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(CircleShape)
+                            .background(warnColor.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text("Wyloguj się", fontWeight = FontWeight.ExtraBold)
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                            contentDescription = null,
+                            tint = warnColor,
+                            modifier = Modifier.size(40.dp)
+                        )
                     }
 
-                    TextButton(
-                        onClick = { showSignOutDialog = false },
-                        modifier = Modifier.fillMaxWidth().height(44.dp)
+                    Text(
+                        text = strings.signOutConfirmTitle,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Text(
+                        text = strings.signOutConfirmDesc,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Text("Anuluj", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Button(
+                            onClick = {
+                                showSignOutDialog = false
+                                onSignOut()
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = MaterialTheme.colorScheme.onError
+                            ),
+                            shape = CircleShape
+                        ) {
+                            Text(
+                                text = strings.signOutBtn,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                        }
+
+                        Button(
+                            onClick = { showSignOutDialog = false },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            shape = CircleShape,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            )
+                        ) {
+                            Text(
+                                text = strings.cancel,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                        }
                     }
                 }
-            },
-            dismissButton = null
+            }
+        }
+    }
+
+    if (selectedWorkoutDetail != null) {
+        WorkoutDetailsDialog(
+            workout = selectedWorkoutDetail!!,
+            onDismiss = { selectedWorkoutDetail = null }
+        )
+    }
+}
+
+@Composable
+fun WorkoutDetailsDialog(
+    workout: WorkoutSessionRecord,
+    onDismiss: () -> Unit
+) {
+    val strings = strings
+    val primaryColor = MaterialTheme.colorScheme.primary
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .padding(horizontal = 4.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(primaryColor.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.FitnessCenter,
+                                contentDescription = null,
+                                tint = primaryColor,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        Column {
+                            Text(
+                                text = strings.workoutDetailsTitle,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            val displayDate = if (workout.dateText.isNotBlank() && workout.dateText != "Ostatnio") {
+                                workout.dateText
+                            } else if (workout.timestampMs > 0L) {
+                                formatSessionDate(workout.timestampMs)
+                            } else ""
+                            if (displayDate.isNotBlank()) {
+                                Text(
+                                    text = displayDate,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.size(36.dp).clip(CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = strings.close,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+
+                // Detail Rows
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    WorkoutDetailRow(label = strings.workoutDetailsDevice, value = workout.stationName)
+                    WorkoutDetailRow(label = strings.workoutDetailsPlace, value = workout.stationLocation)
+                    WorkoutDetailRow(label = strings.workoutDetailsDuration, value = "${workout.durationSeconds / 60} min ${workout.durationSeconds % 60} s")
+                    WorkoutDetailRow(label = strings.workoutDetailsEnergy, value = "${workout.generatedWh.roundToInt()} Wh", valueColor = primaryColor)
+                    WorkoutDetailRow(label = strings.workoutDetailsPoints, value = "+${workout.earnedPoints} VP", valueColor = EnergyYellow)
+                    WorkoutDetailRow(label = strings.workoutDetailsCalories, value = "${workout.caloriesKcal} kcal")
+                    val co2Grams = (workout.co2SavedKg * 1000).roundToInt()
+                    WorkoutDetailRow(label = strings.workoutDetailsCo2, value = "$co2Grams g CO₂", valueColor = Color(0xFF10B981))
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = CircleShape,
+                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
+                ) {
+                    Text(strings.close, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WorkoutDetailRow(
+    label: String,
+    value: String,
+    valueColor: Color = MaterialTheme.colorScheme.onSurface
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = valueColor
         )
     }
 }
@@ -571,6 +844,8 @@ fun ModernChallengeCard(
     challenge: Challenge,
     onClaimClick: () -> Unit
 ) {
+    val strings = strings
+    val isEnglish = strings is VoltUpEnglishStrings
     var isExpanded by remember { mutableStateOf(false) }
     var isClaiming by remember { mutableStateOf(false) }
 
@@ -588,8 +863,13 @@ fun ModernChallengeCard(
     }
 
     val primaryColor = MaterialTheme.colorScheme.primary
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppInDarkTheme()
     val warningYellow = if (isDark) Color(0xFFFFB74D) else Color(0xFFFF9800)
+
+    val localizedTitle = challenge.getLocalizedTitle(isEnglish)
+    val localizedDescription = challenge.getLocalizedDescription(isEnglish)
+    val localizedDetails = challenge.getLocalizedDetails(isEnglish)
+    val localizedUnit = challenge.getLocalizedUnit(isEnglish)
 
     Card(
         modifier = Modifier
@@ -620,14 +900,14 @@ fun ModernChallengeCard(
                 ) {
                     Icon(
                         imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                        contentDescription = if (isExpanded) "Zwiń" else "Rozwiń",
+                        contentDescription = if (isExpanded) strings.collapseDetails else strings.expandDetails,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
 
                     Box(contentAlignment = Alignment.CenterStart) {
                         Text(
-                            text = challenge.title,
+                            text = localizedTitle,
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
                             color = if (isClaiming || challenge.isClaimed) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
@@ -710,7 +990,7 @@ fun ModernChallengeCard(
 
             // Krótki opis
             Text(
-                text = challenge.description,
+                text = localizedDescription,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 18.sp
@@ -727,9 +1007,9 @@ fun ModernChallengeCard(
                         modifier = Modifier.padding(14.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        if (challenge.details.isNotBlank()) {
+                        if (localizedDetails.isNotBlank()) {
                             Text(
-                                text = challenge.details,
+                                text = localizedDetails,
                                 fontSize = 13.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 lineHeight = 19.sp
@@ -749,7 +1029,7 @@ fun ModernChallengeCard(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Postęp wyzwania:",
+                                text = strings.challengeProgressLabel,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -759,7 +1039,7 @@ fun ModernChallengeCard(
                             val targetFormatted = if (challenge.targetValue % 1.0 == 0.0) "${challenge.targetValue.toInt()}" else "${challenge.targetValue}"
 
                             Text(
-                                text = "$currFormatted / $targetFormatted ${challenge.unit}",
+                                text = "$currFormatted / $targetFormatted $localizedUnit",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -772,7 +1052,7 @@ fun ModernChallengeCard(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Nagrody za ukończenie:",
+                                text = strings.completionRewardsLabel,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -824,7 +1104,7 @@ fun ModernChallengeCard(
                     modifier = Modifier.fillMaxWidth().height(42.dp)
                 ) {
                     Text(
-                        text = if (isClaiming) "Odbieranie..." else "Odbierz nagrody (+${challenge.rankingPointsReward} pkt | +${challenge.voltPointsReward} VP)",
+                        text = if (isClaiming) strings.claimingStatus else strings.claimRewardsBtn(challenge.rankingPointsReward, challenge.voltPointsReward),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -848,7 +1128,7 @@ fun ModernChallengeCard(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Nagrody odebrane",
+                            text = strings.rewardsClaimedStatus,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = primaryColor

@@ -36,7 +36,7 @@ data class VoltUpUser(
     companion object {
         fun fromMap(map: Map<String, Any?>): VoltUpUser {
             val voltPts = (map["volt_points"] as? Number ?: map["points"] as? Number)?.toInt() ?: 0
-            val rankPts = (map["ranking_points"] as? Number)?.toInt() ?: voltPts
+            val rankPts = (map["ranking_points"] as? Number)?.toInt() ?: 0
             return VoltUpUser(
                 userId = (map["user_id"] as? String ?: map["id"] as? String).orEmpty(),
                 email = (map["email"] as? String ?: map["mail"] as? String).orEmpty(),
@@ -191,7 +191,8 @@ data class UserCouponDto(
     val rewardId: String = "",
     val discountCode: String = "",
     val costPoints: Int = 0,
-    val validityMinutes: Int = 20,
+    val validityMinutes: Int = 0,
+    val isReadyToScan: Boolean = false,
     val isActivated: Boolean = false,
     val activatedAt: Long? = null,
     val redeemedAt: Long = 0L
@@ -203,6 +204,7 @@ data class UserCouponDto(
         "discount_code" to discountCode,
         "cost_points" to costPoints,
         "validity_minutes" to validityMinutes,
+        "is_ready_to_scan" to isReadyToScan,
         "is_activated" to isActivated,
         "activated_at" to activatedAt,
         "redeemed_at" to redeemedAt
@@ -216,7 +218,8 @@ data class UserCouponDto(
                 rewardId = (map["reward_id"] as? String).orEmpty(),
                 discountCode = (map["discount_code"] as? String).orEmpty(),
                 costPoints = (map["cost_points"] as? Number)?.toInt() ?: 0,
-                validityMinutes = (map["validity_minutes"] as? Number)?.toInt() ?: 20,
+                validityMinutes = (map["validity_minutes"] as? Number)?.toInt() ?: 0,
+                isReadyToScan = (map["is_ready_to_scan"] as? Boolean) ?: false,
                 isActivated = (map["is_activated"] as? Boolean) ?: false,
                 activatedAt = (map["activated_at"] as? Number)?.toLong(),
                 redeemedAt = (map["redeemed_at"] as? Number)?.toLong() ?: 0L

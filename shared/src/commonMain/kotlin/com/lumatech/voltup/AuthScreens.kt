@@ -34,6 +34,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.launch
 
 @Composable
@@ -43,8 +44,14 @@ fun LoginScreen(
     onNavigateToForgotPassword: () -> Unit,
     onLoginSuccess: (VoltUpUser) -> Unit
 ) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    val initialEmail = remember { VoltUpStorage.getString(VoltUpPreferenceKeys.KEY_SAVED_EMAIL, "") }
+    val initialRememberMe = remember { VoltUpStorage.getBoolean(VoltUpPreferenceKeys.KEY_REMEMBER_ME, false) }
+    val initialPassword = remember {
+        if (initialRememberMe) VoltUpStorage.getString(VoltUpPreferenceKeys.KEY_SAVED_PASSWORD, "") else ""
+    }
+    var email by remember { mutableStateOf(initialEmail) }
+    var password by remember { mutableStateOf(initialPassword) }
+    var rememberMe by remember { mutableStateOf(initialRememberMe) }
     var isPasswordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -98,7 +105,13 @@ fun LoginScreen(
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    text = "VoltUp",
+                    text = "Volt",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "Up",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Light,
                     color = MaterialTheme.colorScheme.onBackground
@@ -106,7 +119,7 @@ fun LoginScreen(
             }
 
             Text(
-                text = "Zaloguj się do swojego portfela kinetycznego",
+                text = strings.loginSubtitle,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -125,7 +138,7 @@ fun LoginScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
-                        text = "LOGOWANIE",
+                        text = strings.loginHeader,
                         style = MaterialTheme.typography.labelSmall,
                         color = primaryColor,
                         fontWeight = FontWeight.Bold,
@@ -139,8 +152,8 @@ fun LoginScreen(
                             email = it
                             errorMessage = null
                         },
-                        label = { Text("Adres e-mail") },
-                        placeholder = { Text("np. jan.kowalski@lodz.pl") },
+                        label = { Text(strings.emailLabel) },
+                        placeholder = { Text(strings.emailPlaceholder) },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Email,
@@ -171,8 +184,8 @@ fun LoginScreen(
                             password = it
                             errorMessage = null
                         },
-                        label = { Text("Hasło") },
-                        placeholder = { Text("Wpisz swoje hasło") },
+                        label = { Text(strings.passwordLabel) },
+                        placeholder = { Text(strings.passwordPlaceholder) },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Lock,
@@ -208,10 +221,38 @@ fun LoginScreen(
                         )
                     )
 
-                    // Zapomniałeś hasła?
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                    // Zapamiętaj mnie oraz Nie pamiętasz hasła
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { rememberMe = !rememberMe }
+                                .padding(vertical = 4.dp)
+                        ) {
+                            Checkbox(
+                                checked = rememberMe,
+                                onCheckedChange = { rememberMe = it },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = primaryColor,
+                                    checkmarkColor = MaterialTheme.colorScheme.onPrimary
+                                )
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = strings.rememberMe,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
                         Text(
-                            text = "Nie pamiętasz hasła?",
+                            text = strings.forgotPasswordQuestion,
                             style = MaterialTheme.typography.bodySmall,
                             color = primaryColor,
                             fontWeight = FontWeight.SemiBold,
@@ -274,6 +315,13 @@ fun LoginScreen(
                                 val result = authService.signIn(email, password)
                                 isLoading = false
                                 if (result.isSuccess && result.user != null) {
+                                    VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_EMAIL, email.trim())
+                                    VoltUpStorage.setBoolean(VoltUpPreferenceKeys.KEY_REMEMBER_ME, rememberMe)
+                                    if (rememberMe) {
+                                        VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_PASSWORD, password)
+                                    } else {
+                                        VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_PASSWORD, "")
+                                    }
                                     onLoginSuccess(result.user)
                                 } else {
                                     errorMessage = result.errorMessage ?: "Błąd logowania. Spróbuj ponownie."
@@ -298,7 +346,7 @@ fun LoginScreen(
                             )
                         } else {
                             Text(
-                                text = "Zaloguj się",
+                                text = strings.signInBtn,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -315,12 +363,12 @@ fun LoginScreen(
                 horizontalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "Nie masz jeszcze konta? ",
+                    text = strings.noAccountQuestion,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "Zarejestruj się",
+                    text = strings.signUpLink,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = primaryColor,
@@ -386,12 +434,12 @@ fun RegisterScreen(
                 IconButton(onClick = onNavigateToLogin) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Wróć do logowania",
+                        contentDescription = strings.backToLogin,
                         tint = MaterialTheme.colorScheme.onBackground
                     )
                 }
                 Text(
-                    text = "Rejestracja konta",
+                    text = strings.registerHeader,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
@@ -401,7 +449,7 @@ fun RegisterScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Dołącz do miejskiego systemu energii VoltUp Łódź i zamieniaj ruch na punkty i nagrody MPK!",
+                text = strings.registerSubtitle,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth()
@@ -434,8 +482,8 @@ fun RegisterScreen(
                             userName = it
                             errorMessage = null
                         },
-                        label = { Text("Imię lub pseudonim") },
-                        placeholder = { Text("np. Jan Kowalski") },
+                        label = { Text(strings.fullNameLabel) },
+                        placeholder = { Text(strings.fullNamePlaceholder) },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Person,
@@ -466,8 +514,8 @@ fun RegisterScreen(
                             email = it
                             errorMessage = null
                         },
-                        label = { Text("Adres e-mail") },
-                        placeholder = { Text("twoj.email@poczta.pl") },
+                        label = { Text(strings.emailLabel) },
+                        placeholder = { Text(strings.emailPlaceholder) },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Email,
@@ -531,7 +579,7 @@ fun RegisterScreen(
                             password = it
                             errorMessage = null
                         },
-                        label = { Text("Hasło (min. 6 znaków)") },
+                        label = { Text(strings.passwordLabel) },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Lock,
@@ -572,7 +620,7 @@ fun RegisterScreen(
                             confirmPassword = it
                             errorMessage = null
                         },
-                        label = { Text("Powtórz hasło") },
+                        label = { Text(strings.confirmPasswordLabel) },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.LockReset,
@@ -664,6 +712,9 @@ fun RegisterScreen(
                                 )
                                 isLoading = false
                                 if (result.isSuccess && result.user != null) {
+                                    VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_EMAIL, email.trim())
+                                    VoltUpStorage.setBoolean(VoltUpPreferenceKeys.KEY_REMEMBER_ME, true)
+                                    VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_PASSWORD, password)
                                     onRegisterSuccess(result.user)
                                 } else {
                                     errorMessage = result.errorMessage ?: "Błąd rejestracji. Spróbuj ponownie."
@@ -688,7 +739,7 @@ fun RegisterScreen(
                             )
                         } else {
                             Text(
-                                text = "Utwórz konto VoltUp",
+                                text = strings.signUpBtn,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -704,12 +755,12 @@ fun RegisterScreen(
                 horizontalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "Masz już konto? ",
+                    text = strings.alreadyHaveAccountQuestion,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "Zaloguj się",
+                    text = strings.signInLink,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = primaryColor,
@@ -845,7 +896,7 @@ fun ForgotPasswordScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Text(
-                            text = "ODZYSKIWANIE DOSTĘPU",
+                            text = strings.forgotPasswordTitle.uppercase(),
                             style = MaterialTheme.typography.labelSmall,
                             color = primaryColor,
                             fontWeight = FontWeight.Bold,
@@ -853,7 +904,7 @@ fun ForgotPasswordScreen(
                         )
 
                         Text(
-                            text = "Podaj adres e-mail powiązany z kontem VoltUp. Otrzymasz wiadomość z bezpiecznym linkiem do wygenerowania nowego hasła.",
+                            text = strings.forgotPasswordSubtitle,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -864,8 +915,8 @@ fun ForgotPasswordScreen(
                                 email = it
                                 errorMessage = null
                             },
-                            label = { Text("Twój e-mail") },
-                            placeholder = { Text("np. jan.kowalski@poczta.pl") },
+                            label = { Text(strings.emailLabel) },
+                            placeholder = { Text(strings.emailPlaceholder) },
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Default.Email,
@@ -960,7 +1011,7 @@ fun ForgotPasswordScreen(
                                 )
                             } else {
                                 Text(
-                                    text = "Wyślij link do resetu",
+                                    text = strings.sendResetLinkBtn,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -992,7 +1043,12 @@ fun ChangePasswordDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+        modifier = Modifier.fillMaxWidth(0.92f),
         shape = RoundedCornerShape(24.dp),
+        containerColor = MaterialTheme.colorScheme.surface,
+        titleContentColor = MaterialTheme.colorScheme.onSurface,
+        textContentColor = MaterialTheme.colorScheme.onSurface,
         title = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -1003,13 +1059,13 @@ fun ChangePasswordDialog(
                     contentDescription = null,
                     tint = primaryColor
                 )
-                Text("Zmień hasło", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                Text(strings.changePasswordDialogTitle, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurface)
             }
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Text(
-                    text = "Wprowadź dotychczasowe hasło oraz nowe bezpieczne hasło (minimum 6 znaków).",
+                    text = strings.changePasswordHelpText,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1020,7 +1076,7 @@ fun ChangePasswordDialog(
                         oldPassword = it
                         errorMessage = null
                     },
-                    label = { Text("Dotychczasowe hasło") },
+                    label = { Text(strings.oldPasswordLabel) },
                     singleLine = true,
                     visualTransformation = if (isOldPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
@@ -1042,7 +1098,7 @@ fun ChangePasswordDialog(
                         newPassword = it
                         errorMessage = null
                     },
-                    label = { Text("Nowe hasło") },
+                    label = { Text(strings.newPasswordLabel) },
                     singleLine = true,
                     visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
@@ -1064,7 +1120,7 @@ fun ChangePasswordDialog(
                         confirmPassword = it
                         errorMessage = null
                     },
-                    label = { Text("Powtórz nowe hasło") },
+                    label = { Text(strings.confirmNewPasswordLabel) },
                     singleLine = true,
                     visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth(),
@@ -1124,13 +1180,13 @@ fun ChangePasswordDialog(
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("Zapisz nowe hasło", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
+                    Text(strings.saveNewPasswordBtn, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
                 }
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Anuluj", color = MaterialTheme.colorScheme.onSurface)
+                Text(strings.cancel, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     )

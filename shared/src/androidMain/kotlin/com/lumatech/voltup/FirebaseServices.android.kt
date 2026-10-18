@@ -25,6 +25,7 @@ private const val TAG = "VoltUpFirebase"
 
 fun initVoltUpFirebase(context: android.content.Context) {
     try {
+        voltUpAppContext = context.applicationContext
         var apiKey = "AIzaSyC1sit0tMF-_QBowwG3yt505xoRnItx4Uo"
         var applicationId = "1:344024062833:android:voltupapp"
         var projectId = "voltup-21c34"
@@ -495,12 +496,14 @@ class AndroidFirestoreService : VoltUpDatabaseService {
         pointsDelta: Int,
         whDelta: Double,
         co2Delta: Double,
-        newLevel: Int
+        newLevel: Int,
+        rankingPointsDelta: Int
     ): Boolean {
         val current = memoryUsers[userId]
         if (current != null) {
             val updated = current.copy(
                 voltPoints = current.voltPoints + pointsDelta,
+                rankingPoints = current.rankingPoints + rankingPointsDelta,
                 totalEnergyWh = current.totalEnergyWh + whDelta,
                 co2SavedKg = current.co2SavedKg + co2Delta,
                 userLevel = newLevel,
@@ -511,15 +514,17 @@ class AndroidFirestoreService : VoltUpDatabaseService {
 
         return try {
             val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-            firestore.collection("users").document(userId).update(
-                mapOf(
-                    "volt_points" to FieldValue.increment(pointsDelta.toLong()),
-                    "total_energy_wh" to FieldValue.increment(whDelta),
-                    "co2_saved_kg" to FieldValue.increment(co2Delta),
-                    "user_level" to newLevel,
-                    "last_active_date" to todayStr
-                )
-            ).await()
+            val updateMap = mutableMapOf<String, Any>(
+                "volt_points" to FieldValue.increment(pointsDelta.toLong()),
+                "total_energy_wh" to FieldValue.increment(whDelta),
+                "co2_saved_kg" to FieldValue.increment(co2Delta),
+                "user_level" to newLevel,
+                "last_active_date" to todayStr
+            )
+            if (rankingPointsDelta != 0) {
+                updateMap["ranking_points"] = FieldValue.increment(rankingPointsDelta.toLong())
+            }
+            firestore.collection("users").document(userId).update(updateMap).await()
             true
         } catch (e: Exception) {
             Log.w(TAG, "Aktualizacja statystyk w chmurze nie powiodła się: ${e.message}")
@@ -702,6 +707,8 @@ class AndroidFirestoreService : VoltUpDatabaseService {
     }
 
     override suspend fun getUserCoupons(userId: String): List<UserCouponDto> {
+        val thirtyDaysMs = 30L * 24 * 60 * 60 * 1000L
+        val cutoff = currentTimeMillis() - thirtyDaysMs
         return try {
             val snapshot = firestore.collection("users")
                 .document(userId)
@@ -710,22 +717,28 @@ class AndroidFirestoreService : VoltUpDatabaseService {
                 .get()
                 .await()
 
-            val list = snapshot.documents.mapNotNull { doc ->
-                doc.data?.let { UserCouponDto.fromMap(it) }
+            val validList = mutableListOf<UserCouponDto>()
+            for (doc in snapshot.documents) {
+                val dto = doc.data?.let { UserCouponDto.fromMap(it) } ?: continue
+                if (dto.redeemedAt in 1..cutoff) {
+                    try { doc.reference.delete() } catch (_: Exception) {}
+                } else {
+                    validList.add(dto)
+                }
             }
-            if (list.isNotEmpty()) {
-                list
+            if (validList.isNotEmpty()) {
+                validList
             } else {
-                memoryCoupons.filter { it.userId == userId }
+                memoryCoupons.filter { it.userId == userId && (it.redeemedAt == 0L || it.redeemedAt >= cutoff) }
             }
         } catch (e: Exception) {
             Log.w(TAG, "Pobieranie kuponów: ${e.message}")
-            memoryCoupons.filter { it.userId == userId }
+            memoryCoupons.filter { it.userId == userId && (it.redeemedAt == 0L || it.redeemedAt >= cutoff) }
         }
     }
 
     override suspend fun updateCouponActivation(couponId: String, isActivated: Boolean, activatedAtMs: Long?): Boolean {
-        val idx = memoryCoupons.indexOfFirst { it.couponId == couponId }
+        val idx = memoryCoupons.indexOfFirst { it.couponId == couponId || it.discountCode == couponId }
         val userId = if (idx != -1) {
             memoryCoupons[idx] = memoryCoupons[idx].copy(isActivated = isActivated, activatedAt = activatedAtMs)
             memoryCoupons[idx].userId
@@ -733,10 +746,11 @@ class AndroidFirestoreService : VoltUpDatabaseService {
 
         return try {
             if (userId.isNotBlank()) {
+                val realCouponId = if (idx != -1) memoryCoupons[idx].couponId else couponId
                 firestore.collection("users")
                     .document(userId)
                     .collection("user_coupons")
-                    .document(couponId)
+                    .document(realCouponId)
                     .update(
                         mapOf(
                             "is_activated" to isActivated,
@@ -747,6 +761,22 @@ class AndroidFirestoreService : VoltUpDatabaseService {
             true
         } catch (e: Exception) {
             Log.w(TAG, "Aktualizacja aktywacji kuponu: ${e.message}")
+            true
+        }
+    }
+
+    override suspend fun deleteCoupon(userId: String, couponId: String): Boolean {
+        memoryCoupons.removeAll { it.couponId == couponId || (it.userId == userId && it.discountCode == couponId) }
+        return try {
+            firestore.collection("users")
+                .document(userId)
+                .collection("user_coupons")
+                .document(couponId)
+                .delete()
+                .await()
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "Usunięcie kuponu: ${e.message}")
             true
         }
     }
@@ -809,7 +839,7 @@ class AndroidFirestoreService : VoltUpDatabaseService {
 
             val allUsersMap = (memoryUsers.values + firestoreUsers).associateBy { it.userId }
             val realLeaderboardUsers = allUsersMap.values.map { u ->
-                val userPts = if (u.rankingPoints > 0) u.rankingPoints else u.voltPoints
+                val userPts = u.rankingPoints
                 LeaderboardUser(
                     id = u.userId,
                     name = u.userName.ifBlank { u.email.substringBefore("@") },
@@ -823,7 +853,7 @@ class AndroidFirestoreService : VoltUpDatabaseService {
         } catch (e: Exception) {
             Log.w(TAG, "Błąd pobierania rankingu: ${e.message}")
             val localUsers = memoryUsers.values.map { u ->
-                val userPts = if (u.rankingPoints > 0) u.rankingPoints else u.voltPoints
+                val userPts = u.rankingPoints
                 LeaderboardUser(
                     id = u.userId,
                     name = u.userName.ifBlank { u.email.substringBefore("@") },

@@ -9,6 +9,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import org.jetbrains.compose.resources.Font
 import voltup.shared.generated.resources.Res
 import voltup.shared.generated.resources.*
@@ -28,6 +31,14 @@ val LightPrimary = Color(0xFF00A35B)
 val LightTextPrimary = Color(0xFF0F172A)
 val LightTextSecondary = Color(0xFF64748B)
 
+val ElectricRed = Color(0xFFEF4444)
+val DarkErrorContainer = Color(0xFF450A0A)
+val DarkOnErrorContainer = Color(0xFFFCA5A5)
+
+val LightError = Color(0xFFDC2626)
+val LightErrorContainer = Color(0xFFFEE2E2)
+val LightOnErrorContainer = Color(0xFF991B1B)
+
 private val VoltUpDarkColorScheme = darkColorScheme(
     primary = ElectricVoltGreen,
     onPrimary = Color.Black,
@@ -42,7 +53,11 @@ private val VoltUpDarkColorScheme = darkColorScheme(
     onSurface = DarkTextPrimary,
     onSurfaceVariant = DarkTextSecondary,
     outline = Color(0xFF2A313C),
-    tertiary = EnergyYellow
+    tertiary = EnergyYellow,
+    error = ElectricRed,
+    onError = Color.White,
+    errorContainer = DarkErrorContainer,
+    onErrorContainer = DarkOnErrorContainer
 )
 
 private val VoltUpLightColorScheme = lightColorScheme(
@@ -59,7 +74,11 @@ private val VoltUpLightColorScheme = lightColorScheme(
     onSurface = LightTextPrimary,
     onSurfaceVariant = LightTextSecondary,
     outline = Color(0xFFE2E8F0),
-    tertiary = EnergyYellow
+    tertiary = EnergyYellow,
+    error = LightError,
+    onError = Color.White,
+    errorContainer = LightErrorContainer,
+    onErrorContainer = LightOnErrorContainer
 )
 
 @Composable
@@ -150,6 +169,11 @@ fun getVoltUpTypography(): Typography {
     )
 }
 
+val LocalIsDarkTheme = androidx.compose.runtime.compositionLocalOf { false }
+
+@Composable
+fun isAppInDarkTheme(): Boolean = LocalIsDarkTheme.current
+
 @Composable
 fun VoltUpTheme(
     themeMode: AppThemeMode = AppThemeMode.SYSTEM,
@@ -165,11 +189,15 @@ fun VoltUpTheme(
     val colorScheme = if (isDark) VoltUpDarkColorScheme else VoltUpLightColorScheme
     val typography = getVoltUpTypography()
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = typography,
-        content = content
-    )
+    androidx.compose.runtime.CompositionLocalProvider(
+        LocalIsDarkTheme provides isDark
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = typography,
+            content = content
+        )
+    }
 }
 
 @Preview
@@ -178,6 +206,39 @@ fun VoltUpThemePreview() {
     VoltUpTheme(AppThemeMode.DARK) {
         Surface {
             Text("VoltUp Preview", style = MaterialTheme.typography.headlineMedium)
+        }
+    }
+}
+
+fun formatVoltUpAnnotated(
+    text: String,
+    defaultWeight: FontWeight = FontWeight.Normal,
+    voltWeight: FontWeight = FontWeight.Bold,
+    upWeight: FontWeight = FontWeight.Light
+): androidx.compose.ui.text.AnnotatedString {
+    return buildAnnotatedString {
+        var currentIndex = 0
+        while (currentIndex < text.length) {
+            val voltUpIndex = text.indexOf("VoltUp", currentIndex)
+            if (voltUpIndex == -1) {
+                withStyle(SpanStyle(fontWeight = defaultWeight)) {
+                    append(text.substring(currentIndex))
+                }
+                break
+            } else {
+                if (voltUpIndex > currentIndex) {
+                    withStyle(SpanStyle(fontWeight = defaultWeight)) {
+                        append(text.substring(currentIndex, voltUpIndex))
+                    }
+                }
+                withStyle(SpanStyle(fontWeight = voltWeight)) {
+                    append("Volt")
+                }
+                withStyle(SpanStyle(fontWeight = upWeight)) {
+                    append("Up")
+                }
+                currentIndex = voltUpIndex + 6
+            }
         }
     }
 }

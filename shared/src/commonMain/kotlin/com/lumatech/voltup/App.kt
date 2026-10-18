@@ -8,6 +8,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
@@ -64,6 +65,7 @@ sealed interface Screen {
     data object Login : Screen
     data object Register : Screen
     data object ForgotPassword : Screen
+    data object Onboarding : Screen
     data object Main : Screen
     data class ActiveWorkout(val station: KineticStation) : Screen
     data object Settings : Screen
@@ -71,12 +73,12 @@ sealed interface Screen {
     data object Achievements : Screen
     data object ManageAccount : Screen
     data object HelpGuide : Screen
-    data object Authors : Screen
+    data object WorkoutHistory : Screen
 }
 
 class BottomBarWithNotchShape(
-    private val notchRadius: Dp = 40.dp,
-    private val notchDepth: Dp = 32.dp,
+    private val notchRadius: Dp = 46.dp,
+    private val notchDepth: Dp = 36.dp,
     private val cornerRadius: Dp = 20.dp
 ) : Shape {
     override fun createOutline(
@@ -133,10 +135,23 @@ fun App() {
     val currentAuthUser by authService.currentUser.collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
-    var appSettings by remember { mutableStateOf(AppSettings()) }
+    val initialLanguage = remember {
+        val langName = VoltUpStorage.getString(VoltUpPreferenceKeys.KEY_SAVED_LANGUAGE, "")
+        AppLanguage.entries.find { it.name == langName } ?: AppLanguage.POLISH
+    }
+    val initialTheme = remember {
+        val themeName = VoltUpStorage.getString(VoltUpPreferenceKeys.KEY_SAVED_THEME, "")
+        AppThemeMode.entries.find { it.name == themeName } ?: AppThemeMode.DARK
+    }
+    val savedEmail = remember { VoltUpStorage.getString(VoltUpPreferenceKeys.KEY_SAVED_EMAIL, "") }
+    val savedPassword = remember { VoltUpStorage.getString(VoltUpPreferenceKeys.KEY_SAVED_PASSWORD, "") }
+    val rememberMe = remember { VoltUpStorage.getBoolean(VoltUpPreferenceKeys.KEY_REMEMBER_ME, false) }
+
+    var appSettings by remember { mutableStateOf(AppSettings(themeMode = initialTheme, language = initialLanguage)) }
     var isSplashVisible by remember { mutableStateOf(true) }
-    var isAutoLoggingIn by remember { mutableStateOf(false) }
-    var currentScreen by remember { mutableStateOf<Screen>(if (currentAuthUser != null) Screen.Main else Screen.Login) }
+    val hasValidAutoLogin = rememberMe && (currentAuthUser != null || (savedEmail.isNotBlank() && savedPassword.isNotBlank()))
+    var isAutoLoggingIn by remember { mutableStateOf(hasValidAutoLogin) }
+    var currentScreen by remember { mutableStateOf<Screen>(if (hasValidAutoLogin) Screen.Main else Screen.Login) }
     var currentTab by remember { mutableStateOf(MainTab.HOME) }
     var userStats by remember {
         mutableStateOf(
@@ -159,23 +174,40 @@ fun App() {
     var redeemedRewards by remember { mutableStateOf(emptyList<RedeemedReward>()) }
 
     LaunchedEffect(Unit) {
+        if (!rememberMe) {
+            if (currentAuthUser != null) {
+                authService.signOut()
+            }
+            isAutoLoggingIn = false
+            currentScreen = Screen.Login
+        } else {
+            if (currentAuthUser == null && savedEmail.isNotBlank() && savedPassword.isNotBlank()) {
+                isAutoLoggingIn = true
+                val result = authService.signIn(savedEmail, savedPassword)
+                if (result.isSuccess && result.user != null) {
+                    currentScreen = Screen.Main
+                } else {
+                    isAutoLoggingIn = false
+                    currentScreen = Screen.Login
+                }
+            }
+        }
         delay(1200.milliseconds)
         isSplashVisible = false
+        if (rememberMe && currentAuthUser != null) {
+            delay(700.milliseconds)
+            isAutoLoggingIn = false
+        } else {
+            isAutoLoggingIn = false
+        }
     }
 
     LaunchedEffect(currentAuthUser) {
         val user = currentAuthUser
         if (user == null) {
             isAutoLoggingIn = false
-            if (currentScreen != Screen.Login && currentScreen != Screen.Register && currentScreen != Screen.ForgotPassword) {
+            if (currentScreen != Screen.Login && currentScreen != Screen.Register && currentScreen != Screen.ForgotPassword && currentScreen != Screen.Onboarding) {
                 currentScreen = Screen.Login
-            }
-        } else {
-            isAutoLoggingIn = true
-            delay(600.milliseconds)
-            isAutoLoggingIn = false
-            if (currentScreen == Screen.Login || currentScreen == Screen.Register || currentScreen == Screen.ForgotPassword) {
-                currentScreen = Screen.Main
             }
         }
     }
@@ -192,6 +224,7 @@ fun App() {
 
             userStats = userStats.copy(
                 points = freshUser.voltPoints,
+                rankingPoints = freshUser.rankingPoints,
                 totalEnergyWh = freshUser.totalEnergyWh,
                 co2SavedKg = freshUser.co2SavedKg,
                 userName = freshUser.userName.ifBlank { "Użytkownik VoltUp" },
@@ -199,12 +232,13 @@ fun App() {
                 level = freshUser.userLevel,
                 levelTitle = calculateLevelTitle(freshUser.userLevel),
                 streakDays = freshUser.streakDays,
+                accountCreatedAt = freshUser.createdAt,
                 recentWorkouts = workouts.map { w ->
                     WorkoutSessionRecord(
                         id = w.sessionId,
                         stationName = w.stationName,
                         stationLocation = w.stationLocation,
-                        dateText = "Ostatnio",
+                        dateText = formatSessionDate(w.createdAt).ifBlank { "" },
                         durationSeconds = w.durationSeconds,
                         generatedWh = w.generatedWh,
                         earnedPoints = w.earnedPoints,
@@ -257,34 +291,38 @@ fun App() {
             }
 
             if (loadedCoupons.isNotEmpty()) {
-                redeemedRewards = loadedCoupons.filter { !it.rewardId.contains("RANK") }.map { c ->
-                    val r = MockData.sampleRewards.firstOrNull { it.id == c.rewardId }
-                        ?: Reward(
-                            id = c.rewardId,
-                            title = "Kupon VoltUp",
-                            partner = "Partner Miejski",
-                            costPoints = c.costPoints,
-                            category = RewardCategory.ALL,
-                            description = "Odebrany bilet/kupon",
+                val cutoff = currentTimeMillis() - 30L * 24 * 60 * 60 * 1000L
+                redeemedRewards = loadedCoupons
+                    .filter { !it.rewardId.contains("RANK") && (it.redeemedAt == 0L || it.redeemedAt >= cutoff) }
+                    .map { c ->
+                        val r = MockData.sampleRewards.firstOrNull { it.id == c.rewardId }
+                            ?: Reward(
+                                id = c.rewardId,
+                                title = "Kupon VoltUp",
+                                partner = "Partner Miejski",
+                                costPoints = c.costPoints,
+                                category = RewardCategory.ALL,
+                                description = "Odebrany bilet/kupon",
+                                discountCode = c.discountCode,
+                                validityMinutes = c.validityMinutes
+                            )
+                        RedeemedReward(
+                            id = c.couponId.ifBlank { "${c.rewardId}_${c.discountCode}" },
+                            reward = r,
                             discountCode = c.discountCode,
+                            redeemedDate = "Zapisany",
+                            isReadyToScan = c.isReadyToScan,
+                            isActivated = c.isActivated,
+                            activatedTimestamp = c.activatedAt ?: 0L,
                             validityMinutes = c.validityMinutes
                         )
-                    RedeemedReward(
-                        id = c.couponId.ifBlank { "${c.rewardId}_${c.discountCode}" },
-                        reward = r,
-                        discountCode = c.discountCode,
-                        redeemedDate = "Zapisany",
-                        isActivated = c.isActivated,
-                        activatedTimestamp = c.activatedAt ?: 0L,
-                        validityMinutes = c.validityMinutes
-                    )
-                }
+                    }
             }
         }
     }
 
     val canGoBack = when (currentScreen) {
-        Screen.Login -> false
+        Screen.Login, Screen.Onboarding -> false
         Screen.Register, Screen.ForgotPassword -> true
         Screen.Main -> currentTab != MainTab.HOME
         else -> true
@@ -296,17 +334,18 @@ fun App() {
             is Screen.Settings -> currentScreen = Screen.Main
             is Screen.ManageAccount -> currentScreen = Screen.Settings
             is Screen.HelpGuide -> currentScreen = Screen.Settings
-            is Screen.Authors -> currentScreen = Screen.Settings
             is Screen.QrScanner -> currentScreen = Screen.Main
             is Screen.Achievements -> currentScreen = Screen.Main
+            is Screen.WorkoutHistory -> currentScreen = Screen.Main
             is Screen.ActiveWorkout -> { }
             is Screen.Main -> if (currentTab != MainTab.HOME) currentTab = MainTab.HOME
-            is Screen.Login -> { }
+            is Screen.Login, is Screen.Onboarding -> { }
         }
     }
 
-    VoltUpTheme(themeMode = appSettings.themeMode) {
-        Box(modifier = Modifier.fillMaxSize()) {
+    CompositionLocalProvider(LocalAppLanguage provides appSettings.language) {
+        VoltUpTheme(themeMode = appSettings.themeMode) {
+            Box(modifier = Modifier.fillMaxSize()) {
             Surface(
                 modifier = Modifier.fillMaxSize(),
                 color = MaterialTheme.colorScheme.background
@@ -314,9 +353,40 @@ fun App() {
                 AnimatedContent(
                     targetState = currentScreen,
                     transitionSpec = {
-                        fadeIn(animationSpec = androidx.compose.animation.core.tween(250)) +
-                        slideInVertically(animationSpec = androidx.compose.animation.core.tween(250)) { it / 10 } togetherWith
-                        fadeOut(animationSpec = androidx.compose.animation.core.tween(150))
+                        val isEnteringSubScreen = targetState is Screen.Settings ||
+                                targetState is Screen.HelpGuide ||
+                                targetState is Screen.ManageAccount ||
+                                targetState is Screen.ActiveWorkout ||
+                                targetState is Screen.WorkoutHistory ||
+                                targetState is Screen.Achievements ||
+                                targetState is Screen.Register ||
+                                targetState is Screen.ForgotPassword
+
+                        val isReturningToMainOrLogin = (targetState is Screen.Main && initialState !is Screen.Login && initialState !is Screen.Register && initialState !is Screen.Onboarding) ||
+                                (targetState is Screen.Login && (initialState is Screen.Register || initialState is Screen.ForgotPassword))
+
+                        if (isReturningToMainOrLogin) {
+                            (fadeIn(animationSpec = androidx.compose.animation.core.tween(240)) +
+                                    scaleIn(animationSpec = androidx.compose.animation.core.tween(260), initialScale = 0.96f))
+                                .togetherWith(
+                                    fadeOut(animationSpec = androidx.compose.animation.core.tween(180)) +
+                                            slideOutHorizontally(animationSpec = androidx.compose.animation.core.tween(240)) { it / 4 }
+                                )
+                        } else if (isEnteringSubScreen) {
+                            (fadeIn(animationSpec = androidx.compose.animation.core.tween(260)) +
+                                    slideInHorizontally(animationSpec = androidx.compose.animation.core.tween(280)) { it / 4 } +
+                                    scaleIn(animationSpec = androidx.compose.animation.core.tween(280), initialScale = 0.96f))
+                                .togetherWith(
+                                    fadeOut(animationSpec = androidx.compose.animation.core.tween(180)) +
+                                            scaleOut(animationSpec = androidx.compose.animation.core.tween(220), targetScale = 0.96f)
+                                )
+                        } else {
+                            (fadeIn(animationSpec = androidx.compose.animation.core.tween(240)) +
+                                    slideInVertically(animationSpec = androidx.compose.animation.core.tween(240)) { it / 12 })
+                                .togetherWith(
+                                    fadeOut(animationSpec = androidx.compose.animation.core.tween(180))
+                                )
+                        }
                     },
                     label = "ScreenTransition"
                 ) { screen ->
@@ -338,8 +408,17 @@ fun App() {
                                 authService = authService,
                                 onNavigateToLogin = { currentScreen = Screen.Login },
                                 onRegisterSuccess = { user ->
-                                    currentScreen = Screen.Main
+                                    val onboardingCompleted = VoltUpStorage.getBoolean(VoltUpPreferenceKeys.KEY_ONBOARDING_COMPLETED, false)
+                                    currentScreen = if (!onboardingCompleted) Screen.Onboarding else Screen.Main
                                     SnackbarHelper.show("Konto utworzone! Witaj w VoltUp, ${user.userName}!")
+                                }
+                            )
+                        }
+
+                        is Screen.Onboarding -> {
+                            OnboardingScreen(
+                                onFinish = {
+                                    currentScreen = Screen.Main
                                 }
                             )
                         }
@@ -382,6 +461,8 @@ fun App() {
                                 userEmail = currentAuthUser?.email.orEmpty(),
                                 onSignOut = {
                                     coroutineScope.launch {
+                                        VoltUpStorage.setBoolean(VoltUpPreferenceKeys.KEY_REMEMBER_ME, false)
+                                        VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_PASSWORD, "")
                                         authService.signOut()
                                         currentScreen = Screen.Login
                                         SnackbarHelper.show("Wylogowano z konta.")
@@ -392,21 +473,12 @@ fun App() {
                                 },
                                 onNavigateToHelpGuide = {
                                     currentScreen = Screen.HelpGuide
-                                },
-                                onNavigateToAuthors = {
-                                    currentScreen = Screen.Authors
                                 }
                             )
                         }
 
                         is Screen.HelpGuide -> {
                             HelpGuideScreen(
-                                onNavigateBack = { currentScreen = Screen.Settings }
-                            )
-                        }
-
-                        is Screen.Authors -> {
-                            AuthorsScreen(
                                 onNavigateBack = { currentScreen = Screen.Settings }
                             )
                         }
@@ -419,6 +491,8 @@ fun App() {
                                 onNavigateBack = { currentScreen = Screen.Settings },
                                 onSignOut = {
                                     coroutineScope.launch {
+                                        VoltUpStorage.setBoolean(VoltUpPreferenceKeys.KEY_REMEMBER_ME, false)
+                                        VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_PASSWORD, "")
                                         authService.signOut()
                                         currentScreen = Screen.Login
                                         SnackbarHelper.show("Wylogowano z konta.")
@@ -442,8 +516,15 @@ fun App() {
 
                         is Screen.Achievements -> {
                             AchievementsScreen(
-                                badges = achievements.map { it.toBadgeModel() },
+                                badges = achievements.map { it.toBadgeModel(isEnglish = appSettings.language == AppLanguage.ENGLISH) },
                                 userStats = userStats,
+                                onNavigateBack = { currentScreen = Screen.Main }
+                            )
+                        }
+
+                        is Screen.WorkoutHistory -> {
+                            WorkoutHistoryScreen(
+                                workouts = userStats.recentWorkouts.ifEmpty { MockData.sampleRecentWorkouts },
                                 onNavigateBack = { currentScreen = Screen.Main }
                             )
                         }
@@ -462,16 +543,18 @@ fun App() {
                                         totalEnergyWh = newTotalWh,
                                         co2SavedKg = newCo2,
                                         streakDays = userStats.streakDays,
-                                        redeemedRewardsCount = redeemedRewards.size
+                                        redeemedRewardsCount = redeemedRewards.size,
+                                        isEnglish = appSettings.language == AppLanguage.ENGLISH
                                     )
 
                                     achievements = evalResult.updatedAchievements
                                     val totalPoints = userStats.points + earnedPoints + evalResult.bonusPointsEarned
-                                    val newLevel = calculateUserLevel(totalPoints)
+                                    val newLevel = calculateUserLevel(userStats.rankingPoints)
                                     val newTitle = calculateLevelTitle(newLevel)
 
                                     userStats = userStats.copy(
                                         points = totalPoints,
+                                        voltPoints = totalPoints,
                                         totalEnergyWh = newTotalWh,
                                         co2SavedKg = newCo2,
                                         level = newLevel,
@@ -522,7 +605,8 @@ fun App() {
                                                 pointsDelta = earnedPoints + evalResult.bonusPointsEarned,
                                                 whDelta = earnedWh,
                                                 co2Delta = earnedWh * 0.0007,
-                                                newLevel = newLevel
+                                                newLevel = newLevel,
+                                                rankingPointsDelta = 0
                                             )
 
                                             // Tabela 3: user_achievements
@@ -560,10 +644,10 @@ fun App() {
                                     currentScreen = Screen.Main
                                     SnackbarHelper.show("Sesja zakończona!", icon = Icons.Default.Check)
                                     if (evalResult.bonusPointsEarned > 0) {
-                                        val achMsg = evalResult.levelUpMessages.firstOrNull() ?: "Zdobyto nowe osiągnięcie!"
+                                        val achMsg = evalResult.levelUpMessages.firstOrNull() ?: "Level Up!"
                                         SnackbarHelper.show(
                                             text = achMsg,
-                                            icon = Icons.Default.EmojiEvents
+                                            icon = Icons.Default.ArrowUpward
                                         )
                                     }
                                 },
@@ -635,20 +719,29 @@ fun App() {
                                                     val isRankingTicket = reward.id.contains("RANK")
                                                     if (isRankingTicket) {
                                                         val pointsAfterRedeem = (userStats.points - reward.costPoints).coerceAtLeast(0)
+                                                        val newRankingPoints = userStats.rankingPoints + 100
+                                                        val newLevel = calculateUserLevel(newRankingPoints)
+                                                        val newTitle = calculateLevelTitle(newLevel)
                                                         userStats = userStats.copy(
-                                                            points = pointsAfterRedeem
+                                                            points = pointsAfterRedeem,
+                                                            voltPoints = pointsAfterRedeem,
+                                                            rankingPoints = newRankingPoints,
+                                                            level = newLevel,
+                                                            levelTitle = newTitle
                                                         )
                                                         currentAuthUser?.let { u ->
                                                             coroutineScope.launch {
                                                                 dbService.updateUserStats(
                                                                     userId = u.userId,
-                                                                    pointsDelta = 100 - reward.costPoints,
+                                                                    pointsDelta = -reward.costPoints,
                                                                     whDelta = 0.0,
                                                                     co2Delta = 0.0,
-                                                                    newLevel = userStats.level
+                                                                    newLevel = newLevel,
+                                                                    rankingPointsDelta = 100
                                                                 )
                                                             }
                                                         }
+                                                        SnackbarHelper.show("+100 pkt rankingu!", icon = Icons.Default.Leaderboard)
                                                     } else {
                                                         val pointsAfterRedeem = (userStats.points - reward.costPoints).coerceAtLeast(0)
                                                         val newCouponId = "${reward.id}_${(100000..999999).random()}"
@@ -670,19 +763,29 @@ fun App() {
                                                             totalEnergyWh = userStats.totalEnergyWh,
                                                             co2SavedKg = userStats.co2SavedKg,
                                                             streakDays = userStats.streakDays,
-                                                            redeemedRewardsCount = newRedeemedList.size
+                                                            redeemedRewardsCount = newRedeemedList.size,
+                                                            isEnglish = appSettings.language == AppLanguage.ENGLISH
                                                         )
 
                                                         achievements = evalResult.updatedAchievements
                                                         val finalPoints = pointsAfterRedeem + evalResult.bonusPointsEarned
-                                                        val finalLevel = calculateUserLevel(finalPoints)
+                                                        val finalLevel = calculateUserLevel(userStats.rankingPoints)
                                                         val finalTitle = calculateLevelTitle(finalLevel)
 
                                                         userStats = userStats.copy(
                                                             points = finalPoints,
+                                                            voltPoints = finalPoints,
                                                             level = finalLevel,
                                                             levelTitle = finalTitle
                                                         )
+
+                                                        if (evalResult.bonusPointsEarned > 0) {
+                                                            val achMsg = evalResult.levelUpMessages.firstOrNull() ?: "Level Up!"
+                                                            SnackbarHelper.show(
+                                                                text = achMsg,
+                                                                icon = Icons.Default.ArrowUpward
+                                                            )
+                                                        }
 
                                                         currentAuthUser?.let { u ->
                                                             coroutineScope.launch {
@@ -705,28 +808,52 @@ fun App() {
                                                                     pointsDelta = -reward.costPoints + evalResult.bonusPointsEarned,
                                                                     whDelta = 0.0,
                                                                     co2Delta = 0.0,
-                                                                    newLevel = finalLevel
+                                                                    newLevel = finalLevel,
+                                                                    rankingPointsDelta = 0
                                                                 )
                                                             }
                                                         }
                                                     }
                                                 },
                                                 onActivateReward = { target ->
+                                                    val now = currentTimeMillis()
                                                     redeemedRewards = redeemedRewards.map {
-                                                        if (it.discountCode == target.discountCode) {
+                                                        if (it.discountCode == target.discountCode || (it.id.isNotBlank() && it.id == target.id)) {
                                                             it.copy(
+                                                                isReadyToScan = true,
                                                                 isActivated = true,
-                                                                activatedTimestamp = 1L
+                                                                activatedTimestamp = now
                                                             )
                                                         } else it
                                                     }
 
                                                     currentAuthUser?.let { u ->
                                                         coroutineScope.launch {
-                                                            dbService.updateCouponActivation(
-                                                                couponId = target.discountCode,
-                                                                isActivated = true,
-                                                                activatedAtMs = 1L
+                                                             dbService.updateCouponActivation(
+                                                                 couponId = target.id.ifBlank { target.discountCode },
+                                                                 isActivated = true,
+                                                                 activatedAtMs = now
+                                                             )
+                                                        }
+                                                    }
+                                                },
+                                                onSetCouponReadyToScan = { target ->
+                                                    redeemedRewards = redeemedRewards.map {
+                                                        if (it.discountCode == target.discountCode || (it.id.isNotBlank() && it.id == target.id)) {
+                                                            it.copy(isReadyToScan = true)
+                                                        } else it
+                                                    }
+                                                },
+                                                onDeleteCoupon = { target ->
+                                                    redeemedRewards = redeemedRewards.filterNot {
+                                                        (it.id.isNotBlank() && it.id == target.id) || it.discountCode == target.discountCode
+                                                    }
+
+                                                    currentAuthUser?.let { u ->
+                                                        coroutineScope.launch {
+                                                            dbService.deleteCoupon(
+                                                                userId = u.userId,
+                                                                couponId = target.id.ifBlank { target.discountCode }
                                                             )
                                                         }
                                                     }
@@ -740,14 +867,15 @@ fun App() {
                                                 challenges = challenges,
                                                 achievements = achievements,
                                                 onClaimChallenge = { challenge ->
-                                                    val newRankingPoints = userStats.points + challenge.rankingPointsReward
-                                                    val newVoltPoints = userStats.voltPoints + challenge.voltPointsReward
+                                                    val newRankingPoints = userStats.rankingPoints + challenge.rankingPointsReward
+                                                    val newVoltPoints = userStats.points + challenge.voltPointsReward
                                                     val newLevel = calculateUserLevel(newRankingPoints)
                                                     val newTitle = calculateLevelTitle(newLevel)
 
                                                     userStats = userStats.copy(
-                                                        points = newRankingPoints,
+                                                        points = newVoltPoints,
                                                         voltPoints = newVoltPoints,
+                                                        rankingPoints = newRankingPoints,
                                                         level = newLevel,
                                                         levelTitle = newTitle
                                                     )
@@ -759,10 +887,11 @@ fun App() {
                                                             dbService.claimChallenge(u.userId, challenge.id)
                                                             dbService.updateUserStats(
                                                                 userId = u.userId,
-                                                                pointsDelta = challenge.rankingPointsReward,
+                                                                pointsDelta = challenge.voltPointsReward,
                                                                 whDelta = 0.0,
                                                                 co2Delta = 0.0,
-                                                                newLevel = newLevel
+                                                                newLevel = newLevel,
+                                                                rankingPointsDelta = challenge.rankingPointsReward
                                                             )
                                                         }
                                                     }
@@ -786,10 +915,15 @@ fun App() {
                                                 onOpenAchievements = {
                                                     currentScreen = Screen.Achievements
                                                 },
+                                                onOpenWorkoutHistory = {
+                                                    currentScreen = Screen.WorkoutHistory
+                                                },
                                                 userEmail = currentAuthUser?.email.orEmpty(),
                                                 authService = authService,
                                                 onSignOut = {
                                                     coroutineScope.launch {
+                                                        VoltUpStorage.setBoolean(VoltUpPreferenceKeys.KEY_REMEMBER_ME, false)
+                                                        VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_PASSWORD, "")
                                                         authService.signOut()
                                                         currentScreen = Screen.Login
                                                         SnackbarHelper.show("Wylogowano z konta.")
@@ -808,49 +942,55 @@ fun App() {
             VoltUpSnackbarHost(modifier = Modifier.align(Alignment.TopCenter))
 
             if (isAutoLoggingIn && !isSplashVisible) {
-                AlertDialog(
-                    onDismissRequest = {},
-                    shape = RoundedCornerShape(24.dp),
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    title = {
-                        Text(
-                            text = "Logowanie do konta...",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    },
-                    text = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.65f))
+                        .clickable(enabled = false) {},
+                    contentAlignment = Alignment.Center
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(24.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                        shadowElevation = 8.dp,
+                        modifier = Modifier
+                            .fillMaxWidth(0.85f)
+                            .padding(16.dp)
+                    ) {
                         Column(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.padding(24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             CircularProgressIndicator(
-                                color = LightPrimary,
-                                modifier = Modifier.size(36.dp),
-                                strokeWidth = 3.dp
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(44.dp),
+                                strokeWidth = 3.5.dp
                             )
                             Text(
-                                text = "Witaj ponownie! Trwa wczytywanie Twojego profilu i postępów w VoltUp.",
+                                text = strings.loggingInWait,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = strings.loggingInSync,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center
                             )
                         }
-                    },
-                    confirmButton = {},
-                    dismissButton = null
-                )
+                    }
+                }
             }
 
             if (isSplashVisible) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color(0xFF0E1116)),
+                        .background(MaterialTheme.colorScheme.background),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
@@ -860,14 +1000,14 @@ fun App() {
                         Surface(
                             modifier = Modifier.size(80.dp),
                             shape = CircleShape,
-                            color = LightPrimary.copy(alpha = 0.15f),
-                            border = BorderStroke(2.dp, LightPrimary.copy(alpha = 0.5f))
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                            border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Default.ElectricBolt,
                                     contentDescription = "VoltUp Logo",
-                                    tint = LightPrimary,
+                                    tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(44.dp)
                                 )
                             }
@@ -879,20 +1019,26 @@ fun App() {
                                     text = "Łódź ",
                                     style = MaterialTheme.typography.headlineLarge,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                                    color = MaterialTheme.colorScheme.onBackground
                                 )
                                 Text(
-                                    text = "VoltUp",
+                                    text = "Volt",
+                                    style = MaterialTheme.typography.headlineLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                                Text(
+                                    text = "Up",
                                     style = MaterialTheme.typography.headlineLarge,
                                     fontWeight = FontWeight.Light,
-                                    color = Color.White
+                                    color = MaterialTheme.colorScheme.onBackground
                                 )
                             }
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Kinetyczna Energia Miasta",
+                                text = strings.cityKineticEnergy,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Color.White.copy(alpha = 0.65f),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 letterSpacing = 1.sp
                             )
                         }
@@ -901,6 +1047,7 @@ fun App() {
             }
         }
     }
+}
 }
 
 @Composable
@@ -918,8 +1065,8 @@ fun VoltUpBottomBar(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(70.dp),
-            shape = BottomBarWithNotchShape(notchRadius = 40.dp, notchDepth = 32.dp, cornerRadius = 20.dp),
+                .height(72.dp),
+            shape = BottomBarWithNotchShape(notchRadius = 46.dp, notchDepth = 36.dp, cornerRadius = 20.dp),
             color = MaterialTheme.colorScheme.surface
         ) {
             Row(
@@ -940,7 +1087,7 @@ fun VoltUpBottomBar(
                     onClick = { onTabSelected(MainTab.MAP) }
                 )
 
-                Spacer(modifier = Modifier.width(64.dp))
+                Spacer(modifier = Modifier.width(76.dp))
 
                 BottomNavItem(
                     tab = MainTab.REWARDS,
@@ -958,15 +1105,16 @@ fun VoltUpBottomBar(
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .offset(y = 2.dp),
+                .offset(y = (-4).dp),
             contentAlignment = Alignment.Center
         ) {
             Surface(
                 modifier = Modifier
-                    .size(54.dp)
+                    .size(64.dp)
                     .clickable(onClick = onQrClick),
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
+                shadowElevation = 6.dp
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -974,9 +1122,9 @@ fun VoltUpBottomBar(
                 ) {
                     Icon(
                         imageVector = Icons.Default.QrCodeScanner,
-                        contentDescription = "Skanuj QR",
+                        contentDescription = strings.scanQr,
                         tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(26.dp)
+                        modifier = Modifier.size(32.dp)
                     )
                 }
             }
@@ -992,6 +1140,12 @@ fun BottomNavItem(
 ) {
     val activeColor = MaterialTheme.colorScheme.primary
     val inactiveColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+    val tabLabel = when (tab) {
+        MainTab.HOME -> strings.tabHome
+        MainTab.MAP -> strings.tabMap
+        MainTab.REWARDS -> strings.tabRewards
+        MainTab.PROFILE -> strings.tabProfile
+    }
 
     Box(
         modifier = Modifier
@@ -1002,7 +1156,7 @@ fun BottomNavItem(
     ) {
         Icon(
             imageVector = tab.icon,
-            contentDescription = tab.label,
+            contentDescription = tabLabel,
             tint = if (isSelected) activeColor else inactiveColor,
             modifier = Modifier.size(24.dp)
         )
@@ -1030,6 +1184,7 @@ fun DashboardScreen(
 ) {
     val scrollState = rememberScrollState()
     val primaryColor = MaterialTheme.colorScheme.primary
+    val strings = strings
 
     Column(
         modifier = Modifier
@@ -1052,7 +1207,13 @@ fun DashboardScreen(
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    text = "VoltUp",
+                    text = "Volt",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "Up",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Light,
                     color = MaterialTheme.colorScheme.onBackground
@@ -1066,7 +1227,7 @@ fun DashboardScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.Settings,
-                    contentDescription = "Ustawienia",
+                    contentDescription = strings.settingsScreenTitle,
                     modifier = Modifier.size(20.dp),
                     tint = MaterialTheme.colorScheme.onSurface
                 )
@@ -1091,7 +1252,7 @@ fun DashboardScreen(
                 ) {
                     Column {
                         Text(
-                            text = "TWÓJ PORTFEL",
+                            text = strings.yourWallet,
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             letterSpacing = 1.sp
@@ -1106,7 +1267,7 @@ fun DashboardScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "VoltPoints",
+                                text = strings.voltPoints,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1121,12 +1282,12 @@ fun DashboardScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     DesignerMetricBox(
-                        label = "Wygenerowano",
+                        label = strings.generatedEnergy,
                         value = formatEnergySmart(stats.totalEnergyWh),
                         modifier = Modifier.weight(1f)
                     )
                     DesignerMetricBox(
-                        label = "CO2 redukcja",
+                        label = strings.co2Reduction,
                         value = formatCo2Smart(stats.co2SavedKg),
                         modifier = Modifier.weight(1f)
                     )
@@ -1162,7 +1323,7 @@ fun DashboardScreen(
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                text = "CEL SPOŁECZNOŚCI",
+                text = strings.communityGoalTitle,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1178,7 +1339,7 @@ fun DashboardScreen(
 
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
-                text = "W POBLIŻU",
+                text = strings.nearbyStationsTitle,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1186,14 +1347,34 @@ fun DashboardScreen(
                 modifier = Modifier.padding(top = 8.dp)
             )
 
-            val userLat = 51.7592
-            val userLng = 19.4560
-            val nearbyStations = remember {
-                MockData.sampleStations.map { station ->
-                    val distMeters = calculateDistanceMeters(userLat, userLng, station.latitude, station.longitude)
-                    val distStr = if (distMeters < 1000.0) "${distMeters.toInt()} m" else "${((distMeters / 100.0).roundToInt() / 10.0)} km"
-                    Triple(station, distMeters, distStr)
-                }.sortedBy { it.second }.take(3)
+            var currentUserLocation by remember { mutableStateOf(getUserCurrentLocation()) }
+            LaunchedEffect(Unit) {
+                val loc = getUserCurrentLocation()
+                if (loc != null) {
+                    currentUserLocation = loc
+                }
+            }
+
+            val nearbyStations = remember(currentUserLocation) {
+                val realLoc = currentUserLocation
+                if (realLoc != null) {
+                    val (uLat, uLng) = realLoc
+                    MockData.sampleStations.map { station ->
+                        val distMeters = calculateDistanceMeters(uLat, uLng, station.latitude, station.longitude)
+                        val distStr = if (distMeters < 1000.0) "${distMeters.toInt()} m" else "${((distMeters / 100.0).roundToInt() / 10.0)} km"
+                        Triple(station, distMeters, distStr)
+                    }.sortedBy { it.second }.take(3)
+                } else {
+                    MockData.sampleStations.take(3).map { station ->
+                        val distMeters = when (station.id) {
+                            "PC-1" -> 450.0
+                            "PP-1" -> 600.0
+                            "MAN-1" -> 1100.0
+                            else -> 1200.0
+                        }
+                        Triple(station, distMeters, station.distance)
+                    }
+                }
             }
 
             var expandedNearbyStationId by remember { mutableStateOf<String?>(null) }
@@ -1250,7 +1431,7 @@ fun DashboardScreen(
                                     )
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Text(
-                                        text = "$distStr od Ciebie",
+                                        text = strings.distanceFromYou(distStr),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -1264,7 +1445,7 @@ fun DashboardScreen(
                             ) {
                                 Icon(
                                     Icons.Default.QrCodeScanner,
-                                    contentDescription = "Skanuj QR",
+                                    contentDescription = strings.scanQr,
                                     tint = primaryColor,
                                     modifier = Modifier
                                         .padding(10.dp)
@@ -1310,12 +1491,12 @@ fun DashboardScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(
-                                        text = "Dzielnica: ${station.district}",
+                                        text = "${strings.districtLabel}: ${station.district}",
                                         fontSize = 12.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Text(
-                                        text = "Moc max: ${station.maxPowerW} W",
+                                        text = "${strings.maxPowerLabel}: ${station.maxPowerW} W",
                                         fontSize = 12.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -1326,7 +1507,7 @@ fun DashboardScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(
-                                        text = if (station.isOnline) "Status: Aktywna (Online)" else "Status: Nieaktywna",
+                                        text = if (station.isOnline) strings.statusActiveOnline else strings.statusInactive,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = if (station.isOnline) primaryColor else MaterialTheme.colorScheme.error
@@ -1375,6 +1556,7 @@ fun CommunityGoalCard(
     userWh: Double,
     primaryColor: Color
 ) {
+    val strings = strings
     var isExpanded by remember { mutableStateOf(false) }
 
     var secondsRemaining by remember {
@@ -1446,7 +1628,7 @@ fun CommunityGoalCard(
                         )
                     }
                     Text(
-                        text = "Wspólne zasilanie oświetlenia alejek",
+                        text = strings.communityGoalSubtitle,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1498,7 +1680,7 @@ fun CommunityGoalCard(
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
-                        text = if (secondsRemaining > 0) "Koniec etapu za: $timeFormatted" else "Odnowienie za 4 godz.",
+                        text = if (secondsRemaining > 0) strings.stageEndsIn(timeFormatted) else strings.renewalIn4Hours,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1510,7 +1692,7 @@ fun CommunityGoalCard(
                     color = if (isGoalCompleted) Color(0xFF22C55E).copy(alpha = 0.15f) else Color(0xFFF59E0B).copy(alpha = 0.15f)
                 ) {
                     Text(
-                        text = if (isGoalCompleted) "Zaliczone ✓" else "W trakcie",
+                        text = if (isGoalCompleted) strings.goalCompleted else strings.goalInProgress,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = if (isGoalCompleted) Color(0xFF16A34A) else Color(0xFFD97706),
@@ -1530,7 +1712,7 @@ fun CommunityGoalCard(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Text(
-                            text = "Każdy wat energii wygenerowany na miejskich rowerach, stepperach i orbitrekach w Łodzi zasila wspólny akumulator parkowy. Gdy cel zostanie osiągnięty w ciągu 24h, wszyscy uczestnicy otrzymują +100 punktów do rankingu!",
+                            text = strings.communityGoalDescription,
                             fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             lineHeight = 18.sp
@@ -1547,7 +1729,7 @@ fun CommunityGoalCard(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Stan zbiórki energii:",
+                                text = strings.energyCollectionState,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1566,13 +1748,13 @@ fun CommunityGoalCard(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Nagroda dla uczestników:",
+                                text = strings.participantReward,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "+100 pkt do rankingu",
+                                text = strings.rankingRewardPoints,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = primaryColor
@@ -1585,7 +1767,7 @@ fun CommunityGoalCard(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Twój osobisty wkład:",
+                                text = strings.yourPersonalContribution,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1610,6 +1792,7 @@ fun SinusoidActivityChartCard(
     currentDayIndex: Int,
     primaryColor: Color
 ) {
+    val strings = strings
     val surfaceVariantColor = MaterialTheme.colorScheme.surfaceVariant
     val surfaceColor = MaterialTheme.colorScheme.surface
 
@@ -1630,7 +1813,7 @@ fun SinusoidActivityChartCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "AKTYWNOŚĆ",
+                    text = strings.activityTitle,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1674,32 +1857,46 @@ fun SinusoidActivityChartCard(
                         .height(130.dp)
                 ) {
                     Canvas(modifier = Modifier.fillMaxSize()) {
-                        val maxVal = (weeklyData.maxOrNull() ?: 100.0).coerceAtLeast(80.0).toFloat()
+                        val maxRaw = (weeklyData.maxOrNull() ?: 0.0).toFloat()
+                        val maxVal = if (maxRaw > 0f) maxRaw * 1.15f else 10f
 
                         val segmentWidth = size.width / weeklyData.size
                         val barWidth = 14.dp.toPx()
 
+                        if (currentDayIndex in 0 until weeklyData.size) {
+                            val todayCenterX = (currentDayIndex * segmentWidth) + (segmentWidth / 2f)
+                            drawRoundRect(
+                                color = primaryColor.copy(alpha = 0.08f),
+                                topLeft = Offset(todayCenterX - (segmentWidth * 0.44f), 0f),
+                                size = Size(segmentWidth * 0.88f, size.height),
+                                cornerRadius = CornerRadius(10.dp.toPx(), 10.dp.toPx())
+                            )
+                        }
+
                         weeklyData.forEachIndexed { idx, v ->
                             val isToday = idx == currentDayIndex
-                            val barHeight = (v.toFloat() / maxVal * (size.height - 20f))
+                            val barHeight = if (v > 0) ((v.toFloat() / maxVal) * (size.height - 24f)).coerceAtLeast(6f) else 0f
 
                             val centerX = (idx * segmentWidth) + (segmentWidth / 2f)
                             val topLeftX = centerX - (barWidth / 2f)
                             val topLeftY = size.height - barHeight
 
-                            val barColor = if (isToday) primaryColor.copy(alpha = 0.3f) else surfaceVariantColor.copy(alpha = 0.4f)
+                            val barColor = if (isToday) primaryColor.copy(alpha = 0.55f) else surfaceVariantColor.copy(alpha = 0.4f)
 
-                            drawRoundRect(
-                                color = barColor,
-                                topLeft = Offset(topLeftX, topLeftY),
-                                size = Size(barWidth, barHeight),
-                                cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
-                            )
+                            if (barHeight > 0f) {
+                                drawRoundRect(
+                                    color = barColor,
+                                    topLeft = Offset(topLeftX, topLeftY),
+                                    size = Size(barWidth, barHeight),
+                                    cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
+                                )
+                            }
                         }
 
                         val points = weeklyData.mapIndexed { idx, v ->
                             val x = (idx * segmentWidth) + (segmentWidth / 2f)
-                            val y = size.height - (v.toFloat() / maxVal * (size.height - 20f)) - 10f
+                            val barHeight = if (v > 0) ((v.toFloat() / maxVal) * (size.height - 24f)).coerceAtLeast(6f) else 0f
+                            val y = size.height - barHeight - 6f
                             Offset(x, y)
                         }
 
@@ -1739,7 +1936,12 @@ fun SinusoidActivityChartCard(
                                 style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
                             )
 
-                            val todayPoint = points[currentDayIndex]
+                            val todayPoint = points.getOrNull(currentDayIndex) ?: points.last()
+                            drawCircle(
+                                color = primaryColor.copy(alpha = 0.28f),
+                                radius = 11.dp.toPx(),
+                                center = todayPoint
+                            )
                             drawCircle(
                                 color = surfaceColor,
                                 radius = 6.dp.toPx(),
@@ -1756,18 +1958,43 @@ fun SinusoidActivityChartCard(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    val days = listOf("Pn", "Wt", "Śr", "Cz", "Pt", "Sb", "Nd")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val days = strings.daysOfWeekShort
                     days.forEachIndexed { idx, d ->
                         val isToday = idx == currentDayIndex
-                        Text(
-                            text = d,
-                            modifier = Modifier.weight(1f),
-                            textAlign = TextAlign.Center,
-                            fontSize = 12.sp,
-                            fontWeight = if (isToday) FontWeight.ExtraBold else FontWeight.Medium,
-                            color = if (isToday) primaryColor else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (isToday) primaryColor.copy(alpha = 0.16f) else Color.Transparent)
+                                .then(if (isToday) Modifier.border(1.dp, primaryColor.copy(alpha = 0.45f), RoundedCornerShape(10.dp)) else Modifier)
+                                .padding(vertical = 5.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Text(
+                                    text = d,
+                                    textAlign = TextAlign.Center,
+                                    fontSize = 12.sp,
+                                    fontWeight = if (isToday) FontWeight.ExtraBold else FontWeight.Medium,
+                                    color = if (isToday) primaryColor else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                if (isToday) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(4.dp)
+                                            .clip(CircleShape)
+                                            .background(primaryColor)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }

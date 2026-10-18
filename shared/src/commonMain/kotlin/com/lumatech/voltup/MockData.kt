@@ -154,6 +154,7 @@ object MockData {
             category = RewardCategory.TRANSPORT,
             description = "Bilet jednoprzejazdowy na wszystkie linie tramwajowe i autobusowe w strefie 1 Łodzi.",
             discountCode = "MPK-KINETIC-20",
+            validityMinutes = 20,
             expiresDays = 14
         ),
         Reward(

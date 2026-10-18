@@ -92,11 +92,13 @@ class IosMockDatabaseService : VoltUpDatabaseService {
         pointsDelta: Int,
         whDelta: Double,
         co2Delta: Double,
-        newLevel: Int
+        newLevel: Int,
+        rankingPointsDelta: Int
     ): Boolean {
         mockUser?.let {
             mockUser = it.copy(
                 voltPoints = it.voltPoints + pointsDelta,
+                rankingPoints = it.rankingPoints + rankingPointsDelta,
                 totalEnergyWh = it.totalEnergyWh + whDelta,
                 co2SavedKg = it.co2SavedKg + co2Delta,
                 userLevel = newLevel
@@ -141,13 +143,22 @@ class IosMockDatabaseService : VoltUpDatabaseService {
         return true
     }
 
-    override suspend fun getUserCoupons(userId: String): List<UserCouponDto> = coupons
+    override suspend fun getUserCoupons(userId: String): List<UserCouponDto> {
+        val thirtyDaysMs = 30L * 24 * 60 * 60 * 1000L
+        val cutoff = currentTimeMillis() - thirtyDaysMs
+        return coupons.filter { it.userId == userId && (it.redeemedAt == 0L || it.redeemedAt >= cutoff) }
+    }
 
     override suspend fun updateCouponActivation(couponId: String, isActivated: Boolean, activatedAtMs: Long?): Boolean {
-        val idx = coupons.indexOfFirst { it.couponId == couponId }
+        val idx = coupons.indexOfFirst { it.couponId == couponId || it.discountCode == couponId }
         if (idx != -1) {
             coupons[idx] = coupons[idx].copy(isActivated = isActivated, activatedAt = activatedAtMs)
         }
+        return true
+    }
+
+    override suspend fun deleteCoupon(userId: String, couponId: String): Boolean {
+        coupons.removeAll { it.couponId == couponId || (it.userId == userId && it.discountCode == couponId) }
         return true
     }
 
@@ -161,7 +172,7 @@ class IosMockDatabaseService : VoltUpDatabaseService {
     override suspend fun getLeaderboard(limit: Int): List<LeaderboardUser> {
         val list = mutableListOf<LeaderboardUser>()
         mockUser?.let {
-            list.add(LeaderboardUser(it.userId, it.userName, if (it.rankingPoints > 0) it.rankingPoints else it.voltPoints, it.userLevel, isCurrentUser = true))
+            list.add(LeaderboardUser(it.userId, it.userName, it.rankingPoints, it.userLevel, isCurrentUser = true))
         }
         return list.sortedByDescending { it.points }.take(limit)
     }

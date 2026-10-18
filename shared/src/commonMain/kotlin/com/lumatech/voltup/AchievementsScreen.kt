@@ -1,5 +1,7 @@
 package com.lumatech.voltup
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -61,30 +63,33 @@ fun AchievementsScreen(
     onNavigateBack: () -> Unit,
     dbService: VoltUpDatabaseService = remember { getDatabaseService() }
 ) {
+    val strings = strings
     var selectedTab by remember { mutableStateOf(AchievementTab.ACHIEVEMENTS) }
     var selectedFilter by remember { mutableStateOf(LeaderboardFilter.TOP_10) }
     var leaderboardUsers by remember { mutableStateOf<List<LeaderboardUser>>(emptyList()) }
     var isLoadingLeaderboard by remember { mutableStateOf(true) }
 
-    LaunchedEffect(selectedTab, selectedFilter, userStats.points, userStats.level, userStats.userName) {
+    val effectiveUserPoints = userStats.rankingPoints
+
+    LaunchedEffect(selectedTab, selectedFilter, effectiveUserPoints, userStats.level, userStats.userName) {
         isLoadingLeaderboard = true
         try {
             val list = dbService.getLeaderboard(limit = selectedFilter.limit)
             val hasMe = list.any { it.isCurrentUser || it.name.startsWith(userStats.userName) }
             val processed = if (!hasMe) {
-                (list + LeaderboardUser("me", "${userStats.userName} (Ty)", userStats.points, userStats.level, isCurrentUser = true))
+                (list + LeaderboardUser("me", "${userStats.userName} ${strings.youLabel}", effectiveUserPoints, userStats.level, isCurrentUser = true))
                     .sortedByDescending { it.points }
             } else {
                 list.map {
                     if (it.isCurrentUser || it.name.startsWith(userStats.userName)) {
-                        it.copy(name = "${userStats.userName} (Ty)", points = userStats.points, level = userStats.level, isCurrentUser = true)
+                        it.copy(name = "${userStats.userName} ${strings.youLabel}", points = effectiveUserPoints, level = userStats.level, isCurrentUser = true)
                     } else it
                 }.sortedByDescending { it.points }
             }
             leaderboardUsers = processed
         } catch (_: Exception) {
             leaderboardUsers = listOf(
-                LeaderboardUser("me", "${userStats.userName} (Ty)", userStats.points, userStats.level, isCurrentUser = true)
+                LeaderboardUser("me", "${userStats.userName} ${strings.youLabel}", effectiveUserPoints, userStats.level, isCurrentUser = true)
             )
         } finally {
             isLoadingLeaderboard = false
@@ -105,18 +110,30 @@ fun AchievementsScreen(
             onTabSelected = { selectedTab = it }
         )
 
-        when (selectedTab) {
-            AchievementTab.ACHIEVEMENTS -> BadgesContent(badges)
-            AchievementTab.LEADERBOARD -> {
-                LeaderboardFilterPill(
-                    selectedFilter = selectedFilter,
-                    onFilterSelected = { selectedFilter = it }
-                )
-                LeaderboardContent(
-                    leaderboard = leaderboardUsers,
-                    limit = selectedFilter.limit,
-                    userStats = userStats
-                )
+        AnimatedContent(
+            targetState = selectedTab,
+            transitionSpec = {
+                (fadeIn(tween(220)) + slideInHorizontally(tween(260)) { if (targetState == AchievementTab.LEADERBOARD) it / 6 else -it / 6 })
+                    .togetherWith(fadeOut(tween(150)) + slideOutHorizontally(tween(200)) { if (targetState == AchievementTab.LEADERBOARD) -it / 6 else it / 6 })
+            },
+            label = "AchievementTabTransition"
+        ) { tab ->
+            when (tab) {
+                AchievementTab.ACHIEVEMENTS -> BadgesContent(badges)
+                AchievementTab.LEADERBOARD -> {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        LeaderboardFilterPill(
+                            selectedFilter = selectedFilter,
+                            onFilterSelected = { selectedFilter = it }
+                        )
+                        LeaderboardContent(
+                            leaderboard = leaderboardUsers,
+                            limit = selectedFilter.limit,
+                            userStats = userStats,
+                            effectivePoints = effectiveUserPoints
+                        )
+                    }
+                }
             }
         }
     }
@@ -124,6 +141,7 @@ fun AchievementsScreen(
 
 @Composable
 private fun TopBar(onNavigateBack: () -> Unit) {
+    val strings = strings
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -139,7 +157,7 @@ private fun TopBar(onNavigateBack: () -> Unit) {
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Wróć",
+                contentDescription = strings.back,
                 tint = MaterialTheme.colorScheme.onSurface
             )
         }
@@ -147,7 +165,7 @@ private fun TopBar(onNavigateBack: () -> Unit) {
         Spacer(modifier = Modifier.width(16.dp))
 
         Text(
-            text = "Moje Osiągnięcia",
+            text = strings.myAchievementsTitle,
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground
@@ -160,6 +178,7 @@ private fun TabSelector(
     selectedTab: AchievementTab,
     onTabSelected: (AchievementTab) -> Unit
 ) {
+    val strings = strings
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -171,6 +190,10 @@ private fun TabSelector(
     ) {
         AchievementTab.entries.forEach { tab ->
             val isSelected = selectedTab == tab
+            val tabLabel = when (tab) {
+                AchievementTab.ACHIEVEMENTS -> strings.tabAchievements
+                AchievementTab.LEADERBOARD -> strings.tabLeaderboard
+            }
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -182,7 +205,7 @@ private fun TabSelector(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = tab.label,
+                    text = tabLabel,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                     color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 14.sp
@@ -207,8 +230,9 @@ private fun BadgesContent(badges: List<BadgeModel>) {
 
 @Composable
 private fun AchievementCard(badge: BadgeModel) {
+    val strings = strings
     val isLocked = badge.level == 0
-    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val isDark = isAppInDarkTheme()
     val tierColor = getAchievementTierColor(badge.level, isDark)
 
     val accentColor = tierColor.primary
@@ -247,7 +271,7 @@ private fun AchievementCard(badge: BadgeModel) {
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = if (isLocked) "BLOKADA" else "POZIOM ${badge.level}",
+                    text = if (isLocked) strings.badgeLocked else strings.badgeLevel(badge.level),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     color = accentColor,
@@ -272,7 +296,7 @@ private fun AchievementCard(badge: BadgeModel) {
 
                     if (!isLocked) {
                         Text(
-                            text = "+${badge.pointsAwarded} pkt",
+                            text = strings.badgePointsAwarded(badge.pointsAwarded),
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,
                             color = accentColor
@@ -374,8 +398,10 @@ private fun LeaderboardFilterPill(
 private fun LeaderboardContent(
     leaderboard: List<LeaderboardUser>,
     limit: Int,
-    userStats: UserStats
+    userStats: UserStats,
+    effectivePoints: Int
 ) {
+    val strings = strings
     val displayList = leaderboard.take(limit)
     val currentUser = leaderboard.find { it.isCurrentUser }
     val myRank = leaderboard.indexOfFirst { it.isCurrentUser } + 1
@@ -411,14 +437,14 @@ private fun LeaderboardContent(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Text(
-                    text = "${userStats.points} pkt",
+                    text = strings.levelPoints(effectivePoints),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
 
                 Text(
-                    text = "${userStats.userName} (Ty) • Poziom ${userStats.level} • Pozycja: #${if (myRank > 0) myRank else '-'}",
+                    text = "${userStats.userName} ${strings.youLabel} • ${strings.levelLabel(userStats.level)} • ${strings.rankPosition(if (myRank > 0) myRank.toString() else "-")}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Medium
@@ -439,14 +465,14 @@ private fun LeaderboardContent(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = "Twoja pozycja poza TOP $limit:",
+                        text = strings.rankOutsideTop(limit),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     LeaderboardItem(
                         rank = myRank,
-                        user = currentUser ?: LeaderboardUser("me", "${userStats.userName} (Ty)", userStats.points, userStats.level, isCurrentUser = true)
+                        user = currentUser ?: LeaderboardUser("me", "${userStats.userName} ${strings.youLabel}", effectivePoints, userStats.level, isCurrentUser = true)
                     )
                 }
             }
@@ -456,6 +482,7 @@ private fun LeaderboardContent(
 
 @Composable
 private fun LeaderboardItem(rank: Int, user: LeaderboardUser) {
+    val strings = strings
     val rankColor = when (rank) {
         1 -> Color(0xFFFFD700)
         2 -> Color(0xFFC0C0C0)
@@ -483,7 +510,7 @@ private fun LeaderboardItem(rank: Int, user: LeaderboardUser) {
                 if (rank <= 3) {
                     Icon(
                         imageVector = Icons.Default.EmojiEvents,
-                        contentDescription = "Miejsce $rank",
+                        contentDescription = strings.placeRank(rank),
                         tint = rankColor,
                         modifier = Modifier.size(24.dp)
                     )
@@ -522,14 +549,14 @@ private fun LeaderboardItem(rank: Int, user: LeaderboardUser) {
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Poziom ${user.level}",
+                    text = strings.levelLabel(user.level),
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             Text(
-                text = "${user.points} pkt",
+                text = strings.levelPoints(user.points),
                 fontWeight = FontWeight.Bold,
                 fontSize = 15.sp,
                 color = if (user.isCurrentUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface

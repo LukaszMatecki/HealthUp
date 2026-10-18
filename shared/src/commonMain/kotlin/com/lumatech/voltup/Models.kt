@@ -10,6 +10,7 @@ import kotlin.math.roundToInt
 data class UserStats(
     val points: Int = 0,
     val voltPoints: Int = 0,
+    val rankingPoints: Int = 0,
     val totalEnergyWh: Double = 0.0,
     val weeklyEnergyWh: Double = 0.0,
     val cityContributionRank: Int = 0,
@@ -20,6 +21,7 @@ data class UserStats(
     val levelTitle: String = "Nowicjusz VoltUp",
     val streakDays: Int = 1,
     val recentWorkouts: List<WorkoutSessionRecord> = emptyList(),
+    val accountCreatedAt: Long = 0L,
 )
 
 data class KineticStation(
@@ -67,7 +69,16 @@ enum class DeviceType(val displayName: String) {
             CROSS_TRAINER -> Icons.Default.FitnessCenter
             SWING -> Icons.Default.Attractions
         }
+
+    fun getLocalizedName(strings: VoltUpStrings): String = when (this) {
+        BIKE -> strings.deviceBike
+        STEPPER -> strings.deviceStepper
+        CROSS_TRAINER -> strings.deviceCrossTrainer
+        SWING -> strings.deviceSwing
+    }
 }
+
+fun KineticStation.getLocalizedName(strings: VoltUpStrings): String = type.getLocalizedName(strings)
 
 data class CityGoal(
     val title: String,
@@ -80,7 +91,14 @@ enum class RewardCategory(val displayName: String) {
     ALL("Wszystkie"),
     TRANSPORT("Transport MPK"),
     CULTURE("Kultura i EC1"),
-    LOCAL("Kawiarnie i Gastro")
+    LOCAL("Kawiarnie i Gastro");
+
+    fun getDisplayName(strings: VoltUpStrings): String = when (this) {
+        ALL -> strings.categoryAll
+        TRANSPORT -> strings.categoryTransport
+        CULTURE -> strings.categoryEntertainment
+        LOCAL -> strings.categoryFood
+    }
 }
 
 data class Reward(
@@ -91,7 +109,7 @@ data class Reward(
     val category: RewardCategory,
     val description: String,
     val discountCode: String = "LODZ-VOLT-2025",
-    val validityMinutes: Int = 20,
+    val validityMinutes: Int = 0,
     val expiresDays: Int = 30,
 ) {
     val icon: ImageVector
@@ -103,6 +121,30 @@ data class Reward(
             RewardCategory.LOCAL -> Icons.Default.LocalCafe
             RewardCategory.ALL -> Icons.Default.ConfirmationNumber
         }
+
+    fun getLocalizedTitle(isEnglish: Boolean): String = if (!isEnglish) title else when (id) {
+        "REW-RANK-100" -> "+100 Leaderboard Points"
+        "REW-MPK-01" -> "Free 20-minute Ticket"
+        "REW-EC1-02" -> "-50% for CNiT Exhibition"
+        "REW-ROD-03" -> "30 minutes free bike ride"
+        "REW-PIOTR-04" -> "Free Espresso with breakfast"
+        "REW-FALA-05" -> "-30% Aquapark Fala ticket"
+        "REW-MANU-06" -> "Cinema City Movie Ticket for 15 PLN"
+        "REW-VEGE-07" -> "-20% for Healthy Lunch"
+        else -> title
+    }
+
+    fun getLocalizedDescription(isEnglish: Boolean): String = if (!isEnglish) description else when (id) {
+        "REW-RANK-100" -> "Leaderboard booster. Exchange 50 VoltPoints for an instant +100 ranking points on the leaderboard!"
+        "REW-MPK-01" -> "Single-ride ticket for all tram and bus routes across zone 1 in Łódź."
+        "REW-EC1-02" -> "50% discount on admission to the Science and Technology Centre in the revitalized historic power plant."
+        "REW-ROD-03" -> "Free minutes for the Łódź Public Bike system across the entire city."
+        "REW-PIOTR-04" -> "Get a complimentary espresso or americano with any breakfast or dessert order."
+        "REW-FALA-05" -> "Discount on a 2-hour entry ticket to the pool zone, slides, and saunarium."
+        "REW-MANU-06" -> "Discount voucher for any 2D movie screening from Monday to Thursday at Cinema City Manufaktura."
+        "REW-VEGE-07" -> "Discount on the entire vegan and vegetarian menu prepared with local eco ingredients."
+        else -> description
+    }
 }
 
 data class RedeemedReward(
@@ -110,9 +152,10 @@ data class RedeemedReward(
     val reward: Reward,
     val discountCode: String,
     val redeemedDate: String,
+    val isReadyToScan: Boolean = false,
     val isActivated: Boolean = false,
     val activatedTimestamp: Long = 0L,
-    val validityMinutes: Int = 20,
+    val validityMinutes: Int = 0,
 )
 
 data class Challenge(
@@ -130,6 +173,32 @@ data class Challenge(
     val isClaimed: Boolean = false,
 ) {
     val rewardPoints: Int get() = voltPointsReward
+
+    fun getLocalizedTitle(isEnglish: Boolean): String = if (!isEnglish) title else when (id) {
+        "C1" -> "City Charging"
+        "C2" -> "Triple Workout"
+        "C3" -> "Power Surge"
+        else -> title
+    }
+
+    fun getLocalizedDescription(isEnglish: Boolean): String = if (!isEnglish) description else when (id) {
+        "C1" -> "Generate a total of 150 Wh of energy across stations in Łódź"
+        "C2" -> "Complete 3 full workout sessions on kinetic stations"
+        "C3" -> "Reach a peak power output of at least 80 W"
+        else -> description
+    }
+
+    fun getLocalizedDetails(isEnglish: Boolean): String = if (!isEnglish) details else when (id) {
+        "C1" -> "Every workout session on city bikes or ellipticals counts towards this challenge. Power local park lighting!"
+        "C2" -> "Visit stations in any city park (e.g., Poniatowski Park, Zdrowie Park) and complete 3 separate workouts."
+        "C3" -> "Give it your all in a sprint on a kinetic bike to reach at least 80 Watts."
+        else -> details
+    }
+
+    fun getLocalizedUnit(isEnglish: Boolean): String = if (!isEnglish) unit else when (unit) {
+        "sesji" -> "sessions"
+        else -> unit
+    }
 }
 
 
@@ -180,6 +249,7 @@ data class AppSettings(
     val notificationsEnabled: Boolean = true,
     val autoPauseWhenIdle: Boolean = true,
     val dailyReminders: Boolean = true,
+    val keepScreenOn: Boolean = true,
     val themeMode: AppThemeMode = AppThemeMode.SYSTEM,
     val language: AppLanguage = AppLanguage.POLISH,
 )

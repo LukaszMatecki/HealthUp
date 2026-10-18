@@ -10,7 +10,8 @@ interface VoltUpDatabaseService {
         pointsDelta: Int,
         whDelta: Double,
         co2Delta: Double,
-        newLevel: Int
+        newLevel: Int,
+        rankingPointsDelta: Int = 0
     ): Boolean
 
     // 2. Tabela Historii Sesji Treningowych (workout_sessions)
@@ -30,6 +31,7 @@ interface VoltUpDatabaseService {
     suspend fun saveCoupon(coupon: UserCouponDto): Boolean
     suspend fun getUserCoupons(userId: String): List<UserCouponDto>
     suspend fun updateCouponActivation(couponId: String, isActivated: Boolean, activatedAtMs: Long?): Boolean
+    suspend fun deleteCoupon(userId: String, couponId: String): Boolean
 
     // 6. Tabela Ustawień (user_settings)
     suspend fun saveUserSettings(settings: UserSettingsDto): Boolean
