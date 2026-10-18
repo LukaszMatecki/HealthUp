@@ -306,22 +306,33 @@ data class KineticDeviceDto(
             mapCoordinatesY = station.mapCoordinatesY
         )
 
-        fun fromMap(map: Map<String, Any?>): KineticDeviceDto {
+        fun fromMap(map: Map<String, Any?>, fallbackId: String = ""): KineticDeviceDto {
+            val devId = (map["device_id"] as? String
+                ?: map["deviceId"] as? String
+                ?: map["id"] as? String
+                ?: map["station_id"] as? String
+                ?: map["stationId"] as? String
+                ?: fallbackId).orEmpty().ifBlank { fallbackId }
+            val qrId = (map["qr_code_id"] as? String
+                ?: map["qrCodeId"] as? String
+                ?: map["qr_code"] as? String
+                ?: map["qrCode"] as? String
+                ?: "").orEmpty().ifBlank { "LDZ-$devId" }
             return KineticDeviceDto(
-                deviceId = (map["device_id"] as? String ?: map["id"] as? String).orEmpty(),
+                deviceId = devId,
                 name = (map["name"] as? String ?: map["nazwa"] as? String).orEmpty(),
-                locationName = (map["location_name"] as? String ?: map["location"] as? String ?: map["lokalizacja"] as? String).orEmpty(),
+                locationName = (map["location_name"] as? String ?: map["locationName"] as? String ?: map["location"] as? String ?: map["lokalizacja"] as? String).orEmpty(),
                 district = (map["district"] as? String ?: map["dzielnica"] as? String).orEmpty(),
                 status = (map["status"] as? String) ?: "online",
-                maxPowerW = (map["max_power_w"] as? Number ?: map["moc_max"] as? Number)?.toInt() ?: 150,
+                maxPowerW = (map["max_power_w"] as? Number ?: map["maxPowerW"] as? Number ?: map["moc_max"] as? Number)?.toInt() ?: 150,
                 latitude = (map["latitude"] as? Number ?: map["szerokosc"] as? Number)?.toDouble() ?: 51.7592,
                 longitude = (map["longitude"] as? Number ?: map["dlugosc"] as? Number)?.toDouble() ?: 19.4560,
-                deviceType = (map["device_type"] as? String ?: map["typ"] as? String) ?: "BIKE",
-                qrCodeId = (map["qr_code_id"] as? String).orEmpty(),
-                currentEnergyRateW = (map["current_energy_rate_w"] as? Number)?.toInt() ?: 0,
-                activeUsersCount = (map["active_users_count"] as? Number)?.toInt() ?: 0,
-                mapCoordinatesX = (map["map_coordinates_x"] as? Number)?.toFloat() ?: 0.5f,
-                mapCoordinatesY = (map["map_coordinates_y"] as? Number)?.toFloat() ?: 0.5f
+                deviceType = (map["device_type"] as? String ?: map["deviceType"] as? String ?: map["typ"] as? String) ?: "BIKE",
+                qrCodeId = qrId,
+                currentEnergyRateW = (map["current_energy_rate_w"] as? Number ?: map["currentEnergyRateW"] as? Number)?.toInt() ?: 0,
+                activeUsersCount = (map["active_users_count"] as? Number ?: map["activeUsersCount"] as? Number)?.toInt() ?: 0,
+                mapCoordinatesX = (map["map_coordinates_x"] as? Number ?: map["mapCoordinatesX"] as? Number)?.toFloat() ?: 0.5f,
+                mapCoordinatesY = (map["map_coordinates_y"] as? Number ?: map["mapCoordinatesY"] as? Number)?.toFloat() ?: 0.5f
             )
         }
     }

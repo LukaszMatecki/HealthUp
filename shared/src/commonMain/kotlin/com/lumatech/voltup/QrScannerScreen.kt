@@ -1,11 +1,13 @@
 package com.lumatech.voltup
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -35,9 +37,30 @@ import androidx.compose.ui.tooling.preview.Preview
 
 @Composable
 fun QrScannerScreen(
+    initialStation: KineticStation? = null,
     onStationDetected: (KineticStation) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    dbService: VoltUpDatabaseService = remember { getDatabaseService() }
 ) {
+    var deviceList by remember { mutableStateOf(MockData.sampleStations) }
+    LaunchedEffect(Unit) {
+        try {
+            val fromDb = dbService.getDevices()
+            if (fromDb.isNotEmpty()) {
+                deviceList = fromDb
+            }
+        } catch (_: Exception) {}
+    }
+
+    val findMatchingStation: (String) -> KineticStation = { code ->
+        val trimmed = code.trim()
+        deviceList.find {
+            it.qrCodeId.equals(trimmed, ignoreCase = true) || it.id.equals(trimmed, ignoreCase = true)
+        } ?: MockData.sampleStations.find {
+            it.qrCodeId.equals(trimmed, ignoreCase = true) || it.id.equals(trimmed, ignoreCase = true)
+        } ?: initialStation ?: deviceList.firstOrNull() ?: MockData.sampleStations.first()
+    }
+
     var manualCode by remember { mutableStateOf("") }
     val primaryColor = MaterialTheme.colorScheme.primary
 
@@ -69,10 +92,7 @@ fun QrScannerScreen(
     ) {
         CameraPreview(
             onQrCodeScanned = { scannedCode ->
-                val station = MockData.sampleStations.find {
-                    it.qrCodeId.equals(scannedCode.trim(), ignoreCase = true)
-                } ?: MockData.sampleStations.first()
-                onStationDetected(station)
+                onStationDetected(findMatchingStation(scannedCode))
             },
             modifier = Modifier.fillMaxSize()
         )
@@ -235,10 +255,7 @@ fun QrScannerScreen(
                 trailingIcon = {
                     if (manualCode.isNotBlank()) {
                         IconButton(onClick = {
-                            val found = MockData.sampleStations.find {
-                                it.qrCodeId.equals(manualCode.trim(), ignoreCase = true)
-                            } ?: MockData.sampleStations.first()
-                            onStationDetected(found)
+                            onStationDetected(findMatchingStation(manualCode))
                         }) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowForward,
@@ -252,25 +269,68 @@ fun QrScannerScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Box(
+            val availableStations = remember(deviceList, initialStation) {
+                val list = mutableListOf<KineticStation>()
+                if (initialStation != null) list.add(initialStation)
+                deviceList.forEach { dev ->
+                    if (list.none { it.id == dev.id }) list.add(dev)
+                }
+                MockData.sampleStations.forEach { dev ->
+                    if (list.none { it.id == dev.id }) list.add(dev)
+                }
+                list
+            }
+
+            var simIndex by remember { mutableIntStateOf(0) }
+            val currentSimStation = availableStations.getOrNull(simIndex.coerceIn(0, (availableStations.size - 1).coerceAtLeast(0)))
+                ?: MockData.sampleStations.first()
+
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 32.dp)
+                    .padding(horizontal = 24.dp)
                     .padding(bottom = 24.dp),
-                contentAlignment = Alignment.Center
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Surface(
                     modifier = Modifier
                         .clip(CircleShape)
-                        .clickable { onStationDetected(MockData.sampleStations.first()) },
-                    color = Color.White.copy(alpha = 0.15f)
+                        .clickable { onStationDetected(currentSimStation) },
+                    color = Color.White.copy(alpha = 0.18f),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f))
                 ) {
-                    Text(
-                        text = strings.qrSimulateBtn,
+                    Row(
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.QrCodeScanner,
+                            contentDescription = null,
+                            tint = primaryColor,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = "${strings.qrSimulateBtn}: ${currentSimStation.id}",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+
+                if (availableStations.size > 1 && initialStation == null) {
+                    Text(
+                        text = "Stacja ${simIndex + 1} z ${availableStations.size}: ${currentSimStation.name} (Dotknij, aby zmienić)",
+                        color = Color.White.copy(alpha = 0.7f),
+                        fontSize = 11.sp,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable {
+                                simIndex = (simIndex + 1) % availableStations.size
+                            }
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
             }

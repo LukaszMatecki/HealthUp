@@ -70,7 +70,7 @@ sealed interface Screen {
     data object Main : Screen
     data class ActiveWorkout(val station: KineticStation) : Screen
     data object Settings : Screen
-    data object QrScanner : Screen
+    data class QrScanner(val initialStation: KineticStation? = null) : Screen
     data object Achievements : Screen
     data object ManageAccount : Screen
     data object HelpGuide : Screen
@@ -315,6 +315,40 @@ fun App() {
                 isDarkTheme = appSettings.themeMode == AppThemeMode.DARK
             )
             achievements = evalOnLoad.updatedAchievements
+            if (evalOnLoad.bonusPointsEarned > 0) {
+                val newRankingPoints = userStats.rankingPoints + evalOnLoad.bonusPointsEarned
+                val newVoltPoints = userStats.points + evalOnLoad.bonusPointsEarned
+                val newLevel = calculateUserLevel(newRankingPoints)
+                val newTitle = calculateLevelTitle(newLevel)
+                userStats = userStats.copy(
+                    rankingPoints = newRankingPoints,
+                    points = newVoltPoints,
+                    voltPoints = newVoltPoints,
+                    level = newLevel,
+                    levelTitle = newTitle
+                )
+                coroutineScope.launch {
+                    dbService.updateUserStats(
+                        userId = u.userId,
+                        pointsDelta = evalOnLoad.bonusPointsEarned,
+                        whDelta = 0.0,
+                        co2Delta = 0.0,
+                        newLevel = newLevel,
+                        rankingPointsDelta = evalOnLoad.bonusPointsEarned
+                    )
+                    evalOnLoad.updatedAchievements.forEach { ach ->
+                        dbService.saveAchievement(
+                            UserAchievementDto(
+                                userId = u.userId,
+                                achievementId = ach.id,
+                                currentLevel = ach.level,
+                                currentProgress = ach.currentProgress,
+                                updatedAt = currentTimeMillis()
+                            )
+                        )
+                    }
+                }
+            }
 
             challenges = MockData.sampleChallenges.map { ch ->
                 val cleanId = ch.id.removePrefix("${u.userId}_")
@@ -368,6 +402,91 @@ fun App() {
                     }
             } else {
                 redeemedRewards = emptyList()
+            }
+        }
+    }
+
+    val checkAndAwardAchievements: (triggerKey: String?, showSnackbar: Boolean) -> Unit = { triggerKey, showSnackbar ->
+        if (triggerKey != null) {
+            VoltUpStorage.setBoolean(triggerKey, true)
+        }
+
+        val evalResult = evaluateAchievements(
+            currentAchievements = achievements,
+            workouts = userStats.recentWorkouts,
+            totalEnergyWh = userStats.totalEnergyWh,
+            co2SavedKg = userStats.co2SavedKg,
+            streakDays = userStats.streakDays,
+            redeemedRewardsCount = redeemedRewards.size,
+            isEnglish = appSettings.language == AppLanguage.ENGLISH,
+            isDarkTheme = appSettings.themeMode == AppThemeMode.DARK
+        )
+
+        if (evalResult.bonusPointsEarned > 0 || evalResult.updatedAchievements != achievements) {
+            achievements = evalResult.updatedAchievements
+            val pts = evalResult.bonusPointsEarned
+            if (pts > 0) {
+                val newRankingPoints = userStats.rankingPoints + pts
+                val newVoltPoints = userStats.points + pts
+                val newLevel = calculateUserLevel(newRankingPoints)
+                val newTitle = calculateLevelTitle(newLevel)
+
+                userStats = userStats.copy(
+                    rankingPoints = newRankingPoints,
+                    points = newVoltPoints,
+                    voltPoints = newVoltPoints,
+                    level = newLevel,
+                    levelTitle = newTitle
+                )
+
+                if (showSnackbar) {
+                    evalResult.levelUpMessages.forEach { msg ->
+                        SnackbarHelper.show(
+                            text = msg,
+                            icon = Icons.Default.EmojiEvents
+                        )
+                    }
+                }
+
+                currentAuthUser?.let { u ->
+                    coroutineScope.launch {
+                        dbService.updateUserStats(
+                            userId = u.userId,
+                            pointsDelta = pts,
+                            whDelta = 0.0,
+                            co2Delta = 0.0,
+                            newLevel = newLevel,
+                            rankingPointsDelta = pts
+                        )
+                        evalResult.updatedAchievements.forEach { ach ->
+                            dbService.saveAchievement(
+                                UserAchievementDto(
+                                    userId = u.userId,
+                                    achievementId = ach.id,
+                                    currentLevel = ach.level,
+                                    currentProgress = ach.currentProgress,
+                                    updatedAt = currentTimeMillis()
+                                )
+                            )
+                        }
+                    }
+                }
+            } else {
+                currentAuthUser?.let { u ->
+                    coroutineScope.launch {
+                        evalResult.updatedAchievements.forEach { ach ->
+                            dbService.saveAchievement(
+                                UserAchievementDto(
+                                    userId = u.userId,
+                                    achievementId = ach.id,
+                                    currentLevel = ach.level,
+                                    currentProgress = ach.currentProgress,
+                                    updatedAt = currentTimeMillis()
+                                )
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -524,6 +643,9 @@ fun App() {
                                 },
                                 onNavigateToHelpGuide = {
                                     currentScreen = Screen.HelpGuide
+                                },
+                                onTriggerAchievement = { key ->
+                                    checkAndAwardAchievements(key, true)
                                 }
                             )
                         }
@@ -559,8 +681,11 @@ fun App() {
                         }
 
                         is Screen.QrScanner -> {
-                            VoltUpStorage.setBoolean("ach_qr_scanner", true)
+                            LaunchedEffect(Unit) {
+                                checkAndAwardAchievements("ach_qr_scanner", true)
+                            }
                             QrScannerScreen(
+                                initialStation = screen.initialStation,
                                 onStationDetected = { station ->
                                     currentScreen = Screen.ActiveWorkout(station)
                                 },
@@ -569,18 +694,8 @@ fun App() {
                         }
 
                         is Screen.Achievements -> {
-                            val evalResult = evaluateAchievements(
-                                currentAchievements = achievements,
-                                workouts = userStats.recentWorkouts,
-                                totalEnergyWh = userStats.totalEnergyWh,
-                                co2SavedKg = userStats.co2SavedKg,
-                                streakDays = userStats.streakDays,
-                                redeemedRewardsCount = redeemedRewards.size,
-                                isEnglish = appSettings.language == AppLanguage.ENGLISH,
-                                isDarkTheme = appSettings.themeMode == AppThemeMode.DARK
-                            )
-                            if (evalResult.updatedAchievements != achievements) {
-                                achievements = evalResult.updatedAchievements
+                            LaunchedEffect(Unit) {
+                                checkAndAwardAchievements(null, true)
                             }
                             AchievementsScreen(
                                 badges = achievements.map { it.toBadgeModel(isEnglish = appSettings.language == AppLanguage.ENGLISH) },
@@ -590,7 +705,9 @@ fun App() {
                         }
 
                         is Screen.WorkoutHistory -> {
-                            VoltUpStorage.setBoolean("ach_explore_history", true)
+                            LaunchedEffect(Unit) {
+                                checkAndAwardAchievements("ach_explore_history", true)
+                            }
                             WorkoutHistoryScreen(
                                 workouts = userStats.recentWorkouts,
                                 onNavigateBack = { currentScreen = Screen.Main }
@@ -617,11 +734,13 @@ fun App() {
                                     )
 
                                     achievements = evalResult.updatedAchievements
+                                    val newRankingPoints = userStats.rankingPoints + evalResult.bonusPointsEarned
                                     val totalPoints = userStats.points + earnedPoints + evalResult.bonusPointsEarned
-                                    val newLevel = calculateUserLevel(userStats.rankingPoints)
+                                    val newLevel = calculateUserLevel(newRankingPoints)
                                     val newTitle = calculateLevelTitle(newLevel)
 
                                     userStats = userStats.copy(
+                                        rankingPoints = newRankingPoints,
                                         points = totalPoints,
                                         voltPoints = totalPoints,
                                         totalEnergyWh = newTotalWh,
@@ -630,6 +749,15 @@ fun App() {
                                         levelTitle = newTitle,
                                         recentWorkouts = newWorkouts
                                     )
+
+                                    if (evalResult.bonusPointsEarned > 0) {
+                                        evalResult.levelUpMessages.forEach { msg ->
+                                            SnackbarHelper.show(
+                                                text = msg,
+                                                icon = Icons.Default.EmojiEvents
+                                            )
+                                        }
+                                    }
 
                                     val sessionPeakWatts = workoutRecord.generatedWh * 3600.0 / workoutRecord.durationSeconds.coerceAtLeast(1)
                                     challenges = challenges.map { ch ->
@@ -673,7 +801,7 @@ fun App() {
                                                 whDelta = earnedWh,
                                                 co2Delta = earnedWh * 0.0007,
                                                 newLevel = newLevel,
-                                                rankingPointsDelta = 0
+                                                rankingPointsDelta = evalResult.bonusPointsEarned
                                             )
 
                                             achievements.forEach { ach ->
@@ -709,11 +837,12 @@ fun App() {
                                     currentScreen = Screen.Main
                                     SnackbarHelper.show("Sesja zakończona!", icon = Icons.Default.Check)
                                     if (evalResult.bonusPointsEarned > 0) {
-                                        val achMsg = evalResult.levelUpMessages.firstOrNull() ?: "Level Up!"
-                                        SnackbarHelper.show(
-                                            text = achMsg,
-                                            icon = Icons.Default.ArrowUpward
-                                        )
+                                        evalResult.levelUpMessages.forEach { achMsg ->
+                                            SnackbarHelper.show(
+                                                text = achMsg,
+                                                icon = Icons.Default.EmojiEvents
+                                            )
+                                        }
                                     }
                                 },
                                 onCancel = {
@@ -746,7 +875,7 @@ fun App() {
                                     VoltUpBottomBar(
                                         currentTab = currentTab,
                                         onTabSelected = { currentTab = it },
-                                        onQrClick = { currentScreen = Screen.QrScanner }
+                                        onQrClick = { currentScreen = Screen.QrScanner() }
                                     )
                                 }
                             ) { innerPadding ->
@@ -759,21 +888,26 @@ fun App() {
                                 ) { page ->
                                     when (MainTab.entries[page]) {
                                         MainTab.HOME -> {
-                                            VoltUpStorage.setBoolean("ach_weekly_challenges", true)
+                                            LaunchedEffect(Unit) {
+                                                checkAndAwardAchievements("ach_weekly_challenges", true)
+                                            }
                                             DashboardScreen(
                                                 stats = userStats,
                                                 onOpenSettings = { currentScreen = Screen.Settings },
                                                 onGoToMap = { currentTab = MainTab.MAP },
-                                                onScanStation = { currentScreen = Screen.QrScanner }
+                                                onScanStation = { currentScreen = Screen.QrScanner() },
+                                                onStartStationWorkout = { station -> currentScreen = Screen.ActiveWorkout(station) }
                                             )
                                         }
 
                                         MainTab.MAP -> {
-                                            VoltUpStorage.setBoolean("ach_map_navigator", true)
+                                            LaunchedEffect(Unit) {
+                                                checkAndAwardAchievements("ach_map_navigator", true)
+                                            }
                                             StationsMapScreen(
                                                 stations = MockData.sampleStations,
-                                                onSelectStationToScanQr = {
-                                                    currentScreen = Screen.QrScanner
+                                                onSelectStationToScanQr = { station ->
+                                                    currentScreen = Screen.ActiveWorkout(station)
                                                 }
                                             )
                                         }
@@ -782,6 +916,7 @@ fun App() {
                                             RewardsScreen(
                                                 currentPoints = userStats.points,
                                                 redeemedRewards = redeemedRewards,
+                                                onTriggerAchievement = { key -> checkAndAwardAchievements(key, true) },
                                                 onRedeemReward = { reward ->
                                                     val isRankingTicket = reward.id.contains("RANK")
                                                     if (isRankingTicket) {
@@ -836,11 +971,13 @@ fun App() {
                                                         )
 
                                                         achievements = evalResult.updatedAchievements
+                                                        val newRankingPoints = userStats.rankingPoints + evalResult.bonusPointsEarned
                                                         val finalPoints = pointsAfterRedeem + evalResult.bonusPointsEarned
-                                                        val finalLevel = calculateUserLevel(userStats.rankingPoints)
+                                                        val finalLevel = calculateUserLevel(newRankingPoints)
                                                         val finalTitle = calculateLevelTitle(finalLevel)
 
                                                         userStats = userStats.copy(
+                                                            rankingPoints = newRankingPoints,
                                                             points = finalPoints,
                                                             voltPoints = finalPoints,
                                                             level = finalLevel,
@@ -848,11 +985,12 @@ fun App() {
                                                         )
 
                                                         if (evalResult.bonusPointsEarned > 0) {
-                                                            val achMsg = evalResult.levelUpMessages.firstOrNull() ?: "Level Up!"
-                                                            SnackbarHelper.show(
-                                                                text = achMsg,
-                                                                icon = Icons.Default.ArrowUpward
-                                                            )
+                                                            evalResult.levelUpMessages.forEach { msg ->
+                                                                SnackbarHelper.show(
+                                                                    text = msg,
+                                                                    icon = Icons.Default.EmojiEvents
+                                                                )
+                                                            }
                                                         }
 
                                                         currentAuthUser?.let { u ->
@@ -877,7 +1015,7 @@ fun App() {
                                                                     whDelta = 0.0,
                                                                     co2Delta = 0.0,
                                                                     newLevel = finalLevel,
-                                                                    rankingPointsDelta = 0
+                                                                    rankingPointsDelta = evalResult.bonusPointsEarned
                                                                 )
                                                             }
                                                         }
@@ -976,6 +1114,7 @@ fun App() {
                                                         }
                                                     }
                                                     SnackbarHelper.show("Profil zaktualizowany.")
+                                                    checkAndAwardAchievements("ach_profile_custom", true)
                                                 },
                                                 onOpenSettings = {
                                                     currentScreen = Screen.Settings
@@ -997,6 +1136,9 @@ fun App() {
                                                         currentScreen = Screen.Login
                                                         SnackbarHelper.show("Wylogowano z konta.")
                                                     }
+                                                },
+                                                onTriggerAchievement = { key ->
+                                                    checkAndAwardAchievements(key, true)
                                                 }
                                             )
                                         }
@@ -1258,7 +1400,8 @@ fun DashboardScreen(
     stats: UserStats,
     onOpenSettings: () -> Unit,
     onGoToMap: () -> Unit,
-    onScanStation: () -> Unit
+    onScanStation: () -> Unit,
+    onStartStationWorkout: ((KineticStation) -> Unit)? = null
 ) {
     val scrollState = rememberScrollState()
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -1519,7 +1662,13 @@ fun DashboardScreen(
                             Surface(
                                 shape = CircleShape,
                                 color = primaryColor.copy(alpha = 0.12f),
-                                modifier = Modifier.clickable { onScanStation() }
+                                modifier = Modifier.clickable {
+                                    if (onStartStationWorkout != null) {
+                                        onStartStationWorkout(station)
+                                    } else {
+                                        onScanStation()
+                                    }
+                                }
                             ) {
                                 Icon(
                                     Icons.Default.QrCodeScanner,
@@ -1582,13 +1731,40 @@ fun DashboardScreen(
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
                                         text = if (station.isOnline) strings.statusActiveOnline else strings.statusInactive,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = if (station.isOnline) primaryColor else MaterialTheme.colorScheme.error
+                                    )
+                                }
+
+                                Button(
+                                    onClick = {
+                                        if (onStartStationWorkout != null) {
+                                            onStartStationWorkout(station)
+                                        } else {
+                                            onScanStation()
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 4.dp),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PlayArrow,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Rozpocznij trening",
+                                        fontWeight = FontWeight.Bold
                                     )
                                 }
                             }

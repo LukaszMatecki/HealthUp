@@ -1041,35 +1041,36 @@ class AndroidFirestoreService : VoltUpDatabaseService {
         return try {
             val snapshot = firestore.collection("devices").get().await()
             val existingList = snapshot.documents.mapNotNull { doc ->
-                doc.data?.let { KineticDeviceDto.fromMap(it).toKineticStation().let(::cleanStation) }
+                doc.data?.let { data ->
+                    KineticDeviceDto.fromMap(data, doc.id).toKineticStation().let(::cleanStation)
+                }
             }
 
             val resolvedList = mutableListOf<KineticStation>()
-            for (defaultDev in defaultDevices) {
-                val cleanedDefault = cleanStation(defaultDev)
-                val existing = existingList.find { it.id == defaultDev.id }
-                val target = if (existing != null) {
-                    cleanedDefault.copy(
-                        isOnline = existing.isOnline,
-                        currentEnergyRateW = existing.currentEnergyRateW
-                    )
-                } else {
-                    cleanedDefault
+            if (existingList.isNotEmpty()) {
+                resolvedList.addAll(existingList)
+                // Add default devices if missing in Firestore
+                for (defaultDev in defaultDevices) {
+                    val cleanedDefault = cleanStation(defaultDev)
+                    if (resolvedList.none { it.id == defaultDev.id || it.qrCodeId == defaultDev.qrCodeId }) {
+                        resolvedList.add(cleanedDefault)
+                        try {
+                            val dto = KineticDeviceDto.fromStation(cleanedDefault)
+                            firestore.collection("devices").document(defaultDev.id).set(dto.toMap()).await()
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Błąd zapisu stacji domyślnej ${defaultDev.id}: ${e.message}")
+                        }
+                    }
                 }
-                resolvedList.add(target)
-
-                if (existing == null ||
-                    existing.latitude != defaultDev.latitude ||
-                    existing.longitude != defaultDev.longitude ||
-                    existing.mapCoordinatesX != defaultDev.mapCoordinatesX ||
-                    existing.mapCoordinatesY != defaultDev.mapCoordinatesY ||
-                    existing.name != cleanedDefault.name
-                ) {
+            } else {
+                for (defaultDev in defaultDevices) {
+                    val cleanedDefault = cleanStation(defaultDev)
+                    resolvedList.add(cleanedDefault)
                     try {
-                        val dto = KineticDeviceDto.fromStation(target)
+                        val dto = KineticDeviceDto.fromStation(cleanedDefault)
                         firestore.collection("devices").document(defaultDev.id).set(dto.toMap()).await()
                     } catch (e: Exception) {
-                        Log.w(TAG, "Błąd zapisu/aktualizacji stacji ${defaultDev.id}: ${e.message}")
+                        Log.w(TAG, "Błąd inicjalizacji stacji ${defaultDev.id}: ${e.message}")
                     }
                 }
             }

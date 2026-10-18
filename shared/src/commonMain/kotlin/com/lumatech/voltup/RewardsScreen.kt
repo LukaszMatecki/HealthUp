@@ -1120,7 +1120,8 @@ fun RewardsScreen(
     onRedeemReward: (Reward) -> Unit,
     onActivateReward: (RedeemedReward) -> Unit = {},
     onDeleteCoupon: (RedeemedReward) -> Unit = {},
-    onSetCouponReadyToScan: (RedeemedReward) -> Unit = {}
+    onSetCouponReadyToScan: (RedeemedReward) -> Unit = {},
+    onTriggerAchievement: ((String) -> Unit)? = null
 ) {
     var activeSubTab by remember { mutableIntStateOf(0) }
     var couponFilter by remember { mutableStateOf(CouponTabFilter.ACTIVE) }
@@ -1406,6 +1407,7 @@ fun RewardsScreen(
                                                         couponFilter = filter
                                                         if (filter == CouponTabFilter.ARCHIVE) {
                                                             VoltUpStorage.setBoolean("ach_archive_viewed", true)
+                                                            onTriggerAchievement?.invoke("ach_archive_viewed")
                                                         }
                                                     }
                                                     .padding(horizontal = 20.dp, vertical = 8.dp),

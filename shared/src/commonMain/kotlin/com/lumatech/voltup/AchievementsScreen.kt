@@ -24,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -218,11 +219,58 @@ private fun TabSelector(
 
 @Composable
 private fun BadgesContent(badges: List<BadgeModel>) {
+    val strings = strings
+    val isEnglish = strings is VoltUpEnglishStrings
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        item {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.EmojiEvents,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = if (isEnglish) "Ranking Points" else "Punkty do rankingu",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = if (isEnglish)
+                                "Points earned from completed achievements count directly towards your position on the leaderboard!"
+                            else
+                                "Punkty zdobyte za osiągnięcia zasilają Twój wynik w rankingu VoltUp!",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
         items(badges, key = { it.id }) { badge ->
             AchievementCard(badge)
         }
@@ -276,10 +324,12 @@ private fun AchievementCard(badge: BadgeModel) {
                     text = if (isLocked) strings.badgeLocked
                         else if (badge.isMaxLevel) (if (isEnglish) "LEVEL MAX" else "POZIOM MAX")
                         else strings.badgeLevel(badge.level),
-                    fontSize = 10.sp,
+                    fontSize = 9.5.sp,
+                    lineHeight = 11.5.sp,
                     fontWeight = FontWeight.Bold,
                     color = accentColor,
-                    letterSpacing = 0.5.sp
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
 

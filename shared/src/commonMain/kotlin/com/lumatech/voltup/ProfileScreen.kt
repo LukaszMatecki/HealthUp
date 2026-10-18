@@ -82,7 +82,8 @@ fun ProfileScreen(
     onOpenWorkoutHistory: () -> Unit = {},
     userEmail: String = "",
     authService: VoltUpAuthService? = null,
-    onSignOut: () -> Unit = {}
+    onSignOut: () -> Unit = {},
+    onTriggerAchievement: ((String) -> Unit)? = null
 ) {
     val strings = strings
     var showEditProfileDialog by remember { mutableStateOf(false) }
@@ -574,6 +575,7 @@ fun ProfileScreen(
                             }
                             onUpdateUserProfile(editName.trim(), editAvatar)
                             VoltUpStorage.setBoolean("ach_profile_custom", true)
+                            onTriggerAchievement?.invoke("ach_profile_custom")
                             showEditProfileDialog = false
                         },
                         modifier = Modifier.fillMaxWidth().height(48.dp),

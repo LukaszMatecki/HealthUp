@@ -668,7 +668,7 @@ object VoltUpPolishStrings : VoltUpStrings {
     override val badgeLocked = "BLOKADA"
     override val badgeLevel: (Int) -> String = { "POZIOM $it" }
     override val levelPoints: (Int) -> String = { "$it pkt poziomu" }
-    override val badgePointsAwarded: (Int) -> String = { "+$it pkt poziomu" }
+    override val badgePointsAwarded: (Int) -> String = { "+$it pkt" }
     override val youLabel = "(Ty)"
     override val levelLabel: (Int) -> String = { "Poziom $it" }
     override val rankPosition: (Any) -> String = { "Pozycja: #$it" }
@@ -1035,7 +1035,7 @@ object VoltUpEnglishStrings : VoltUpStrings {
     override val badgeLocked = "LOCKED"
     override val badgeLevel: (Int) -> String = { "LEVEL $it" }
     override val levelPoints: (Int) -> String = { "$it level pts" }
-    override val badgePointsAwarded: (Int) -> String = { "+$it level pts" }
+    override val badgePointsAwarded: (Int) -> String = { "+$it pts" }
     override val youLabel = "(You)"
     override val levelLabel: (Int) -> String = { "Level $it" }
     override val rankPosition: (Any) -> String = { "Rank: #$it" }

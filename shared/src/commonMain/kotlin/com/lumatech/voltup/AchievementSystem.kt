@@ -52,7 +52,7 @@ data class Achievement(
 
     fun getLocalizedTitle(isEnglish: Boolean = false): String = if (!isEnglish) title else when (metricType) {
         MetricType.WORKOUTS_COUNT -> "First Impulse"
-        MetricType.TOTAL_ENERGY_WH -> "Park Generator"
+        MetricType.TOTAL_ENERGY_WH -> "Generator"
         MetricType.MAX_WATTS -> "Peak Watt Master"
         MetricType.CO2_SAVED_G -> "Eco Hero"
         MetricType.STREAK_DAYS -> "Streak Master"
@@ -68,14 +68,14 @@ data class Achievement(
         MetricType.COMMUNITY_DAYS -> "Community Pillar"
         MetricType.LONG_SESSIONS -> "Marathoner"
         MetricType.DISTINCT_DISTRICTS -> "District Conqueror"
-        MetricType.CO2_MILESTONES -> "Carbon Offset King"
+        MetricType.CO2_MILESTONES -> "Eco Hero"
         MetricType.DEVICE_VARIETY -> "All-Round Athlete"
         MetricType.DAILY_DOUBLE -> "Double Power"
         MetricType.EXPLORE_HISTORY -> "History Buff"
         MetricType.DARK_THEME_TOGGLE -> "Dark Mode"
-        MetricType.ABOUT_VIEWED -> "Inside VoltUp"
+        MetricType.ABOUT_VIEWED -> "Aware"
         MetricType.PROFILE_CUSTOM -> "Custom Style"
-        MetricType.ARCHIVE_VIEWED -> "Ticket Archivist"
+        MetricType.ARCHIVE_VIEWED -> "Archivist"
         MetricType.QR_SCANNER -> "QR Scanner"
         MetricType.MAP_NAVIGATOR -> "City Navigator"
         MetricType.WEEKLY_CHALLENGES -> "Mission Brief"
@@ -318,7 +318,7 @@ object DefaultAchievements {
         ),
         Achievement(
             id = "ACH_ENERGY",
-            title = "Generator Parkowy",
+            title = "Generator",
             icon = Icons.Default.ElectricBolt,
             metricType = Achievement.MetricType.TOTAL_ENERGY_WH,
             level = 0,
@@ -422,7 +422,7 @@ object DefaultAchievements {
         ),
         Achievement(
             id = "ACH_MARATHON",
-            title = "Maratończyk Mocy",
+            title = "Maratończyk",
             icon = Icons.AutoMirrored.Filled.DirectionsRun,
             metricType = Achievement.MetricType.LONG_SESSIONS,
             level = 0,
@@ -439,7 +439,7 @@ object DefaultAchievements {
         ),
         Achievement(
             id = "ACH_CO2_MILESTONE",
-            title = "Eko-Bohater Łodzi",
+            title = "Eko-Bohater",
             icon = Icons.Default.Park,
             metricType = Achievement.MetricType.CO2_MILESTONES,
             level = 0,
@@ -482,7 +482,7 @@ object DefaultAchievements {
         ),
         Achievement(
             id = "ACH_ABOUT_VIEWED",
-            title = "Świadomy Użytkownik",
+            title = "Świadomy",
             icon = Icons.Default.Info,
             metricType = Achievement.MetricType.ABOUT_VIEWED,
             level = 0,
@@ -500,7 +500,7 @@ object DefaultAchievements {
         ),
         Achievement(
             id = "ACH_ARCHIVE_VIEWED",
-            title = "Archiwista Biletów",
+            title = "Archiwista",
             icon = Icons.Default.Archive,
             metricType = Achievement.MetricType.ARCHIVE_VIEWED,
             level = 0,
@@ -680,7 +680,30 @@ fun evaluateAchievements(
                 curLvl++
                 newPoints += nextConfig.second
                 val titleStr = ach.getLocalizedTitle(isEnglish)
-                messages.add("$titleStr • Level Up!")
+                val msg = if (ach.maxLevel == 1 || curLvl == 1) {
+                    if (isEnglish) {
+                        when {
+                            titleStr.length >= 17 -> "Achievement! $titleStr"
+                            titleStr.length >= 12 -> "New Achievement! $titleStr"
+                            else -> "Achievement unlocked! $titleStr"
+                        }
+                    } else {
+                        when {
+                            titleStr.length >= 17 -> "Osiągnięcie! $titleStr"
+                            titleStr.length >= 12 -> "Nowe Osiągnięcie! $titleStr"
+                            else -> "Odblokowano osiągnięcie! $titleStr"
+                        }
+                    }
+                } else {
+                    if (isEnglish) {
+                        if (titleStr.length >= 15) "Level $curLvl! $titleStr"
+                        else "Level $curLvl unlocked! $titleStr"
+                    } else {
+                        if (titleStr.length >= 15) "Poziom $curLvl! $titleStr"
+                        else "Odblokowano poziom $curLvl! $titleStr"
+                    }
+                }
+                messages.add(msg)
             } else {
                 break
             }

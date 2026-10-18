@@ -40,7 +40,8 @@ fun SettingsScreen(
     userEmail: String = "",
     onSignOut: () -> Unit = {},
     onNavigateToManageAccount: () -> Unit = {},
-    onNavigateToHelpGuide: () -> Unit = {}
+    onNavigateToHelpGuide: () -> Unit = {},
+    onTriggerAchievement: ((String) -> Unit)? = null
 ) {
     CommonBackHandler(enabled = true, onBack = onNavigateBack)
 
@@ -189,6 +190,7 @@ fun SettingsScreen(
                                             VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_THEME, mode.name)
                                             if (mode == AppThemeMode.DARK) {
                                                 VoltUpStorage.setBoolean("ach_dark_theme", true)
+                                                onTriggerAchievement?.invoke("ach_dark_theme")
                                             }
                                             isThemeExpanded = false
                                         }
@@ -458,6 +460,7 @@ fun SettingsScreen(
                             titleColor = MaterialTheme.colorScheme.onSurface,
                             onClick = {
                                 VoltUpStorage.setBoolean("ach_about_viewed", true)
+                                onTriggerAchievement?.invoke("ach_about_viewed")
                                 showAboutDialog = true
                             }
                         )
