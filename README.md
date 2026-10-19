@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="#wersja-polska">Wersja polska</a> &bull; <a href="#english-version">English Version</a>
+  <a href="#wersja-polska">🇵🇱</a> &nbsp;&bull;&nbsp; <a href="#english-version">🇬🇧</a>
 </p>
 
 <p align="center">
@@ -8,20 +8,18 @@
   </a>
 </p>
 
-# VoltUp: Inteligentny Ekosystem Energii Kinetycznej i Fitnessu Miejskiego
+# VoltUp: Kinetyczna Re-witalizacja
 
 <a id="wersja-polska"></a>
 
-VoltUp to nowoczesna aplikacja mobilna stworzona w technologii **Kotlin Multiplatform** oraz **Compose Multiplatform**, łącząca miejską infrastrukturę rekreacyjną z systemem monitorowania rozproszonej energii kinetycznej w Łodzi.
-
-Aplikacja pozwala użytkownikom ćwiczyć na plenerowych urządzeniach kinetycznych (m.in. w Manufakturze, Parku Poniatowskiego czy Parku na Zdrowiu), przetwarzać wykonany wysiłek na zliczoną energię elektryczną, redukować ślad węglowy i wymieniać zebrane punkty na zniżki u lokalnych partnerów.
+VoltUp to ekosystem kinetycznej re-witalizacji przestrzeni miejskiej w Łodzi, stworzony w technologii **Kotlin Multiplatform** oraz **Compose Multiplatform**. Aplikacja łączy miejską infrastrukturę rekreacyjną z systemem monitorowania energii wytwarzanej podczas ćwiczeń na plenerowych urządzeniach kinetycznych.
 
 ---
 
 ## Spis Treści
 
 1. [Architektura KMP i współdzielenie kodu](#architektura-kmp-i-współdzielenie-kodu)
-2. [Przepływ danych i architektura telemetryczna](#przepływ-danych-i-architektura-telemetryczna)
+2. [Przepływ danych](#przepływ-danych)
 3. [Główne moduły aplikacji](#główne-moduły-aplikacji)
 4. [Prezentacja wizualna (zrzuty ekranu)](#prezentacja-wizualna)
 5. [Materiał wideo z działania aplikacji](#materiał-wideo-z-działania-aplikacji)
@@ -30,7 +28,7 @@ Aplikacja pozwala użytkownikom ćwiczyć na plenerowych urządzeniach kinetyczn
 8. [Uruchomienie projektu i testy](#uruchomienie-projektu-i-testy)
 9. [Usługi chmurowe Firebase](#usługi-chmurowe-firebase)
 10. [Licencja](#licencja)
-11. [English Version (Executive Summary)](#english-version)
+11. [Executive Summary (English)](#english-version)
 
 ---
 
@@ -47,45 +45,19 @@ Projekt został zbudowany z wykorzystaniem architektury **Kotlin Multiplatform (
 
 ---
 
-## Przepływ danych i architektura telemetryczna
-
-Aplikacja przekształca fizyczny wysiłek w precyzyjnie mierzone jednostki energii elektrycznej i ekologiczne wskaźniki redukcji CO2.
+## Przepływ danych
 
 ```mermaid
-flowchart TD
-    subgraph Stacja ["Miejska Stacja Kinetyczna"]
-        Gen["Generator kinetyczny (prądnica)"]
-        QR["Unikalny kod QR stacji"]
-    end
-
-    subgraph Klient ["Aplikacja VoltUp (KMP / Compose Multiplatform)"]
-        Camera["Skaner CameraX"] -->|Weryfikacja QR stacji| Workout["Aktywna sesja treningowa"]
-        Workout -->|Moc chwilowa W i czas| Calc["Kalkulator energii (Wh) i estymacji CO2"]
-    end
-
-    subgraph Backend ["Google Firebase (Backend w chmurze)"]
-        Calc -->|Zapis zakończonego treningu| FS_Workouts[("Firestore: workouts")]
-        Calc -->|Aktualizacja punktów i statystyk| FS_Users[("Firestore: users")]
-        FS_Users --> Engine["Silnik poziomów i osiągnięć"]
-        Engine --> FS_Ach[("Firestore: user_achievements")]
-    end
-
-    subgraph Ekosystem ["Katalog Korzyści"]
-        Engine --> VP["Portfel waluty VoltPoints (VP)"]
-        VP --> Rewards["Kody rabatowe do partnerów miejskich"]
-        Calc --> CityGoal["Miejskie cele zasilania mikrosieci"]
-    end
-
-    QR -.-> Camera
+flowchart LR
+    A["Stacja QR"] -->|Moc W| B["Aplikacja VoltUp"]
+    B -->|Telemetria| C["Kalkulator Wh i CO2"]
+    C -->|Punkty VP| D["Katalog Nagród"]
+    C -->|Ranking| E["Poziomy i Odznaki"]
 ```
 
-### Etapy przetwarzania sesji:
-
-1. **Parowanie stacji:** Użytkownik skanuje kod QR umieszczony na urządzeniu plenerowym przy użyciu wbudowanego skanera CameraX. Uniemożliwia to fałszowanie sesji i gwarantuje fizyczną obecność przy urządzeniu.
-2. **Rejestracja telemetrii na żywo:** Podczas ćwiczeń rejestrowana jest moc chwilowa w watach, sumaryczna wygenerowana praca w watogodzinach (Wh) oraz czas sesji z automatyczną detekcją przerw.
-3. **Kwantyfikacja ekologiczna:** Na podstawie wygenerowanych watogodzin kalkulator przelicza zredukowaną emisję gazów cieplarnianych w oparciu o wskaźnik emisyjności mikrosieci.
-4. **Synchronizacja z Firebase:** Po zatwierdzeniu sesji wyniki trafiają do kolekcji `workouts` oraz profilu `users` w bazie Cloud Firestore.
-5. **Grywalizacja i nagrody:** Silnik odblokowuje odznaki, aktualizuje poziom użytkownika w rankingu i dopisuje punkty VoltPoints, które można wymienić na cyfrowe kupony w sekcji nagród.
+* **Autoryzacja stacji:** Zeskanowanie kodu QR urządzenia za pomocą kamery CameraX weryfikuje fizyczną obecność na stacji.
+* **Rejestracja sesji:** Aplikacja mierzy moc chwilową (W), zlicza wytworzone watogodziny (Wh) i estymuje redukcję emisji CO2.
+* **Grywalizacja i nagrody:** Zakończona sesja aktualizuje punkty rankingowe w Cloud Firestore, odblokowuje odznaki i zasila portfel VoltPoints (VP) wymienialny na kody rabatowe.
 
 ---
 
@@ -301,7 +273,7 @@ Projekt VoltUp jest udostępniany na warunkach licencji **MIT**. Szczegóły zna
 
 <a id="english-version"></a>
 
-# VoltUp: Smart Kinetic Energy and Urban Fitness (Executive Overview)
+# VoltUp: Kinetic Re-vitalization (Executive Overview)
 
 VoltUp is a cross-platform mobile solution built with **Kotlin Multiplatform** and **Compose Multiplatform**. It bridges urban outdoor workout infrastructure with decentralized kinetic energy harvesting and environmental tracking across the Lodz metropolitan area.
 
