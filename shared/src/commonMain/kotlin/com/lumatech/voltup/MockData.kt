@@ -264,56 +264,6 @@ object MockData {
         )
     )
 
-    val sampleBadges = listOf(
-        Badge(
-            id = "B1",
-            title = "Pierwszy Impuls",
-            description = "Ukończono pierwszy trening na miejskiej stacji kinetycznej w Łodzi.",
-            icon = Icons.Default.Bolt,
-            isUnlocked = true,
-            unlockedDate = "12 Lutego 2025"
-        ),
-        Badge(
-            id = "B2",
-            title = "Mistrz Parku na Zdrowiu",
-            description = "Wygenerowano ponad 1 000 Wh na terenie Parku na Zdrowiu.",
-            icon = Icons.Default.Park,
-            isUnlocked = true,
-            unlockedDate = "18 Lutego 2025"
-        ),
-        Badge(
-            id = "B3",
-            title = "Nocny Strażnik Łodzi",
-            description = "Wykonano trening po zmroku, zasilając latarnie parkowe.",
-            icon = Icons.Default.NightlightRound,
-            isUnlocked = true,
-            unlockedDate = "22 Lutego 2025"
-        ),
-        Badge(
-            id = "B4",
-            title = "Turbogenerator 100W",
-            description = "Osiągnięto chwilową moc powyżej 100 Watów na stacji kinetycznej.",
-            icon = Icons.Default.Speed,
-            isUnlocked = true,
-            unlockedDate = "1 Marca 2025"
-        ),
-        Badge(
-            id = "B5",
-            title = "Zielony Łodzianin (5 kg CO₂)",
-            description = "Zaoszczędź 5 kg emisji CO₂ dzięki generowaniu czystej energii mięśni.",
-            icon = Icons.Default.Eco,
-            isUnlocked = false,
-            progress = 0.48f
-        ),
-        Badge(
-            id = "B6",
-            title = "Klub 10 kWh Łodzi",
-            description = "Dostarcz łącznie 10 000 Wh do miejskiej sieci energetycznej.",
-            icon = Icons.Default.EmojiEvents,
-            isUnlocked = false,
-            progress = 0.35f
-        )
-    )
 
     val sampleRecentWorkouts = listOf(
         WorkoutSessionRecord(

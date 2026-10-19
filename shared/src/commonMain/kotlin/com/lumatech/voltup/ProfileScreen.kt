@@ -1,7 +1,9 @@
 package com.lumatech.voltup
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -28,6 +30,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
@@ -476,9 +479,10 @@ fun ProfileScreen(
             }
         } else {
             items(activeChallenges, key = { it.id }) { challenge ->
-                AnimatedVisibility(
-                    visible = !challenge.isClaimed,
-                    exit = slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(400)) + fadeOut() + shrinkVertically()
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animateItem()
                 ) {
                     ModernChallengeCard(
                         challenge = challenge,
@@ -847,16 +851,31 @@ fun ModernChallengeCard(
     val isEnglish = strings is VoltUpEnglishStrings
     var isExpanded by remember { mutableStateOf(false) }
     var isClaiming by remember { mutableStateOf(false) }
+    var isDismissing by remember { mutableStateOf(false) }
 
     val lineProgress by animateFloatAsState(
         targetValue = if (isClaiming) 1f else 0f,
-        animationSpec = tween(400, easing = FastOutSlowInEasing),
+        animationSpec = tween(350, easing = FastOutSlowInEasing),
         label = "strikethrough"
+    )
+
+    val dismissOffset by animateFloatAsState(
+        targetValue = if (isDismissing) -1400f else 0f,
+        animationSpec = tween(420, easing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)),
+        label = "dismissOffset"
+    )
+
+    val dismissAlpha by animateFloatAsState(
+        targetValue = if (isDismissing) 0f else 1f,
+        animationSpec = tween(380, easing = LinearEasing),
+        label = "dismissAlpha"
     )
 
     LaunchedEffect(isClaiming) {
         if (isClaiming) {
-            delay(450.milliseconds)
+            delay(380.milliseconds)
+            isDismissing = true
+            delay(430.milliseconds)
             onClaimClick()
         }
     }
@@ -873,8 +892,12 @@ fun ModernChallengeCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .graphicsLayer {
+                translationX = dismissOffset
+                alpha = dismissAlpha
+            }
             .clip(RoundedCornerShape(20.dp))
-            .clickable { isExpanded = !isExpanded },
+            .clickable(enabled = !isClaiming && !isDismissing) { isExpanded = !isExpanded },
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -910,15 +933,15 @@ fun ModernChallengeCard(
                             fontSize = 16.sp,
                             color = if (isClaiming || challenge.isClaimed) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                             else MaterialTheme.colorScheme.onSurface,
-                            textDecoration = if (isClaiming || challenge.isClaimed) TextDecoration.LineThrough else TextDecoration.None
+                            textDecoration = if (challenge.isClaimed) TextDecoration.LineThrough else TextDecoration.None
                         )
 
                         if (lineProgress > 0f) {
                             Canvas(modifier = Modifier.matchParentSize()) {
-                                val strokeW = 2.dp.toPx()
+                                val strokeW = 1.3.dp.toPx()
                                 val startY = size.height / 2f
                                 drawLine(
-                                    color = warningYellow,
+                                    color = Color.Black,
                                     start = Offset(0f, startY),
                                     end = Offset(size.width * lineProgress, startY),
                                     strokeWidth = strokeW,
@@ -1086,8 +1109,8 @@ fun ModernChallengeCard(
 
             if (challenge.isCompleted && !challenge.isClaimed) {
                 Button(
-                    onClick = { if (!isClaiming) isClaiming = true },
-                    enabled = !isClaiming,
+                    onClick = { if (!isClaiming && !isDismissing) isClaiming = true },
+                    enabled = !isClaiming && !isDismissing,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = primaryColor,
                         contentColor = MaterialTheme.colorScheme.onPrimary
@@ -1096,7 +1119,7 @@ fun ModernChallengeCard(
                     modifier = Modifier.fillMaxWidth().height(42.dp)
                 ) {
                     Text(
-                        text = if (isClaiming) strings.claimingStatus else strings.claimRewardsBtn(challenge.rankingPointsReward, challenge.voltPointsReward),
+                        text = if (isClaiming || isDismissing) strings.claimingStatus else strings.claimRewardsBtn(challenge.rankingPointsReward, challenge.voltPointsReward),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
                     )

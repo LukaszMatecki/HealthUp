@@ -176,7 +176,6 @@ interface VoltUpStrings {
     val searchStationsPlaceholder: String
     val availableBikesLabel: String
     val stationPowerLabel: String
-    val startWorkoutAtStationBtn: String
     val distanceMeters: (Int) -> String
 
     val profileScreenTitle: String
@@ -543,7 +542,6 @@ object VoltUpPolishStrings : VoltUpStrings {
     override val searchStationsPlaceholder = "Szukaj stacji w Łodzi..."
     override val availableBikesLabel = "Dostępne rowery"
     override val stationPowerLabel = "Moc stacji"
-    override val startWorkoutAtStationBtn = "Rozpocznij trening"
     override val distanceMeters: (Int) -> String = { "${it} m od Ciebie" }
 
     override val profileScreenTitle = "Mój Profil"
@@ -910,7 +908,6 @@ object VoltUpEnglishStrings : VoltUpStrings {
     override val searchStationsPlaceholder = "Search stations in Łódź..."
     override val availableBikesLabel = "Available bikes"
     override val stationPowerLabel = "Station power"
-    override val startWorkoutAtStationBtn = "Start workout"
     override val distanceMeters: (Int) -> String = { "${it} m away" }
 
     override val profileScreenTitle = "My Profile"
