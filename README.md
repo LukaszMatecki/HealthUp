@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="#spis-treści">Wersja polska</a> &bull; <a href="#table-of-contents">English Version</a>
+  <a href="#wersja-polska">Wersja polska</a> &bull; <a href="#english-version">English Version</a>
 </p>
 
 <p align="center">
@@ -10,112 +10,160 @@
 
 # VoltUp: Inteligentny Ekosystem Energii Kinetycznej i Fitnessu Miejskiego
 
-Aplikacja mobilna zrealizowana w architekturze Kotlin Multiplatform oraz Compose Multiplatform, integrująca miejską infrastrukturę sportowo-rekreacyjną z systemem pozyskiwania i monitorowania rozproszonej energii kinetycznej na obszarze aglomeracji łódzkiej.
+<a id="wersja-polska"></a>
 
-Projekt współdzieli sto procent kodu logiki biznesowej oraz interfejsu graficznego pomiędzy systemami Android oraz iOS, zachowując natywne punkty integracji ze sprzętem, kamerą oraz usługami geolokalizacyjnymi.
+VoltUp to nowoczesna aplikacja mobilna stworzona w technologii **Kotlin Multiplatform** oraz **Compose Multiplatform**, łącząca miejską infrastrukturę rekreacyjną z systemem monitorowania rozproszonej energii kinetycznej w Łodzi.
+
+Aplikacja pozwala użytkownikom ćwiczyć na plenerowych urządzeniach kinetycznych (m.in. w Manufakturze, Parku Poniatowskiego czy Parku na Zdrowiu), przetwarzać wykonany wysiłek na zliczoną energię elektryczną, redukować ślad węglowy i wymieniać zebrane punkty na zniżki u lokalnych partnerów.
 
 ---
 
 ## Spis Treści
 
-1. [Architektura Systemu i Kotlin Multiplatform](#architektura-systemu-i-kotlin-multiplatform)
-2. [Przepływ Danych i Grywalizacja](#przepływ-danych-i-grywalizacja)
-3. [Moduły i Interfejs Użytkownika](#moduły-i-interfejs-użytkownika)
-4. [Prezentacja Wizualna](#prezentacja-wizualna)
-5. [Wideo Prezentacyjne](#wideo-prezentacyjne)
-6. [Struktura Repozytorium](#struktura-repozytorium)
-7. [Stos Technologiczny](#stos-technologiczny)
-8. [Kompilacja, Uruchomienie i Testy](#kompilacja-uruchomienie-i-testy)
-9. [Integracje Usług Chmurowych](#integracje-usług-chmurowych)
+1. [Architektura KMP i współdzielenie kodu](#architektura-kmp-i-współdzielenie-kodu)
+2. [Przepływ danych i architektura telemetryczna](#przepływ-danych-i-architektura-telemetryczna)
+3. [Główne moduły aplikacji](#główne-moduły-aplikacji)
+4. [Prezentacja wizualna (zrzuty ekranu)](#prezentacja-wizualna)
+5. [Materiał wideo z działania aplikacji](#materiał-wideo-z-działania-aplikacji)
+6. [Struktura projektu](#struktura-projektu)
+7. [Wykorzystane technologie i biblioteki](#wykorzystane-technologie-i-biblioteki)
+8. [Uruchomienie projektu i testy](#uruchomienie-projektu-i-testy)
+9. [Usługi chmurowe Firebase](#usługi-chmurowe-firebase)
 10. [Licencja](#licencja)
+11. [English Version (Executive Summary)](#english-version)
 
 ---
 
-## Architektura Systemu i Kotlin Multiplatform
+## Architektura KMP i współdzielenie kodu
 
-Rozwiązanie VoltUp zostało zaprojektowane jako projekt Kotlin Multiplatform (KMP) zoptymalizowany pod kątem jednoczesnego wsparcia platform Android oraz iOS. Rdzeń systemu mieści się w module współdzielonym, eliminując konieczność duplikowania kodu pomiędzy różnymi środowiskami mobilnymi.
+Projekt został zbudowany z wykorzystaniem architektury **Kotlin Multiplatform (KMP)** oraz **Compose Multiplatform**. Całość logiki biznesowej, stanu, kalkulacji energetycznych oraz warstwy widoków UI jest w pełni współdzielona pomiędzy platformami Android i iOS, bez konieczności dublowania kodu.
 
-Moduł `/shared` stanowi wspólny fundament dla całej aplikacji Compose Multiplatform i dzieli się na dedykowane zbiory źródłowe:
+### Struktura modułów współdzielonych
 
-* Katalog `commonMain` zawiera kod wspólny dla wszystkich platform docelowych, w tym deklaratywny interfejs użytkownika w technologii Compose Multiplatform, modele domenowe, maszyny stanowe MVI/MVVM, system obliczeń ekwiwalentu redukcji emisji dwutlenku węgla oraz silnik osiągnięć i wyzwań tygodniowych.
-* Katalog `androidMain` implementuje natywne mechanizmy specyficzne dla systemu Android, wykorzystując wzorzec expect/actual. Znajdują się tu integracje z Google Maps SDK for Android (`GoogleMapView.android.kt`), podgląd kamery Jetpack CameraX do analizy kodów optycznych (`CameraPreview.android.kt`) oraz natywny zestaw bibliotek Google Play Services i Firebase SDK.
-* Katalog `iosMain` dostarcza pomosty systemowe dla platformy iOS, w tym kontroler `MainViewController.kt` opakowujący drzewo komponentów Compose w natywny widok UIViewController, jak również dedykowane adaptery usług chmurowych.
-
-Katalog `/iosApp` reprezentuje natywną aplikację iOS konfigurowaną w środowisku Xcode. Nawet przy pełnym współdzieleniu interfejsu w Compose Multiplatform, katalog ten definiuje punkt wejściowy dla platformy iOS oraz pozwala na dołączanie kodu SwiftUI (`iOSApp.swift`, `ContentView.swift`), jeśli wymagają tego specyficzne komponenty systemowe Apple.
+* **Moduł `/shared/src/commonMain`**: zawiera cały współdzielony interfejs w Compose Multiplatform, modele domenowe, stan aplikacji (MVI/MVVM), kalkulator redukcji emisji dwutlenku węgla oraz silnik osiągnięć i wyzwań tygodniowych.
+* **Moduł `/shared/src/androidMain`**: implementuje platformowe mechanizmy systemu Android za pomocą wzorca `expect` / `actual`. Obejmuje integrację z Google Maps SDK for Android (`GoogleMapView.android.kt`), natywną obsługę kamery Jetpack CameraX (`CameraPreview.android.kt`) oraz klienta usług Google Play Services i Firebase Android SDK.
+* **Moduł `/shared/src/iosMain`**: dostarcza mosty integracyjne dla systemu iOS, w tym kontroler `MainViewController.kt` osadzający drzewo komponentów Compose w kontrolerze UIViewController.
+* **Katalog `/iosApp`**: reprezentuje natywny projekt Xcode dla systemu iOS, stanowiący powłokę wejściową dla aplikacji na urządzeniach Apple (`iOSApp.swift`, `ContentView.swift`).
 
 ---
 
-## Przepływ Danych i Grywalizacja
+## Przepływ danych i architektura telemetryczna
 
-System VoltUp przetwarza pracę mechaniczną generowaną przez użytkowników na stacjach kinetycznych zlokalizowanych w przestrzeni publicznej miasta Łodzi. Wytworzona energia zasila lokalne punkty mikrosieci komunalnej, a zgromadzone dane telemetryczne podlegają bieżącej analizie i kwantyfikacji.
-
-Przepływ informacji obejmuje autoryzację sesji za pomocą kodu QR, rejestrację parametrów treningowych w czasie rzeczywistym, przeliczanie jednostek energii na ekwiwalent redukcji dwutlenku węgla oraz synchronizację z silnikiem grywalizacji w chmurze Google Firebase.
+Aplikacja przekształca fizyczny wysiłek w precyzyjnie mierzone jednostki energii elektrycznej i ekologiczne wskaźniki redukcji CO2.
 
 ```mermaid
-flowchart LR
-    A["Stacja Kinetyczna"] -->|Moc W| B["Aplikacja Mobilna VoltUp"]
-    B -->|Telemetria sesji| C["Kalkulator Energii Wh i Emisji CO2"]
-    C -->|Silnik Grywalizacji| D["System Poziomów i Tabela Liderów"]
-    C -->|Portfel Punktowy| E["Waluta VoltPoints VP"]
-    E -->|Katalog Ofert| F["Kupony Partnerskie Manufaktura"]
-    C -->|Agregacja Danych| G["Miejski Cel Energetyczny Lodzi"]
+flowchart TD
+    subgraph Stacja ["Miejska Stacja Kinetyczna"]
+        Gen["Generator kinetyczny (prądnica)"]
+        QR["Unikalny kod QR stacji"]
+    end
+
+    subgraph Klient ["Aplikacja VoltUp (KMP / Compose Multiplatform)"]
+        Camera["Skaner CameraX"] -->|Weryfikacja QR stacji| Workout["Aktywna sesja treningowa"]
+        Workout -->|Moc chwilowa W i czas| Calc["Kalkulator energii (Wh) i estymacji CO2"]
+    end
+
+    subgraph Backend ["Google Firebase (Backend w chmurze)"]
+        Calc -->|Zapis zakończonego treningu| FS_Workouts[("Firestore: workouts")]
+        Calc -->|Aktualizacja punktów i statystyk| FS_Users[("Firestore: users")]
+        FS_Users --> Engine["Silnik poziomów i osiągnięć"]
+        Engine --> FS_Ach[("Firestore: user_achievements")]
+    end
+
+    subgraph Ekosystem ["Katalog Korzyści"]
+        Engine --> VP["Portfel waluty VoltPoints (VP)"]
+        VP --> Rewards["Kody rabatowe do partnerów miejskich"]
+        Calc --> CityGoal["Miejskie cele zasilania mikrosieci"]
+    end
+
+    QR -.-> Camera
 ```
 
----
+### Etapy przetwarzania sesji:
 
-## Moduły i Interfejs Użytkownika
-
-### Główny Pulpit Telemetryczny
-Centralny widok aplikacji agreguje kluczowe wskaźniki efektywności energetycznej: sumaryczną liczbę wygenerowanych watogodzin, masę zredukowanej emisji dwutlenku węgla oraz wskaźnik ciągłości sesji treningowych. Dynamiczny wykres kołowo-słupkowy ilustruje dzienny rozkład generacji mocy w skali tygodnia, a moduł geolokalizacyjny FusedLocationProvider automatycznie wylicza odległość do najbliższych punktów ładowania. Trening może zostać zainicjowany wyłącznie po fizycznej weryfikacji urządzenia przez skaner kodów optycznych.
-
-### Dwuwarstwowy Moduł Kartograficzny
-Obsługa mapy oparta jest na natywnej bibliotece Google Maps Compose z mechanizmem rezerwowym w postaci interaktywnej mapy wektorowej. Pinezki stacji odzwierciedlają status dostępności urządzeń, poziom mocy znamionowej oraz precyzyjne współrzędne geograficzne w układzie WGS84 z dedykowanym cieniem przestrzennym. Kliknięcie wybranego obiektu inicjuje płynną animację kamery do zbliżenia na poziomie 15.5 stopnia oraz automatycznie synchronizuje przewijanie listy stacji pod paskiem filtrów.
-
-### Podsystem Skanowania Kodów Optycznych
-Moduł CameraX odpowiada za analizę strumienia wideo pod kątem identyfikatorów stacji kinetycznych. Oprogramowanie wyposażono w buforowaną animację wizjera oraz wbudowany symulator sprzętowy, który umożliwia weryfikację logiki parowania w środowiskach emulatorowych pozbawionych fizycznego sensora optycznego.
-
-### Monitorowanie Treningu w Czasie Rzeczywistym
-Widok sesji treningowej prezentuje bieżący odczyt mocy chwilowej, zliczanie interwałowe spalonej energii metabolicznej oraz automatyczną detekcję bezczynności z funkcją wstrzymywania pomiaru. Po zakończeniu treningu rekord zostaje zwalidowany i zapisany w chmurowej bazie danych.
-
-### System Grywalizacji i Wymiany Punktowej
-Aplikacja implementuje trzydzieści wielopoziomowych osiągnięć kategoryzowanych według kryteriów stażu, intensywności oraz eksploracji miejskiej. Wyzwania tygodniowe odnawiają się cyklicznie w każdy poniedziałek, a wygenerowane punkty VoltPoints podlegają natychmiastowej wymianie na jednorazowe kody alfanumeryczne do wykorzystania w punktach partnerskich.
+1. **Parowanie stacji:** Użytkownik skanuje kod QR umieszczony na urządzeniu plenerowym przy użyciu wbudowanego skanera CameraX. Uniemożliwia to fałszowanie sesji i gwarantuje fizyczną obecność przy urządzeniu.
+2. **Rejestracja telemetrii na żywo:** Podczas ćwiczeń rejestrowana jest moc chwilowa w watach, sumaryczna wygenerowana praca w watogodzinach (Wh) oraz czas sesji z automatyczną detekcją przerw.
+3. **Kwantyfikacja ekologiczna:** Na podstawie wygenerowanych watogodzin kalkulator przelicza zredukowaną emisję gazów cieplarnianych w oparciu o wskaźnik emisyjności mikrosieci.
+4. **Synchronizacja z Firebase:** Po zatwierdzeniu sesji wyniki trafiają do kolekcji `workouts` oraz profilu `users` w bazie Cloud Firestore.
+5. **Grywalizacja i nagrody:** Silnik odblokowuje odznaki, aktualizuje poziom użytkownika w rankingu i dopisuje punkty VoltPoints, które można wymienić na cyfrowe kupony w sekcji nagród.
 
 ---
 
-## Prezentacja Wizualna
+## Główne moduły aplikacji
 
-Interfejs użytkownika zaprojektowano w standardzie Material Design 3 z pełnym wsparciem motywu ciemnego i jasnego oraz adaptacyjnym układem elementów dla zróżnicowanych rozdzielczości ekranowych.
+### Pulpit główny i metryki
+Główny ekran prezentuje bieżący poziom użytkownika, liczbę punktów rankingowych, zaoszczędzone CO2 oraz dzienny rozkład energii na dynamicznym wykresie. Moduł FusedLocationProvider automatycznie wylicza odległość w metrach do najbliższej stacji w Łodzi.
 
-### Widoki Główne (Motyw Ciemny)
+### Interaktywna mapa stacji w Łodzi
+Oparta o Google Maps Compose z customowymi znacznikami stacji, cieniami i wskaźnikami statusu (aktywna, zajęta, konserwacja). Kliknięcie stacji automatycznie animuje kamerę ze zbliżeniem 15.5 i synchronizuje kartę urządzenia na liście pod mapą.
 
-| Pulpit Główny | Mapa Kinetyczna | Aktywny Trening |
-| :---: | :---: | :---: |
-| <img src="VoltUp_Screenshots/z_ramka/ciemny/05_Pulpit_Glowny_ciemny_ramka.png" width="240" alt="Pulpit Glowny" /> | <img src="VoltUp_Screenshots/z_ramka/ciemny/06_Mapa_Stacji_ciemny_ramka.png" width="240" alt="Mapa Stacji" /> | <img src="VoltUp_Screenshots/z_ramka/ciemny/09_Aktywny_Trening_ciemny_ramka.png" width="240" alt="Aktywny Trening" /> |
+### Skaner kodów QR
+Wykorzystuje Jetpack CameraX do błyskawicznego odczytu identyfikatora stacji. Zawiera również wbudowany symulator sprzętowy na potrzeby testów w emulatorze.
 
-| Skaner QR | Osiągnięcia | Katalog Nagród |
-| :---: | :---: | :---: |
-| <img src="VoltUp_Screenshots/z_ramka/ciemny/15_Skaner_QR_ciemny_ramka.png" width="240" alt="Skaner QR" /> | <img src="VoltUp_Screenshots/z_ramka/ciemny/10_Osiagniecia_I_Odznaki_ciemny_ramka.png" width="240" alt="Osiagniecia" /> | <img src="VoltUp_Screenshots/z_ramka/ciemny/07_Katalog_Nagrod_ciemny_ramka.png" width="240" alt="Katalog Nagrod" /> |
+### Monitor treningu w czasie rzeczywistym
+Przejrzysty interfejs z animowanym wskaźnikiem generowanej mocy, zliczaniem watogodzin i spalonych kalorii oraz pauzą w przypadku braku aktywności.
 
-| Profil Użytkownika | Historia Treningów | Ustawienia Aplikacji |
-| :---: | :---: | :---: |
-| <img src="VoltUp_Screenshots/z_ramka/ciemny/08_Profil_Uzytkownika_ciemny_ramka.png" width="240" alt="Profil Uzytkownika" /> | <img src="VoltUp_Screenshots/z_ramka/ciemny/11_Historia_Treningow_ciemny_ramka.png" width="240" alt="Historia Treningow" /> | <img src="VoltUp_Screenshots/z_ramka/ciemny/12_Ustawienia_ciemny_ramka.png" width="240" alt="Ustawienia" /> |
-
-### Widoki Pomocnicze i Uwierzytelnianie (Motyw Jasny)
-
-| Ekran Logowania | Wprowadzenie | Przewodnik i FAQ |
-| :---: | :---: | :---: |
-| <img src="VoltUp_Screenshots/z_ramka/jasny/01_Logowanie_jasny_ramka.png" width="240" alt="Logowanie" /> | <img src="VoltUp_Screenshots/z_ramka/jasny/04_Onboarding_jasny_ramka.png" width="240" alt="Onboarding" /> | <img src="VoltUp_Screenshots/z_ramka/jasny/14_Przewodnik_I_FAQ_jasny_ramka.png" width="240" alt="Przewodnik i FAQ" /> |
+### System grywalizacji, wyzwań i nagród
+Trzydzieści osiągnięć z wieloma poziomami zaawansowania, odnawialne wyzwania tygodniowe oraz katalog kuponów zniżkowych (np. bilety MPK Łódź, zniżki w Manufakturze, gadżety sportowe) generowanych w postaci unikalnych kodów alfanumerycznych.
 
 ---
 
-## Wideo Prezentacyjne
+## Prezentacja wizualna
 
-Zarejestrowany materiał demonstracyjny prezentuje pełny cykl pracy aplikacji: autoryzację, nawigację po punktach miejskich, skanowanie stacji oraz rejestrację sesji telemetrycznej.
+Wszystkie ekrany zostały zaprojektowane zgodnie z wytycznymi Material Design 3 z pełną obsługą trybu ciemnego i jasnego, jednolitą nawigacją gestami oraz czystym paskiem stanu.
 
-Materiał wideo znajduje się w repozytorium pod ścieżką:
+### Kluczowe ekrany aplikacji (Tryb ciemny)
+
+<p align="center">
+  <img src="VoltUp_Screenshots/z_ramka/ciemny/05_Pulpit_Glowny_ciemny_ramka.png" width="31%" alt="Pulpit Główny" />
+  <img src="VoltUp_Screenshots/z_ramka/ciemny/06_Mapa_Stacji_ciemny_ramka.png" width="31%" alt="Mapa Stacji" />
+  <img src="VoltUp_Screenshots/z_ramka/ciemny/09_Aktywny_Trening_ciemny_ramka.png" width="31%" alt="Aktywny Trening" />
+</p>
+<p align="center">
+  <em>Pulpit główny ze statystykami &bull; Interaktywna mapa stacji kinetycznych &bull; Monitor aktywnego treningu</em>
+</p>
+
+<p align="center">
+  <img src="VoltUp_Screenshots/z_ramka/ciemny/15_Skaner_QR_ciemny_ramka.png" width="31%" alt="Skaner QR" />
+  <img src="VoltUp_Screenshots/z_ramka/ciemny/10_Osiagniecia_I_Odznaki_ciemny_ramka.png" width="31%" alt="Osiągnięcia" />
+  <img src="VoltUp_Screenshots/z_ramka/ciemny/07_Katalog_Nagrod_ciemny_ramka.png" width="31%" alt="Katalog Nagród" />
+</p>
+<p align="center">
+  <em>Skaner kodów QR stacji &bull; Osiągnięcia i ranga miejska &bull; Sklep nagród i kuponów zniżkowych</em>
+</p>
+
+<p align="center">
+  <img src="VoltUp_Screenshots/z_ramka/ciemny/08_Profil_Uzytkownika_ciemny_ramka.png" width="31%" alt="Profil Użytkownika" />
+  <img src="VoltUp_Screenshots/z_ramka/ciemny/11_Historia_Treningow_ciemny_ramka.png" width="31%" alt="Historia Treningów" />
+  <img src="VoltUp_Screenshots/z_ramka/ciemny/12_Ustawienia_ciemny_ramka.png" width="31%" alt="Ustawienia Aplikacji" />
+</p>
+<p align="center">
+  <em>Profil użytkownika i serie treningowe &bull; Archiwum ukończonych sesji &bull; Ustawienia i personalizacja</em>
+</p>
+
+### Onboarding i uwierzytelnianie (Tryb jasny)
+
+<p align="center">
+  <img src="VoltUp_Screenshots/z_ramka/jasny/01_Logowanie_jasny_ramka.png" width="31%" alt="Ekran Logowania" />
+  <img src="VoltUp_Screenshots/z_ramka/jasny/04_Onboarding_jasny_ramka.png" width="31%" alt="Onboarding" />
+  <img src="VoltUp_Screenshots/z_ramka/jasny/14_Przewodnik_I_FAQ_jasny_ramka.png" width="31%" alt="Przewodnik i FAQ" />
+</p>
+<p align="center">
+  <em>Logowanie do konta &bull; Ekran powitalny i wprowadzenie &bull; Samouczek i baza wiedzy FAQ</em>
+</p>
+
+> Kompletny zestaw 60 zrzutów ekranu w wysokiej rozdzielczości (zarówno z mockupem urządzenia Pixel 5, jak i w wersji czystego zrzutu bez ramki) znajduje się w katalogu `VoltUp_Screenshots/`.
+
+---
+
+## Materiał wideo z działania aplikacji
+
+W repozytorium dostępny jest zapis wideo prezentujący przejście przez główne funkcje aplikacji: logowanie, nawigację po mapie Łodzi, skanowanie stacji, symulację treningu oraz wymianę punktów.
+
+Plik demonstracyjny:
 `VoltUp_Screenshots/voltup_demo.mp4`
 
-Polecenia do bezpośredniej rejestracji obrazu urządzenia Android za pomocą konsoli ADB:
+Nagranie bezpośrednio z podłączonego urządzenia lub emulatora przez ADB:
 
 ```bash
 adb shell screenrecord --time-limit 20 /sdcard/voltup_demo.mp4
@@ -125,7 +173,7 @@ adb shell rm /sdcard/voltup_demo.mp4
 
 ---
 
-## Struktura Repozytorium
+## Struktura projektu
 
 ```text
 VoltUp/
@@ -145,9 +193,10 @@ VoltUp/
 │   ├── bez_ramki/
 │   │   ├── ciemny/
 │   │   └── jasny/
-│   └── z_ramka/
-│       ├── ciemny/
-│       └── jasny/
+│   ├── z_ramka/
+│   │   ├── ciemny/
+│   │   └── jasny/
+│   └── voltup_demo.mp4
 │
 └── shared/
     └── src/
@@ -181,322 +230,137 @@ VoltUp/
 
 ---
 
-## Stos Technologiczny
+## Wykorzystane technologie i biblioteki
 
-| Warstwa | Technologia | Zastosowanie |
-| :--- | :--- | :--- |
-| Język bazowy | Kotlin 2.0 | Logika domenowa, wieloplatformowość, współdzielony kod |
-| Warstwa prezentacji | Compose Multiplatform | Deklaratywny interfejs graficzny dla systemów Android oraz iOS |
-| Chmura obliczeniowa | Google Firebase | Usługi Firebase Auth, Cloud Firestore NoSQL, Realtime DB |
-| Kartografia | Google Maps SDK Compose | Renderowanie wektorowe mapy miejskiej i obsługa zdarzeń dotykowych |
-| Optyka i kamera | Jetpack CameraX | Przechwytywanie obrazu i analiza kodów kreskowych |
-| Zarządzanie stanem | Kotlin Coroutines & StateFlow | Reaktywny model przetwarzania asynchronicznego danych |
-| Geolokalizacja | FusedLocationProviderClient | Wyznaczanie pozycji GPS użytkownika i obliczanie dystansów |
-| System typograficzny | Outfit Typeface Family | Współdzielone zasoby czcionek w standardzie Compose Resources |
+* **Język bazowy:** Kotlin 2.0 (logika domenowa, coroutines, współdzielony kod dla Androida i iOS)
+* **Interfejs graficzny:** Compose Multiplatform (deklaratywne UI, wspólny design system Material Design 3)
+* **Usługi chmurowe:** Google Firebase (Firebase Authentication, Cloud Firestore NoSQL)
+* **Mapy i geolokalizacja:** Google Maps Compose SDK for Android oraz FusedLocationProviderClient
+* **Aparat i optyka:** Jetpack CameraX (analiza kodów QR w czasie rzeczywistym)
+* **Zarządzanie stanem:** StateFlow, MutableStateFlow i architektura reaktywna
+* **Typografia i zasoby:** Rodzina czcionek Outfit zintegrowana przez Compose Resources
 
 ---
 
-## Kompilacja, Uruchomienie i Testy
+## Uruchomienie projektu i testy
 
 ### Wymagania wstępne
-Kompilacja projektu wymaga środowiska Android Studio (wersja Iguana, Jellyfish lub nowsza), pakietu JDK w wersji 17 lub 21 oraz skonfigurowanego środowiska Android SDK z poziomem API minimum 26. Budowanie wersji dla systemu iOS wymaga komputera z systemem macOS ze środowiskiem Xcode 15 lub nowszym.
+* Android Studio (wersja Iguana, Jellyfish lub nowsza)
+* Java Development Kit (JDK 17 lub JDK 21)
+* Android SDK z API level minimum 26 (Android 8.0 Oreo)
+* Do kompilacji wersji na iOS: macOS z zainstalowanym środowiskiem Xcode 15+
 
-### Budowanie i uruchamianie aplikacji Android
+### Kompilacja i uruchomienie (Android)
 
-W systemie Windows (PowerShell):
+System Windows (PowerShell):
 ```powershell
 $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 ./gradlew.bat :androidApp:assembleDebug
 ./gradlew.bat :androidApp:installDebug
 ```
 
-W systemie macOS lub Linux:
+System macOS lub Linux:
 ```bash
 export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
 ./gradlew :androidApp:assembleDebug
 ./gradlew :androidApp:installDebug
 ```
 
-### Uruchamianie aplikacji iOS
-Otwórz katalog `/iosApp` w środowisku Xcode i uruchom aplikację na wybranym symulatorze lub fizycznym urządzeniu z systemem iOS.
+### Uruchomienie wersji na iOS
+Otwórz katalog `/iosApp` w środowisku Xcode i uruchom projekt na symulatorze lub fizycznym urządzeniu iPhone.
 
-### Uruchamianie testów jednostkowych
-Testy logiki wieloplatformowej uruchamiane są za pośrednictwem dedykowanych zadań Gradle:
+### Testy jednostkowe
+Uruchomienie zestawu testów współdzielonych:
 
-Weryfikacja testów dla środowiska Android:
 ```bash
 ./gradlew :shared:testAndroidHostTest
-```
-
-Weryfikacja testów dla symulatora iOS:
-```bash
 ./gradlew :shared:iosSimulatorArm64Test
 ```
 
 ---
 
-## Integracje Usług Chmurowych
+## Usługi chmurowe Firebase
 
-### Baza danych Cloud Firestore
-Komunikacja z bazą danych opiera się na czterech podstawowych kolekcjach:
-Kolekcja `devices` przechowuje obiekty stacji kinetycznych wraz z ich koordynatami, parametrami elektrycznymi i stanem operacyjnym.
-Kolekcja `users` utrzymuje metryki profilowe, liczbę punktów rankingowych, saldo waluty VoltPoints oraz poziom doświadczenia.
-Kolekcja `workouts` archiwizuje zakończone sesje ćwiczeniowe z uwzględnieniem czasu trwania, średniej mocy, wygenerowanych watogodzin i estymacji emisji dwutlenku węgla.
-Kolekcja `user_achievements` przechowuje stany progresji odblokowanych osiągnięć dla poszczególnych kont.
+### Kolekcje w Cloud Firestore
+* `devices`: lista stacji kinetycznych w Łodzi (współrzędne GPS, nazwa, stan techniczny, moc nominalna).
+* `users`: profile użytkowników, punkty rankingowe, saldo VoltPoints, stopień doświadczenia i serie treningowe.
+* `workouts`: archiwum zakończonych treningów (czas trwania, średnia moc, watogodziny, ekwiwalent CO2).
+* `user_achievements`: stany postępu oraz odblokowane odznaki powiązane z identyfikatorem użytkownika.
 
-### Interfejs Google Maps API
-Klucz autoryzacyjny Google Maps API zdefiniowany jest w pliku konfiguracyjnym manifestu oraz module mapowym. Do pełnego działania warstwy satelitarnej i wektorowej wymagane jest włączenie usługi Maps SDK for Android w konsoli Google Cloud Platform.
+### Konfiguracja Google Maps API
+Klucz Google Maps API jest zdefiniowany w konfiguracji manifestu oraz modułu mapowego. Wymaga włączonej usługi Maps SDK for Android w konsoli Google Cloud Platform.
 
 ---
 
 ## Licencja
 
-Oprogramowanie VoltUp objęte jest licencją MIT. Szczegółowe warunki użytkowania, modyfikacji oraz dystrybucji kodu źródłowego określa plik [LICENSE](LICENSE) dołączony do repozytorium.
+Projekt VoltUp jest udostępniany na warunkach licencji **MIT**. Szczegóły znajdują się w pliku [LICENSE](LICENSE).
 
 ---
 ---
 
-# VoltUp: Smart Kinetic Energy and Urban Fitness Eco-System
+<a id="english-version"></a>
 
-A mobile application developed with Kotlin Multiplatform and Compose Multiplatform, connecting urban fitness infrastructure with a decentralized kinetic energy harvesting and tracking network across the Lodz metropolitan area.
+# VoltUp: Smart Kinetic Energy and Urban Fitness (Executive Overview)
 
-The project shares one hundred percent of domain business logic and user interface code between Android and iOS, while preserving native hardware integrations for camera feed, geolocation, and platform graphics rendering.
+VoltUp is a cross-platform mobile solution built with **Kotlin Multiplatform** and **Compose Multiplatform**. It bridges urban outdoor workout infrastructure with decentralized kinetic energy harvesting and environmental tracking across the Lodz metropolitan area.
 
----
-
-## Table of Contents
-
-1. [Architecture and Kotlin Multiplatform](#architecture-and-kotlin-multiplatform)
-2. [Data Pipeline and Gamification](#data-pipeline-and-gamification)
-3. [Modules and User Interface](#modules-and-user-interface)
-4. [Visual Presentation](#visual-presentation)
-5. [Presentation Video](#presentation-video)
-6. [Repository Structure](#repository-structure)
-7. [Technology Stack](#technology-stack)
-8. [Building, Running, and Testing](#building-running-and-testing)
-9. [Cloud Services Integration](#cloud-services-integration)
-10. [License](#license-1)
+The system allows citizens to exercise on kinetic fitness stations, convert their physical effort into measurable watt-hours, offset urban carbon emissions, and redeem earned reward points with local commercial partners.
 
 ---
 
-## Architecture and Kotlin Multiplatform
+## Key Architectural Highlights
 
-VoltUp is built as a Kotlin Multiplatform (KMP) project targeting both Android and iOS. The core of the system resides in the shared module, removing the necessity of maintaining duplicate codebases across platforms.
-
-The `/shared` directory represents the unified multiplatform module powering Compose Multiplatform and is organized into specific source sets:
-
-* The `commonMain` directory contains cross-platform code shared across all compilation targets. This includes the Compose Multiplatform declarative user interface, domain models, MVI/MVVM reactive state machines, emission reduction calculus, and the weekly challenge evaluation engine.
-* The `androidMain` directory implements Android-specific mechanisms using the expect/actual design pattern. It contains integrations with Google Maps SDK for Android (`GoogleMapView.android.kt`), the Jetpack CameraX optical code analysis pipeline (`CameraPreview.android.kt`), and native Google Play Services alongside the Firebase Android SDK.
-* The `iosMain` directory provides platform bridges for Apple systems, including `MainViewController.kt` which encapsulates the Compose component tree within a native UIViewController, as well as cloud service adapters.
-
-The `/iosApp` directory contains the native iOS application configured in Xcode. Even when sharing the complete UI layer through Compose Multiplatform, this directory serves as the required entry point for the iOS platform and provides the location for any platform-specific SwiftUI implementations (`iOSApp.swift`, `ContentView.swift`).
+* **100% Shared UI and Business Logic:** Built with Compose Multiplatform, delivering an identical native look and feel on Android and iOS from a single common codebase (`/shared/src/commonMain`).
+* **Platform Integrations via expect/actual:** Hardware-specific capabilities such as Jetpack CameraX optical scanning, Google Maps SDK, and location providers are seamlessly plugged into the shared presentation layer.
+* **Real-Time Kinetic Telemetry Engine:** Live tracking of instantaneous power (Watts), cumulative electrical energy (Wh), and carbon offset estimation.
+* **Gamification and Micro-Economy:** Thirty progressive achievements, weekly challenges, and a VoltPoints wallet redeemable for partner discount vouchers.
+* **Cloud Architecture:** Powered by Google Firebase (Firebase Authentication, Cloud Firestore NoSQL).
 
 ---
 
-## Data Pipeline and Gamification
+## Visual Presentation and UI Showcase
 
-VoltUp converts physical mechanical work performed by citizens on kinetic fitness stations into measurable electrical units. The generated electrical output supplies local municipal microgrid nodes, while collected telemetry is quantified and synchronized in real time.
+> To explore the complete visual showcase of the application in both Dark and Light themes with framed device mockups, please refer to the [Prezentacja wizualna (zrzuty ekranu)](#prezentacja-wizualna) section above.
 
-The data flow incorporates QR authentication, continuous session telemetry logging, energy-to-carbon offset conversion formulas, and real-time synchronization with the cloud gamification engine hosted on Google Firebase.
-
-```mermaid
-flowchart LR
-    A["Kinetic Station"] -->|Power W| B["VoltUp Mobile Client"]
-    B -->|Session Telemetry| C["Energy Wh and Carbon Calculator"]
-    C -->|Gamification Engine| D["Level Progression and Leaderboards"]
-    C -->|Point Wallet| E["VoltPoints VP Currency"]
-    E -->|Offer Catalog| F["Partner Vouchers Manufaktura"]
-    C -->|Aggregated Data| G["Lodz Municipal Energy Milestone"]
-```
-
----
-
-## Modules and User Interface
-
-### Primary Telemetry Dashboard
-The central dashboard aggregates core sustainability metrics: cumulative watt-hours generated, mass of prevented carbon dioxide emissions, and active workout streaks. A dynamic circular and bar gauge displays weekly power generation patterns, while FusedLocationProvider calculates real-time proximity to nearby kinetic stations. Workouts are strictly initiated through physical optical scanning to preserve telemetry integrity.
-
-### Dual-Layer Cartographic System
-The map module utilizes Google Maps Compose backed by an interactive vector fallback. Pins represent device operational statuses, rated power thresholds, and precise WGS84 geographic coordinates rendered with subtle spatial ground shadows. Selecting a pin triggers smooth camera translation with a zoom level of 15.5 and automatically synchronizes the horizontal card carousel beneath filter controls.
-
-### Optical Code Scanner Subsystem
-The CameraX subsystem handles frame analysis for kinetic station identifiers. It features buffered reticle guidance and an integrated hardware simulator, enabling full pairing lifecycle testing within emulator environments lacking physical camera sensors.
-
-### Real-Time Session Monitoring
-The active workout monitor provides instantaneous wattage readouts, metabolic energy computation, and automatic idle detection with pause functionality. Upon session completion, the telemetry record is validated and persisted to the cloud database.
-
-### Progression and Rewards Catalog
-Thirty multi-tier achievements evaluate user dedication, training intensity, and municipal exploration. Weekly challenges renew every Monday, and earned VoltPoints can be redeemed immediately for unique alphanumeric vouchers valid at commercial partner locations.
-
----
-
-## Visual Presentation
-
-The application interface is styled in accordance with Material Design 3 specifications, featuring comprehensive dark and light theme palettes alongside adaptive element layouts for diverse screen aspect ratios.
-
-### Core Screens (Dark Theme)
-
-| Primary Dashboard | Kinetic Stations Map | Active Workout |
-| :---: | :---: | :---: |
-| <img src="VoltUp_Screenshots/z_ramka/ciemny/05_Pulpit_Glowny_ciemny_ramka.png" width="240" alt="Primary Dashboard" /> | <img src="VoltUp_Screenshots/z_ramka/ciemny/06_Mapa_Stacji_ciemny_ramka.png" width="240" alt="Stations Map" /> | <img src="VoltUp_Screenshots/z_ramka/ciemny/09_Aktywny_Trening_ciemny_ramka.png" width="240" alt="Active Workout" /> |
-
-| QR Scanner | Achievements | Rewards Catalog |
-| :---: | :---: | :---: |
-| <img src="VoltUp_Screenshots/z_ramka/ciemny/15_Skaner_QR_ciemny_ramka.png" width="240" alt="QR Scanner" /> | <img src="VoltUp_Screenshots/z_ramka/ciemny/10_Osiagniecia_I_Odznaki_ciemny_ramka.png" width="240" alt="Achievements" /> | <img src="VoltUp_Screenshots/z_ramka/ciemny/07_Katalog_Nagrod_ciemny_ramka.png" width="240" alt="Rewards Catalog" /> |
-
-| User Profile | Workout History | Application Settings |
-| :---: | :---: | :---: |
-| <img src="VoltUp_Screenshots/z_ramka/ciemny/08_Profil_Uzytkownika_ciemny_ramka.png" width="240" alt="User Profile" /> | <img src="VoltUp_Screenshots/z_ramka/ciemny/11_Historia_Treningow_ciemny_ramka.png" width="240" alt="Workout History" /> | <img src="VoltUp_Screenshots/z_ramka/ciemny/12_Ustawienia_ciemny_ramka.png" width="240" alt="Settings" /> |
-
-### Auxiliary Screens and Authentication (Light Theme)
-
-| Login Screen | Onboarding Overview | Guide and FAQ |
-| :---: | :---: | :---: |
-| <img src="VoltUp_Screenshots/z_ramka/jasny/01_Logowanie_jasny_ramka.png" width="240" alt="Login Screen" /> | <img src="VoltUp_Screenshots/z_ramka/jasny/04_Onboarding_jasny_ramka.png" width="240" alt="Onboarding" /> | <img src="VoltUp_Screenshots/z_ramka/jasny/14_Przewodnik_I_FAQ_jasny_ramka.png" width="240" alt="Guide and FAQ" /> |
-
----
-
-## Presentation Video
-
-The demonstration recording demonstrates app initialization, navigation flows, interactive map interactions, and the complete telemetry workout cycle.
-
-The video file is located in the repository at:
-`VoltUp_Screenshots/voltup_demo.mp4`
-
-Commands to record device screen capture directly via ADB:
-
-```bash
-adb shell screenrecord --time-limit 20 /sdcard/voltup_demo.mp4
-adb pull /sdcard/voltup_demo.mp4 ./VoltUp_Screenshots/voltup_demo.mp4
-adb shell rm /sdcard/voltup_demo.mp4
-```
-
----
-
-## Repository Structure
-
-```text
-VoltUp/
-├── androidApp/
-│   ├── src/main/
-│   │   ├── AndroidManifest.xml
-│   │   └── res/
-│   └── google-services.json
-│
-├── iosApp/
-│   ├── iosApp/
-│   │   ├── iOSApp.swift
-│   │   └── ContentView.swift
-│   └── iosApp.xcodeproj/
-│
-├── VoltUp_Screenshots/
-│   ├── bez_ramki/
-│   │   ├── ciemny/
-│   │   └── jasny/
-│   └── z_ramka/
-│       ├── ciemny/
-│       └── jasny/
-│
-└── shared/
-    └── src/
-        ├── commonMain/kotlin/com/lumatech/voltup/
-        │   ├── App.kt
-        │   ├── Models.kt
-        │   ├── FirebaseModels.kt
-        │   ├── VoltUpAuthService.kt
-        │   ├── VoltUpDatabaseService.kt
-        │   ├── AchievementSystem.kt
-        │   ├── StationsMapScreen.kt
-        │   ├── WorkoutScreen.kt
-        │   ├── QrScannerScreen.kt
-        │   ├── RewardsScreen.kt
-        │   ├── ProfileScreen.kt
-        │   ├── SettingsScreen.kt
-        │   ├── AuthScreens.kt
-        │   ├── Localization.kt
-        │   └── Theme.kt
-        │
-        ├── androidMain/kotlin/com/lumatech/voltup/
-        │   ├── GoogleMapView.android.kt
-        │   ├── CameraPreview.android.kt
-        │   └── FirebaseServices.android.kt
-        │
-        └── iosMain/kotlin/com/lumatech/voltup/
-            ├── MainViewController.kt
-            ├── GoogleMapView.ios.kt
-            └── FirebaseServices.ios.kt
-```
+All 60 high-resolution screenshots, including raw edge-to-edge captures and Pixel 5 framed mockups across both light and dark themes, are organized in the `VoltUp_Screenshots/` directory:
+* `VoltUp_Screenshots/z_ramka/ciemny/` — Dark theme device mockups
+* `VoltUp_Screenshots/z_ramka/jasny/` — Light theme device mockups
+* `VoltUp_Screenshots/bez_ramki/` — Raw 1080x2340 screen captures
+* `VoltUp_Screenshots/voltup_demo.mp4` — Full video walkthrough
 
 ---
 
 ## Technology Stack
 
-| Layer | Technology | Function |
-| :--- | :--- | :--- |
-| Core Language | Kotlin 2.0 | Domain logic, multiplatform bindings, shared codebase |
-| UI Framework | Compose Multiplatform | Declarative graphical user interface for Android and iOS |
-| Cloud Services | Google Firebase | Authentication, Cloud Firestore NoSQL, Realtime DB |
-| Cartography | Google Maps SDK Compose | Vector rendering of municipal map and touch interaction |
-| Optics and Camera | Jetpack CameraX | Frame acquisition and barcode analysis |
-| Concurrency and State | Kotlin Coroutines & StateFlow | Reactive asynchronous data streams and state containers |
-| Geolocation | FusedLocationProviderClient | Real-time user GPS tracking and distance computation |
-| Typography | Outfit Typeface Family | Shared font resources packaged via Compose Resources |
+* **Core Language:** Kotlin 2.0 (Coroutines, Flow, Multiplatform)
+* **UI Framework:** Compose Multiplatform with Material Design 3
+* **Cloud Backend:** Google Firebase (Auth, Cloud Firestore)
+* **Cartography & Geolocation:** Google Maps SDK Compose and FusedLocationProviderClient
+* **Camera & Scanner:** Jetpack CameraX with real-time barcode analysis
+* **Typography:** Outfit font family integrated via Compose Resources
 
 ---
 
-## Building, Running, and Testing
+## Quick Start (Building and Testing)
 
-### Prerequisites
-Compilation requires Android Studio (Iguana, Jellyfish or newer), JDK 17 or JDK 21, and Android SDK configured with a minimum API level of 26. Building for iOS requires macOS with Xcode 15 or newer.
-
-### Building and Running Android App
-
-On Windows (PowerShell):
-```powershell
-$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
-./gradlew.bat :androidApp:assembleDebug
-./gradlew.bat :androidApp:installDebug
-```
-
-On macOS or Linux:
+### Android Build
 ```bash
-export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
 ./gradlew :androidApp:assembleDebug
 ./gradlew :androidApp:installDebug
 ```
 
-### Running iOS App
-Open the `/iosApp` directory in Xcode and run the project targeting a simulator or connected physical iOS device.
+### iOS Execution
+Open the `/iosApp` project in Xcode 15+ and run on an iOS simulator or physical device.
 
-### Running Unit Tests
-Multiplatform unit tests can be executed through the following Gradle tasks:
-
-Android unit tests:
+### Running Shared Unit Tests
 ```bash
 ./gradlew :shared:testAndroidHostTest
-```
-
-iOS simulator unit tests:
-```bash
 ./gradlew :shared:iosSimulatorArm64Test
 ```
 
 ---
 
-## Cloud Services Integration
-
-### Cloud Firestore Database
-Database persistence relies on four primary collections:
-The `devices` collection maintains kinetic station records including GPS coordinates, power ratings, and maintenance states.
-The `users` collection stores user metrics, ranking scores, VoltPoints balances, and progression levels.
-The `workouts` collection records completed exercise sessions with durations, mean power outputs, generated watt-hours, and carbon offsets.
-The `user_achievements` collection manages achievement progress and unlocked tiers per user account.
-
-### Google Maps API Configuration
-The Google Maps API key is declared within the Android manifest configuration and map composables. Full map functionality requires enabling the Maps SDK for Android within Google Cloud Console.
-
----
-
 ## License
 
-VoltUp is distributed under the terms of the MIT License. Refer to the [LICENSE](LICENSE) file for complete details regarding permitted use, distribution, and warranty terms.
+VoltUp is distributed under the open-source **MIT License**. See the [LICENSE](LICENSE) file for complete details.
