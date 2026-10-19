@@ -60,7 +60,7 @@ flowchart LR
     A["Stacja QR"] -->|Moc| B["Aplikacja VoltUp"]
     B -->|Telemetria| C["Kalkulator"]
     C -->|Punkty VP| D["Katalog Nagród"]
-    C -->|Ranking| E["Poziomy i Odznaki"]
+    C -->|Ranking| E["Poziomy"]
 ```
 
 * **Autoryzacja stacji:** Zeskanowanie kodu QR urządzenia za pomocą kamery CameraX weryfikuje fizyczną obecność na stacji.
