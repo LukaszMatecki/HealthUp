@@ -13,8 +13,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         initVoltUpFirebase(this)
+        val targetScreen = intent.getStringExtra("SCREEN")
+        val targetTheme = intent.getStringExtra("THEME")
         setContent {
-            App()
+            App(
+                previewScreenName = targetScreen,
+                previewThemeName = targetTheme
+            )
         }
     }
 }

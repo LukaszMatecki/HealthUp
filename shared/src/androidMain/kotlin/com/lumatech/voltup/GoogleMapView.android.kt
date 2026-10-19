@@ -76,10 +76,13 @@ actual fun GoogleMapView(
 
     val context = androidx.compose.ui.platform.LocalContext.current
 
+    var isMapInitialized by remember { mutableStateOf(false) }
+
     LaunchedEffect(context) {
         if (hasApiKey) {
             try {
                 MapsInitializer.initialize(context)
+                isMapInitialized = true
             } catch (_: Exception) {}
         }
     }
@@ -182,7 +185,16 @@ actual fun GoogleMapView(
                 ),
                 durationMs = 600
             )
-        } catch (_: Exception) {}
+        } catch (_: Exception) {
+            try {
+                cameraPositionState.move(
+                    CameraUpdateFactory.newLatLngZoom(
+                        LatLng(st.latitude, st.longitude),
+                        15.5f
+                    )
+                )
+            } catch (_: Exception) {}
+        }
     }
 
     LaunchedEffect(centerUserTrigger) {
@@ -236,8 +248,8 @@ actual fun GoogleMapView(
             }
     ) {
         if (hasApiKey) {
-            val normalStationIcon = remember(context) { createStationMarkerBitmap(context, false) }
-            val selectedStationIcon = remember(context) { createStationMarkerBitmap(context, true) }
+            val normalStationIcon = remember(context, isMapInitialized) { createStationMarkerBitmap(context, false) }
+            val selectedStationIcon = remember(context, isMapInitialized) { createStationMarkerBitmap(context, true) }
 
             val actualGranted = isLocationGranted()
             val mapProperties = remember(isDark, hasLocationPermission, actualGranted) {
@@ -256,7 +268,19 @@ actual fun GoogleMapView(
                     myLocationButtonEnabled = false,
                     compassEnabled = false,
                     mapToolbarEnabled = false
-                )
+                ),
+                onMapLoaded = {
+                    val targetLat = selectedStation?.latitude ?: 51.7592
+                    val targetLng = selectedStation?.longitude ?: 19.4560
+                    try {
+                        cameraPositionState.move(
+                            CameraUpdateFactory.newLatLngZoom(
+                                LatLng(targetLat, targetLng),
+                                15.5f
+                            )
+                        )
+                    } catch (_: Exception) {}
+                }
             ) {
                 stations.forEach { station ->
                     val isSelected = station.id == selectedStation?.id

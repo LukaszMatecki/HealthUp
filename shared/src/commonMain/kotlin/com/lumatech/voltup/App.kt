@@ -130,7 +130,10 @@ class BottomBarWithNotchShape(
 }
 
 @Composable
-fun App() {
+fun App(
+    previewScreenName: String? = null,
+    previewThemeName: String? = null
+) {
     val authService = remember { getAuthService() }
     val dbService = remember { getDatabaseService() }
     val currentAuthUser by authService.currentUser.collectAsState()
@@ -140,47 +143,117 @@ fun App() {
         val langName = VoltUpStorage.getString(VoltUpPreferenceKeys.KEY_SAVED_LANGUAGE, "")
         AppLanguage.entries.find { it.name == langName } ?: AppLanguage.POLISH
     }
-    val initialTheme = remember {
-        val themeName = VoltUpStorage.getString(VoltUpPreferenceKeys.KEY_SAVED_THEME, "")
-        AppThemeMode.entries.find { it.name == themeName } ?: AppThemeMode.DARK
+    val initialTheme = remember(previewThemeName) {
+        if (previewThemeName != null) {
+            if (previewThemeName.equals("LIGHT", ignoreCase = true)) AppThemeMode.LIGHT else AppThemeMode.DARK
+        } else {
+            val themeName = VoltUpStorage.getString(VoltUpPreferenceKeys.KEY_SAVED_THEME, "")
+            AppThemeMode.entries.find { it.name == themeName } ?: AppThemeMode.DARK
+        }
     }
     val savedEmail = remember { VoltUpStorage.getString(VoltUpPreferenceKeys.KEY_SAVED_EMAIL, "") }
     val savedPassword = remember { VoltUpStorage.getString(VoltUpPreferenceKeys.KEY_SAVED_PASSWORD, "") }
     val rememberMe = remember { VoltUpStorage.getBoolean(VoltUpPreferenceKeys.KEY_REMEMBER_ME, false) }
 
-    var appSettings by remember { mutableStateOf(AppSettings(themeMode = initialTheme, language = initialLanguage)) }
-    var isSplashVisible by remember { mutableStateOf(true) }
+    var appSettings by remember(initialTheme) { mutableStateOf(AppSettings(themeMode = initialTheme, language = initialLanguage)) }
+    var isSplashVisible by remember { mutableStateOf(previewScreenName == null) }
     val hasValidAutoLogin = rememberMe && (currentAuthUser != null || (savedEmail.isNotBlank() && savedPassword.isNotBlank()))
-    var isAutoLoggingIn by remember { mutableStateOf(hasValidAutoLogin) }
-    var currentScreen by remember { mutableStateOf<Screen>(if (hasValidAutoLogin) Screen.Main else Screen.Login) }
-    var currentTab by remember { mutableStateOf(MainTab.HOME) }
-    var userStats by remember {
+    var isAutoLoggingIn by remember { mutableStateOf(if (previewScreenName != null) false else hasValidAutoLogin) }
+
+    val initialScreen = remember(previewScreenName) {
+        when (previewScreenName?.uppercase()) {
+            "LOGIN" -> Screen.Login
+            "REGISTER" -> Screen.Register
+            "FORGOT_PASSWORD" -> Screen.ForgotPassword
+            "ONBOARDING" -> Screen.Onboarding
+            "HOME", "MAP", "REWARDS", "PROFILE" -> Screen.Main
+            "WORKOUT" -> Screen.ActiveWorkout(MockData.sampleStations.first())
+            "ACHIEVEMENTS" -> Screen.Achievements
+            "HISTORY" -> Screen.WorkoutHistory
+            "SETTINGS" -> Screen.Settings
+            "MANAGE_ACCOUNT" -> Screen.ManageAccount
+            "HELP" -> Screen.HelpGuide
+            "QR" -> Screen.QrScanner()
+            else -> if (hasValidAutoLogin) Screen.Main else Screen.Login
+        }
+    }
+    var currentScreen by remember(initialScreen) { mutableStateOf<Screen>(initialScreen) }
+    val initialTab = remember(previewScreenName) {
+        when (previewScreenName?.uppercase()) {
+            "MAP" -> MainTab.MAP
+            "REWARDS" -> MainTab.REWARDS
+            "PROFILE" -> MainTab.PROFILE
+            else -> MainTab.HOME
+        }
+    }
+    var currentTab by remember(initialTab) { mutableStateOf(initialTab) }
+    var userStats by remember(previewScreenName) {
         mutableStateOf(
-            UserStats(
-                points = 0,
-                totalEnergyWh = 0.0,
-                weeklyEnergyWh = 0.0,
-                co2SavedKg = 0.0,
-                userName = "Użytkownik VoltUp",
-                avatarId = 1,
-                level = 0,
-                levelTitle = "Nowicjusz VoltUp",
-                streakDays = 1,
-                recentWorkouts = emptyList()
-            )
+            if (previewScreenName != null) {
+                UserStats(
+                    points = 1850,
+                    rankingPoints = 1850,
+                    totalEnergyWh = 470.0,
+                    weeklyEnergyWh = 470.0,
+                    co2SavedKg = 0.33,
+                    userName = "Jan Kowalski",
+                    avatarId = 1,
+                    level = 3,
+                    levelTitle = "Miejski Odkrywca",
+                    streakDays = 5,
+                    recentWorkouts = MockData.sampleRecentWorkouts
+                )
+            } else {
+                UserStats(
+                    points = 0,
+                    totalEnergyWh = 0.0,
+                    weeklyEnergyWh = 0.0,
+                    co2SavedKg = 0.0,
+                    userName = "Użytkownik VoltUp",
+                    avatarId = 1,
+                    level = 0,
+                    levelTitle = "Nowicjusz VoltUp",
+                    streakDays = 1,
+                    recentWorkouts = emptyList()
+                )
+            }
         )
     }
-    var achievements by remember {
+    var achievements by remember(previewScreenName) {
         mutableStateOf(
-            currentAuthUser?.userId?.takeIf { it.isNotBlank() }?.let { uid ->
-                getCachedAchievementsForUser(uid)
-            } ?: DefaultAchievements.initialAchievements
+            if (previewScreenName != null) {
+                DefaultAchievements.initialAchievements.mapIndexed { idx, ach ->
+                    if (idx < 5) ach.copy(level = 1, currentProgress = 5.0) else ach
+                }
+            } else {
+                currentAuthUser?.userId?.takeIf { it.isNotBlank() }?.let { uid ->
+                    getCachedAchievementsForUser(uid)
+                } ?: DefaultAchievements.initialAchievements
+            }
         )
     }
     var challenges by remember { mutableStateOf(MockData.sampleChallenges) }
-    var redeemedRewards by remember { mutableStateOf(emptyList<RedeemedReward>()) }
+    var redeemedRewards by remember(previewScreenName) {
+        mutableStateOf(
+            if (previewScreenName != null) {
+                listOf(
+                    RedeemedReward(
+                        id = "RED-1",
+                        reward = MockData.sampleRewards[1],
+                        discountCode = "MPK-KINETIC-20",
+                        redeemedDate = "18.10.2026"
+                    )
+                )
+            } else emptyList()
+        )
+    }
 
     LaunchedEffect(Unit) {
+        if (previewScreenName != null) {
+            isSplashVisible = false
+            isAutoLoggingIn = false
+            return@LaunchedEffect
+        }
         if (!rememberMe) {
             if (currentAuthUser != null) {
                 authService.signOut()
@@ -246,6 +319,7 @@ fun App() {
     }
 
     LaunchedEffect(currentAuthUser) {
+        if (previewScreenName != null) return@LaunchedEffect
         val user = currentAuthUser
         if (user == null) {
             resetAppStateToDefaults()
@@ -259,6 +333,7 @@ fun App() {
     }
 
     LaunchedEffect(currentAuthUser?.userId) {
+        if (previewScreenName != null) return@LaunchedEffect
         val u = currentAuthUser
         if (u == null) {
             resetAppStateToDefaults()
@@ -442,7 +517,8 @@ fun App() {
     }
 
     val checkAndAwardAchievements: (triggerKey: String?, showSnackbar: Boolean) -> Unit = { triggerKey, showSnackbar ->
-        val uid = currentAuthUser?.userId.orEmpty()
+        if (previewScreenName == null) {
+            val uid = currentAuthUser?.userId.orEmpty()
         if (triggerKey != null && uid.isNotBlank()) {
             VoltUpStorage.setBoolean("${uid}_$triggerKey", true)
             val cleanKey = triggerKey.removePrefix("ach_")
@@ -525,6 +601,7 @@ fun App() {
                 }
             }
         }
+        }
     }
 
     val canGoBack = when (currentScreen) {
@@ -559,6 +636,9 @@ fun App() {
                 AnimatedContent(
                     targetState = currentScreen,
                     transitionSpec = {
+                        if (previewScreenName != null) {
+                            androidx.compose.animation.EnterTransition.None togetherWith androidx.compose.animation.ExitTransition.None
+                        } else {
                         val isEnteringSubScreen = targetState is Screen.Settings ||
                                 targetState is Screen.HelpGuide ||
                                 targetState is Screen.ManageAccount ||
@@ -593,6 +673,7 @@ fun App() {
                                     fadeOut(animationSpec = androidx.compose.animation.core.tween(180))
                                 )
                         }
+                    }
                     },
                     label = "ScreenTransition"
                 ) { screen ->
@@ -695,7 +776,7 @@ fun App() {
                         is Screen.ManageAccount -> {
                             ManageAccountScreen(
                                 userStats = userStats,
-                                userEmail = currentAuthUser?.email.orEmpty(),
+                                userEmail = if (previewScreenName != null) "jan.kowalski@voltup.pl" else currentAuthUser?.email.orEmpty(),
                                 authService = authService,
                                 onNavigateBack = { currentScreen = Screen.Settings },
                                 onSignOut = {
