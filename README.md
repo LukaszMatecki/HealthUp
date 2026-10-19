@@ -1,5 +1,11 @@
 <p align="center">
-  <a href="#spis-treści">Wersja polska</a> &bull; <a href="#table-of-contents">English Version</a>
+  <a href="#spis-treści">
+    <img src="https://flagcdn.com/w40/pl.png" alt="Wersja Polska" title="Wersja Polska">
+  </a>
+  &nbsp;
+  <a href="#table-of-contents">
+    <img src="https://flagcdn.com/w40/gb.png" alt="English Version" title="English Version">
+  </a>
 </p>
 
 <p align="center">
@@ -22,12 +28,11 @@ Projekt współdzieli sto procent kodu logiki biznesowej oraz interfejsu graficz
 2. [Przepływ Danych i Grywalizacja](#przepływ-danych-i-grywalizacja)
 3. [Moduły i Interfejs Użytkownika](#moduły-i-interfejs-użytkownika)
 4. [Prezentacja Wizualna](#prezentacja-wizualna)
-5. [Wideo Prezentacyjne](#wideo-prezentacyjne)
-6. [Struktura Repozytorium](#struktura-repozytorium)
-7. [Stos Technologiczny](#stos-technologiczny)
-8. [Kompilacja, Uruchomienie i Testy](#kompilacja-uruchomienie-i-testy)
-9. [Integracje Usług Chmurowych](#integracje-usług-chmurowych)
-10. [Licencja](#licencja)
+5. [Struktura Repozytorium](#struktura-repozytorium)
+6. [Stos Technologiczny](#stos-technologiczny)
+7. [Kompilacja, Uruchomienie i Testy](#kompilacja-uruchomienie-i-testy)
+8. [Integracje Usług Chmurowych](#integracje-usług-chmurowych)
+9. [Licencja](#licencja)
 
 ---
 
@@ -251,12 +256,11 @@ The project shares one hundred percent of domain business logic and user interfa
 2. [Data Pipeline and Gamification](#data-pipeline-and-gamification)
 3. [Modules and User Interface](#modules-and-user-interface)
 4. [Visual Presentation](#visual-presentation)
-5. [Presentation Video](#presentation-video)
-6. [Repository Structure](#repository-structure)
-7. [Technology Stack](#technology-stack)
-8. [Building, Running, and Testing](#building-running-and-testing)
-9. [Cloud Services Integration](#cloud-services-integration)
-10. [License](#license-1)
+5. [Repository Structure](#repository-structure)
+6. [Technology Stack](#technology-stack)
+7. [Building, Running, and Testing](#building-running-and-testing)
+8. [Cloud Services Integration](#cloud-services-integration)
+9. [License](#license-1)
 
 ---
 
