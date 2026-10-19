@@ -292,13 +292,8 @@ The system allows citizens to exercise on kinetic fitness stations, convert thei
 
 ## Visual Presentation and UI Showcase
 
-> To explore the complete visual showcase of the application in both Dark and Light themes with framed device mockups, please refer to the [Prezentacja wizualna (zrzuty ekranu)](#prezentacja-wizualna) section above.
-
-All 60 high-resolution screenshots, including raw edge-to-edge captures and Pixel 5 framed mockups across both light and dark themes, are organized in the `VoltUp_Screenshots/` directory:
-* `VoltUp_Screenshots/z_ramka/ciemny/` — Dark theme device mockups
-* `VoltUp_Screenshots/z_ramka/jasny/` — Light theme device mockups
-* `VoltUp_Screenshots/bez_ramki/` — Raw 1080x2340 screen captures
-* `VoltUp_Screenshots/voltup_demo.mp4` — Full video walkthrough
+> To explore the complete visual showcase of the application in both Dark and Light themes, please refer to the [Prezentacja wizualna (zrzuty ekranu)](#prezentacja-wizualna) section above.
+All high-resolution screenshots are organized in the `VoltUp_Screenshots/` directory.
 
 ---
 
