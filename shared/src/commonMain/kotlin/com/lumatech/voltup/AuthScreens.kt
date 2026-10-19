@@ -792,6 +792,9 @@ fun ForgotPasswordScreen(
     var isSubmittedSuccess by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
+    var isResending by remember { mutableStateOf(false) }
+    var resendFeedback by remember { mutableStateOf<String?>(null) }
+
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -838,27 +841,36 @@ fun ForgotPasswordScreen(
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                 ) {
                     Column(
-                        modifier = Modifier.padding(28.dp),
+                        modifier = Modifier
+                            .padding(24.dp)
+                            .verticalScroll(rememberScrollState()),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = primaryColor.copy(alpha = 0.15f),
-                            modifier = Modifier.size(64.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.MarkEmailRead,
-                                    contentDescription = null,
-                                    tint = primaryColor,
-                                    modifier = Modifier.size(36.dp)
-                                )
+                        Box(contentAlignment = Alignment.Center) {
+                            Surface(
+                                shape = CircleShape,
+                                color = primaryColor.copy(alpha = 0.12f),
+                                modifier = Modifier.size(76.dp)
+                            ) {}
+                            Surface(
+                                shape = CircleShape,
+                                color = primaryColor.copy(alpha = 0.22f),
+                                modifier = Modifier.size(56.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.MarkEmailRead,
+                                        contentDescription = null,
+                                        tint = primaryColor,
+                                        modifier = Modifier.size(30.dp)
+                                    )
+                                }
                             }
                         }
 
                         Text(
-                            text = "Link został wysłany!",
+                            text = "Link w drodze!",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -866,12 +878,134 @@ fun ForgotPasswordScreen(
                         )
 
                         Text(
-                            text = "Wysłaliśmy instrukcję zmiany hasła na adres:\n$email\n\nSprawdź skrzynkę odbiorczą (oraz folder Spam) i postępuj zgodnie z podanymi instrukcjami.",
+                            text = "Wysłaliśmy bezpieczny link do zresetowania hasła na podany adres e-mail:",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
-                            lineHeight = 22.sp
+                            lineHeight = 20.sp
                         )
+
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                            border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.35f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Email,
+                                    contentDescription = null,
+                                    tint = primaryColor,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = email,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.25f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.35f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Info,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.tertiary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Text(
+                                        text = "Sprawdź folder SPAM lub Oferty",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                                Text(
+                                    text = "Automatyczne wiadomości z linkiem resetującym mogą trafić do folderu SPAM lub Oferty. Po znalezieniu e-maila kliknij „To nie jest spam”, aby link resetujący zadziałał w przeglądarce.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    lineHeight = 18.sp
+                                )
+                            }
+                        }
+
+                        AnimatedVisibility(visible = resendFeedback != null) {
+                            resendFeedback?.let { feedback ->
+                                Text(
+                                    text = feedback,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = if (feedback.startsWith("Wysłano")) primaryColor else MaterialTheme.colorScheme.error,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            TextButton(
+                                onClick = {
+                                    if (!isResending) {
+                                        coroutineScope.launch {
+                                            isResending = true
+                                            resendFeedback = null
+                                            val res = authService.sendPasswordReset(email.trim())
+                                            isResending = false
+                                            if (res.isSuccess) {
+                                                resendFeedback = "Wysłano ponownie! Sprawdź skrzynkę i SPAM."
+                                            } else {
+                                                resendFeedback = res.errorMessage ?: "Nie udało się ponowić wysyłki."
+                                            }
+                                        }
+                                    }
+                                },
+                                enabled = !isResending
+                            ) {
+                                if (isResending) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp,
+                                        color = primaryColor
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = primaryColor
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                }
+                                Text(
+                                    text = if (isResending) "Wysyłanie..." else "Nie otrzymałeś? Wyślij link ponownie",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = primaryColor
+                                )
+                            }
+                        }
 
                         Button(
                             onClick = onNavigateBack,

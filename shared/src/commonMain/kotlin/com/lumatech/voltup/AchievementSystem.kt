@@ -563,7 +563,10 @@ fun calculateUserLevel(points: Int): Int {
         points < 500 -> 3
         points < 1000 -> 4
         points < 2000 -> 5
-        else -> 5 + ((points - 2000) / 1000)
+        points < 3000 -> 6
+        points < 4000 -> 7
+        points < 5000 -> 8
+        else -> 9 + ((points - 5000) / 1000)
     }
 }
 
@@ -575,6 +578,9 @@ fun calculateLevelTitle(level: Int): String {
         3 -> "Aktywista Parkowy"
         4 -> "Łódzki Aktywista Kinetyczny"
         5 -> "Lider Czystej Energii"
+        6 -> "Strażnik Zielonej Łodzi"
+        7 -> "Mistrz Kinetyki Miejskiej"
+        8 -> "Legenda Sieci VoltUp"
         else -> "Mistrz Sieci Miejskiej"
     }
 }
@@ -587,9 +593,24 @@ fun getLevelThresholds(level: Int): Pair<Int, Int> {
         3 -> Pair(300, 500)
         4 -> Pair(500, 1000)
         5 -> Pair(1000, 2000)
+        6 -> Pair(2000, 3000)
+        7 -> Pair(3000, 4000)
+        8 -> Pair(4000, 5000)
         else -> {
-            val base = 2000 + (level - 5) * 1000
+            val base = 5000 + (level - 9) * 1000
             Pair(base, base + 1000)
+        }
+    }
+}
+
+fun getCachedAchievementsForUser(userId: String): List<Achievement> {
+    if (userId.isBlank()) return DefaultAchievements.initialAchievements
+    return DefaultAchievements.initialAchievements.map { ach ->
+        val savedLvl = VoltUpStorage.getString("${userId}_ach_level_${ach.id}", "0").toIntOrNull() ?: 0
+        if (savedLvl > 0) {
+            ach.copy(level = savedLvl)
+        } else {
+            ach
         }
     }
 }
@@ -670,41 +691,63 @@ fun evaluateAchievements(
         }
 
         var curLvl = ach.level
+        if (userId.isNotBlank()) {
+            val cachedLvl = VoltUpStorage.getString("${userId}_ach_level_${ach.id}", "0").toIntOrNull() ?: 0
+            if (cachedLvl > curLvl) {
+                curLvl = cachedLvl
+            }
+        }
+
         var newPoints = 0
 
         while (true) {
             val atMax = ach.maxLevel in 1..curLvl
             if (atMax) break
-            val nextConfig = ach.getLevelConfig(curLvl + 1, isEnglish = isEnglish)
+            val targetLevel = curLvl + 1
+            val nextConfig = ach.getLevelConfig(targetLevel, isEnglish = isEnglish)
             val reqVal = nextConfig.first
             if (rawMetric >= reqVal) {
-                curLvl++
-                newPoints += nextConfig.second
-                val titleStr = ach.getLocalizedTitle(isEnglish)
-                val msg = if (ach.maxLevel == 1 || curLvl == 1) {
-                    if (isEnglish) {
-                        when {
-                            titleStr.length >= 17 -> "Achievement! $titleStr"
-                            titleStr.length >= 12 -> "New Achievement! $titleStr"
-                            else -> "Achievement unlocked! $titleStr"
+                curLvl = targetLevel
+                val alreadyAwarded = if (userId.isNotBlank()) {
+                    VoltUpStorage.getBoolean("${userId}_ach_awarded_${ach.id}_lvl_${targetLevel}", false)
+                } else false
+
+                if (!alreadyAwarded) {
+                    if (userId.isNotBlank()) {
+                        VoltUpStorage.setBoolean("${userId}_ach_awarded_${ach.id}_lvl_${targetLevel}", true)
+                        VoltUpStorage.setString("${userId}_ach_level_${ach.id}", "$targetLevel")
+                    }
+                    newPoints += nextConfig.second
+                    val titleStr = ach.getLocalizedTitle(isEnglish)
+                    val msg = if (ach.maxLevel == 1 || curLvl == 1) {
+                        if (isEnglish) {
+                            when {
+                                titleStr.length >= 17 -> "Achievement! $titleStr"
+                                titleStr.length >= 12 -> "New Achievement! $titleStr"
+                                else -> "Achievement unlocked! $titleStr"
+                            }
+                        } else {
+                            when {
+                                titleStr.length >= 17 -> "Osiągnięcie! $titleStr"
+                                titleStr.length >= 12 -> "Nowe Osiągnięcie! $titleStr"
+                                else -> "Odblokowano osiągnięcie! $titleStr"
+                            }
                         }
                     } else {
-                        when {
-                            titleStr.length >= 17 -> "Osiągnięcie! $titleStr"
-                            titleStr.length >= 12 -> "Nowe Osiągnięcie! $titleStr"
-                            else -> "Odblokowano osiągnięcie! $titleStr"
+                        if (isEnglish) {
+                            if (titleStr.length >= 15) "Level $curLvl! $titleStr"
+                            else "Level $curLvl unlocked! $titleStr"
+                        } else {
+                            if (titleStr.length >= 15) "Poziom $curLvl! $titleStr"
+                            else "Odblokowano poziom $curLvl! $titleStr"
                         }
                     }
+                    messages.add(msg)
                 } else {
-                    if (isEnglish) {
-                        if (titleStr.length >= 15) "Level $curLvl! $titleStr"
-                        else "Level $curLvl unlocked! $titleStr"
-                    } else {
-                        if (titleStr.length >= 15) "Poziom $curLvl! $titleStr"
-                        else "Odblokowano poziom $curLvl! $titleStr"
+                    if (userId.isNotBlank()) {
+                        VoltUpStorage.setString("${userId}_ach_level_${ach.id}", "$curLvl")
                     }
                 }
-                messages.add(msg)
             } else {
                 break
             }

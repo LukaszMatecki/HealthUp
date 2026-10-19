@@ -974,7 +974,7 @@ fun RateAppDialog(onDismiss: () -> Unit) {
 
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Button(
                         onClick = {
@@ -985,17 +985,24 @@ fun RateAppDialog(onDismiss: () -> Unit) {
                             SnackbarHelper.show("Dziękujemy za opinię w Google Play!")
                         },
                         modifier = Modifier.fillMaxWidth().height(48.dp),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = CircleShape,
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
                         Text(strings.submitRatingBtn, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
                     }
 
-                    TextButton(
+                    Button(
                         onClick = onDismiss,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = CircleShape,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        )
                     ) {
-                        Text(strings.maybeLaterBtn, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(strings.maybeLaterBtn, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     }
                 }
             }

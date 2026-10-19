@@ -86,7 +86,8 @@ fun ProfileScreen(
     userEmail: String = "",
     authService: VoltUpAuthService? = null,
     onSignOut: () -> Unit = {},
-    onTriggerAchievement: ((String) -> Unit)? = null
+    onTriggerAchievement: ((String) -> Unit)? = null,
+    onNavigateToManageAccount: () -> Unit = {}
 ) {
     val strings = strings
     var showEditProfileDialog by remember { mutableStateOf(false) }
@@ -238,24 +239,25 @@ fun ProfileScreen(
                             color = MaterialTheme.colorScheme.onSurface
                         )
 
+                        val currentLevel = calculateUserLevel(stats.rankingPoints)
+                        val (minPts, maxPts) = getLevelThresholds(currentLevel)
+                        val effectiveLevelPts = stats.rankingPoints.coerceAtMost(maxPts)
+                        val currentLvlPts = (effectiveLevelPts - minPts).coerceAtLeast(0)
+                        val reqLvlPts = (maxPts - minPts).coerceAtLeast(1)
+                        val progressFraction = (currentLvlPts.toFloat() / reqLvlPts.toFloat()).coerceIn(0f, 1f)
+
                         Surface(
                             shape = CircleShape,
                             color = primaryColor.copy(alpha = 0.12f)
                         ) {
                             Text(
-                                text = strings.levelLabel(stats.level),
+                                text = strings.levelLabel(currentLevel),
                                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = primaryColor
                             )
                         }
-
-                        val effectiveLevelPts = stats.rankingPoints
-                        val (minPts, maxPts) = getLevelThresholds(stats.level)
-                        val currentLvlPts = (effectiveLevelPts - minPts).coerceAtLeast(0)
-                        val reqLvlPts = (maxPts - minPts).coerceAtLeast(1)
-                        val progressFraction = (currentLvlPts.toFloat() / reqLvlPts.toFloat()).coerceIn(0f, 1f)
 
                         val animatedProgressFraction by animateFloatAsState(
                             targetValue = progressFraction,
@@ -571,6 +573,34 @@ fun ProfileScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    OutlinedButton(
+                        onClick = {
+                            showEditProfileDialog = false
+                            onNavigateToManageAccount()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = CircleShape,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ManageAccounts,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = primaryColor
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = strings.manageAccountTitle,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 15.sp
+                        )
+                    }
+
                     Button(
                         onClick = {
                             if (editName.isBlank()) {
@@ -588,11 +618,22 @@ fun ProfileScreen(
                         Text(strings.saveChanges, fontWeight = FontWeight.ExtraBold)
                     }
 
-                    TextButton(
+                    Button(
                         onClick = { showEditProfileDialog = false },
-                        modifier = Modifier.fillMaxWidth().height(44.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = CircleShape,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        )
                     ) {
-                        Text(strings.cancel, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            text = strings.cancel,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
                     }
                 }
             },

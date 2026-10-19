@@ -110,10 +110,12 @@ data class UserAchievementDto(
     )
 
     companion object {
-        fun fromMap(map: Map<String, Any?>): UserAchievementDto {
+        fun fromMap(map: Map<String, Any?>, docId: String = ""): UserAchievementDto {
+            val rawId = (map["achievement_id"] as? String).orEmpty()
+            val achId = if (rawId.isNotBlank()) rawId else docId
             return UserAchievementDto(
                 userId = (map["user_id"] as? String).orEmpty(),
-                achievementId = (map["achievement_id"] as? String).orEmpty(),
+                achievementId = achId,
                 currentLevel = (map["current_level"] as? Number)?.toInt() ?: 0,
                 currentProgress = (map["current_progress"] as? Number)?.toDouble() ?: 0.0,
                 updatedAt = (map["updated_at"] as? Number)?.toLong() ?: 0L
@@ -313,26 +315,202 @@ data class KineticDeviceDto(
                 ?: map["station_id"] as? String
                 ?: map["stationId"] as? String
                 ?: fallbackId).orEmpty().ifBlank { fallbackId }
+
             val qrId = (map["qr_code_id"] as? String
                 ?: map["qrCodeId"] as? String
                 ?: map["qr_code"] as? String
                 ?: map["qrCode"] as? String
                 ?: "").orEmpty().ifBlank { "LDZ-$devId" }
+
+            val rawName = (map["name"] as? String
+                ?: map["nazwa"] as? String
+                ?: map["atrakcja"] as? String
+                ?: map["attraction"] as? String
+                ?: map["title"] as? String
+                ?: map["tytul"] as? String
+                ?: map["device"] as? String
+                ?: map["urzadzenie"] as? String
+                ?: "").trim()
+
+            val rawLocation = (map["location_name"] as? String
+                ?: map["locationName"] as? String
+                ?: map["location"] as? String
+                ?: map["lokalizacja"] as? String
+                ?: map["miejsce"] as? String
+                ?: map["place"] as? String
+                ?: map["rynek"] as? String
+                ?: map["address"] as? String
+                ?: map["adres"] as? String
+                ?: "").trim()
+
+            val rawType = (map["device_type"] as? String
+                ?: map["deviceType"] as? String
+                ?: map["type"] as? String
+                ?: map["typ"] as? String
+                ?: map["kategoria"] as? String
+                ?: "").trim().uppercase()
+
+            val resolvedType = when {
+                rawType.contains("SWING") || rawType.contains("HUST") || rawType.contains("HUŚT") -> "SWING"
+                rawType.contains("CROSS") || rawType.contains("ORBI") -> "CROSS_TRAINER"
+                rawType.contains("STEP") -> "STEPPER"
+                rawType.contains("SOLAR") -> "SOLAR_BENCH"
+                rawType.contains("BENCH") || rawType.contains("LAWK") || rawType.contains("ŁAWK") -> "BENCH"
+                rawType.contains("TREAD") || rawType.contains("BIEG") || rawType.contains("BIEŻ") -> "TREADMILL"
+                rawType.contains("ROWER") && (rawType.contains("WIOS") || rawType.contains("WIOŚ")) -> "ROWER"
+                rawType.contains("BIKE") || rawType.contains("ROWER") -> "BIKE"
+                rawName.contains("huśt", ignoreCase = true) || rawName.contains("hust", ignoreCase = true) -> "SWING"
+                rawName.contains("orbit", ignoreCase = true) -> "CROSS_TRAINER"
+                rawName.contains("step", ignoreCase = true) -> "STEPPER"
+                rawName.contains("ławk", ignoreCase = true) || rawName.contains("lawk", ignoreCase = true) -> "BENCH"
+                rawName.contains("bież", ignoreCase = true) || rawName.contains("biez", ignoreCase = true) -> "TREADMILL"
+                rawName.contains("wiośl", ignoreCase = true) || rawName.contains("wiosl", ignoreCase = true) -> "ROWER"
+                else -> if (rawType.isNotBlank()) rawType else "BIKE"
+            }
+
+            val finalName = rawName.ifBlank {
+                when (resolvedType) {
+                    "SWING" -> "Huśtawka Dynamiczna"
+                    "CROSS_TRAINER" -> "Orbitrek Kinetyczny"
+                    "STEPPER" -> "Stepper Miejski"
+                    "SOLAR_BENCH" -> "Ławka Solarna"
+                    "BENCH" -> "Ławka Kinetyczna"
+                    "TREADMILL" -> "Bieżnia Kinetyczna"
+                    "ROWER" -> "Wioślarz Miejski"
+                    else -> "Rower Kinetyczny"
+                }
+            }
+
+            fun parseCoord(v: Any?): Double? {
+                return when (v) {
+                    is Number -> v.toDouble()
+                    is String -> v.replace(',', '.').trim().toDoubleOrNull()
+                    else -> null
+                }
+            }
+
+            var parsedLat: Double? = parseCoord(map["latitude"])
+                ?: parseCoord(map["lat"])
+                ?: parseCoord(map["szerokosc"])
+                ?: parseCoord(map["szerokosc_geograficzna"])
+                ?: parseCoord(map["geo_lat"])
+                ?: parseCoord(map["geolat"])
+
+            var parsedLng: Double? = parseCoord(map["longitude"])
+                ?: parseCoord(map["lng"])
+                ?: parseCoord(map["lon"])
+                ?: parseCoord(map["long"])
+                ?: parseCoord(map["dlugosc"])
+                ?: parseCoord(map["dlugosc_geograficzna"])
+                ?: parseCoord(map["geo_lng"])
+                ?: parseCoord(map["geolng"])
+
+            val geoObj = map["coordinates"] ?: map["position"] ?: map["geopoint"] ?: map["geo"] ?: map["geo_point"] ?: map["coords"]
+            if (geoObj is Map<*, *>) {
+                if (parsedLat == null) parsedLat = parseCoord(geoObj["latitude"] ?: geoObj["lat"] ?: geoObj["szerokosc"])
+                if (parsedLng == null) parsedLng = parseCoord(geoObj["longitude"] ?: geoObj["lng"] ?: geoObj["lon"] ?: geoObj["dlugosc"])
+            }
+
+            val combinedSearch = "$rawLocation $finalName $devId".lowercase()
+            val knownLocationCoords = when {
+                combinedSearch.contains("manufaktur") || combinedSearch.contains("rynek") || devId.equals("MF-1", ignoreCase = true) -> Pair(51.7797, 19.4496)
+                combinedSearch.contains("poniatowsk") || devId.equals("PP-1", ignoreCase = true) -> Pair(51.7538, 19.4445)
+                combinedSearch.contains("zdrowi") || devId.equals("PZ-1", ignoreCase = true) -> Pair(51.7656, 19.4182)
+                combinedSearch.contains("źródlisk") || combinedSearch.contains("zrodlisk") || devId.equals("PZ-2", ignoreCase = true) -> Pair(51.7575, 19.4754)
+                combinedSearch.contains("piotrkowsk") || devId.equals("PC-1", ignoreCase = true) -> Pair(51.7594, 19.4568)
+                combinedSearch.contains("stefańsk") || combinedSearch.contains("stefansk") || devId.equals("SS-1", ignoreCase = true) -> Pair(51.7042, 19.4492)
+                combinedSearch.contains("ec1") || devId.equals("EC-1", ignoreCase = true) -> Pair(51.7672, 19.4718)
+                combinedSearch.contains("matejk") || devId.equals("PM-1", ignoreCase = true) -> Pair(51.7765, 19.4880)
+                combinedSearch.contains("monopolis") -> Pair(51.7617, 19.4883)
+                combinedSearch.contains("fuzja") -> Pair(51.7483, 19.4627)
+                combinedSearch.contains("off") -> Pair(51.7610, 19.4585)
+                else -> null
+            }
+
+            val finalLat: Double
+            val finalLng: Double
+            val pLat = parsedLat
+            val pLng = parsedLng
+            if (knownLocationCoords != null) {
+                val isDefaultCoord = (pLat == null || pLng == null) ||
+                        (kotlin.math.abs(pLat - 51.7592) < 0.0001 && kotlin.math.abs(pLng - 19.4560) < 0.0001)
+                val isManufakturaMismatched = pLat != null && (combinedSearch.contains("manufaktur") || combinedSearch.contains("rynek")) &&
+                        kotlin.math.abs(pLat - 51.7538) < 0.005
+                val isPoniatowskiMismatched = pLat != null && combinedSearch.contains("poniatowsk") &&
+                        kotlin.math.abs(pLat - 51.7797) < 0.005
+
+                if (isDefaultCoord || isManufakturaMismatched || isPoniatowskiMismatched) {
+                    finalLat = knownLocationCoords.first
+                    finalLng = knownLocationCoords.second
+                } else {
+                    finalLat = pLat
+                    finalLng = pLng
+                }
+            } else {
+                finalLat = pLat ?: 51.7592
+                finalLng = pLng ?: 19.4560
+            }
+
+            val finalLocation = rawLocation.ifBlank {
+                when {
+                    combinedSearch.contains("manufaktur") || combinedSearch.contains("rynek") -> "Rynek w Manufakturze"
+                    combinedSearch.contains("poniatowsk") -> "Park Poniatowskiego"
+                    combinedSearch.contains("zdrowi") -> "Park na Zdrowiu"
+                    combinedSearch.contains("źródlisk") || combinedSearch.contains("zrodlisk") -> "Park Źródliska"
+                    combinedSearch.contains("piotrkowsk") -> "Piotrkowska Centrum"
+                    combinedSearch.contains("stefańsk") || combinedSearch.contains("stefansk") -> "Stawy Stefańskiego"
+                    combinedSearch.contains("ec1") -> "EC1 Łódź"
+                    combinedSearch.contains("matejk") -> "Park Matejki"
+                    else -> "Łódź Centrum"
+                }
+            }
+
+            val parsedDistrict = (map["district"] as? String ?: map["dzielnica"] as? String).orEmpty().trim().ifBlank {
+                when {
+                    combinedSearch.contains("manufaktur") || combinedSearch.contains("bałut") || combinedSearch.contains("balut") -> "Bałuty"
+                    combinedSearch.contains("poniatowsk") || combinedSearch.contains("zdrowi") || combinedSearch.contains("poles") -> "Polesie"
+                    combinedSearch.contains("źródlisk") || combinedSearch.contains("zrodlisk") || combinedSearch.contains("widzew") -> "Widzew"
+                    combinedSearch.contains("piotrkowsk") || combinedSearch.contains("ec1") || combinedSearch.contains("matejk") || combinedSearch.contains("śródmieś") || combinedSearch.contains("srodmies") -> "Śródmieście"
+                    combinedSearch.contains("stefańsk") || combinedSearch.contains("stefansk") || combinedSearch.contains("górn") || combinedSearch.contains("gorn") -> "Górna"
+                    else -> "Polesie"
+                }
+            }
+
+            val normX = ((finalLng - 19.38) / (19.54 - 19.38)).toFloat()
+            val normY = ((51.82 - finalLat) / (51.82 - 51.70)).toFloat()
+            val computedMapX = (0.10f + normX.coerceIn(0f, 1f) * 0.80f)
+            val computedMapY = (0.10f + normY.coerceIn(0f, 1f) * 0.80f)
+
+            val explicitMapX = parseCoord(map["map_coordinates_x"] ?: map["mapCoordinatesX"] ?: map["x"])?.toFloat()
+            val explicitMapY = parseCoord(map["map_coordinates_y"] ?: map["mapCoordinatesY"] ?: map["y"])?.toFloat()
+
+            val finalMapX = if (explicitMapX != null && explicitMapX != 0.5f) explicitMapX else computedMapX
+            val finalMapY = if (explicitMapY != null && explicitMapY != 0.5f) explicitMapY else computedMapY
+
+            val maxPower = (map["max_power_w"] as? Number
+                ?: map["maxPowerW"] as? Number
+                ?: map["max_power"] as? Number
+                ?: map["maxPower"] as? Number
+                ?: map["moc_max"] as? Number
+                ?: map["moc"] as? Number)?.toInt() ?: 150
+
+            val statusVal = (map["status"] as? String ?: map["stan"] as? String) ?: "online"
+
             return KineticDeviceDto(
                 deviceId = devId,
-                name = (map["name"] as? String ?: map["nazwa"] as? String).orEmpty(),
-                locationName = (map["location_name"] as? String ?: map["locationName"] as? String ?: map["location"] as? String ?: map["lokalizacja"] as? String).orEmpty(),
-                district = (map["district"] as? String ?: map["dzielnica"] as? String).orEmpty(),
-                status = (map["status"] as? String) ?: "online",
-                maxPowerW = (map["max_power_w"] as? Number ?: map["maxPowerW"] as? Number ?: map["moc_max"] as? Number)?.toInt() ?: 150,
-                latitude = (map["latitude"] as? Number ?: map["szerokosc"] as? Number)?.toDouble() ?: 51.7592,
-                longitude = (map["longitude"] as? Number ?: map["dlugosc"] as? Number)?.toDouble() ?: 19.4560,
-                deviceType = (map["device_type"] as? String ?: map["deviceType"] as? String ?: map["typ"] as? String) ?: "BIKE",
+                name = finalName,
+                locationName = finalLocation,
+                district = parsedDistrict,
+                status = statusVal,
+                maxPowerW = maxPower,
+                latitude = finalLat,
+                longitude = finalLng,
+                deviceType = resolvedType,
                 qrCodeId = qrId,
                 currentEnergyRateW = (map["current_energy_rate_w"] as? Number ?: map["currentEnergyRateW"] as? Number)?.toInt() ?: 0,
                 activeUsersCount = (map["active_users_count"] as? Number ?: map["activeUsersCount"] as? Number)?.toInt() ?: 0,
-                mapCoordinatesX = (map["map_coordinates_x"] as? Number ?: map["mapCoordinatesX"] as? Number)?.toFloat() ?: 0.5f,
-                mapCoordinatesY = (map["map_coordinates_y"] as? Number ?: map["mapCoordinatesY"] as? Number)?.toFloat() ?: 0.5f
+                mapCoordinatesX = finalMapX,
+                mapCoordinatesY = finalMapY
             )
         }
     }

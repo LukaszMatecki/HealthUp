@@ -294,11 +294,10 @@ fun QrScannerScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Surface(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .clickable { onStationDetected(currentSimStation) },
+                    onClick = { onStationDetected(currentSimStation) },
+                    shape = CircleShape,
                     color = Color.White.copy(alpha = 0.18f),
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f))
+                    border = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.45f))
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),

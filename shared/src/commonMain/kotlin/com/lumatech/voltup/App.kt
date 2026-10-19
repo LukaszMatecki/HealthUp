@@ -170,7 +170,13 @@ fun App() {
             )
         )
     }
-    var achievements by remember { mutableStateOf(DefaultAchievements.initialAchievements) }
+    var achievements by remember {
+        mutableStateOf(
+            currentAuthUser?.userId?.takeIf { it.isNotBlank() }?.let { uid ->
+                getCachedAchievementsForUser(uid)
+            } ?: DefaultAchievements.initialAchievements
+        )
+    }
     var challenges by remember { mutableStateOf(MockData.sampleChallenges) }
     var redeemedRewards by remember { mutableStateOf(emptyList<RedeemedReward>()) }
 
@@ -204,6 +210,7 @@ fun App() {
     }
 
     fun resetAppStateToDefaults() {
+        val uid = currentAuthUser?.userId.orEmpty()
         dbService.clearCache()
         userStats = UserStats(
             points = 0,
@@ -214,7 +221,7 @@ fun App() {
             userName = "Użytkownik VoltUp",
             avatarId = 1,
             level = 0,
-            levelTitle = "Nowicjusz VoltUp",
+            levelTitle = calculateLevelTitle(0),
             streakDays = 1,
             recentWorkouts = emptyList(),
             accountCreatedAt = 0L
@@ -227,10 +234,15 @@ fun App() {
         }
         redeemedRewards = emptyList()
 
-        listOf(
-            "ach_about_viewed", "ach_dark_theme", "ach_profile_custom", "ach_archive_viewed",
-            "ach_explore_history", "ach_qr_scanner", "ach_map_navigator", "ach_weekly_challenges", "ach_first_reward"
-        ).forEach { k -> VoltUpStorage.setBoolean(k, false) }
+        if (uid.isNotBlank()) {
+            listOf(
+                "ach_about_viewed", "ach_dark_theme", "ach_profile_custom", "ach_archive_viewed",
+                "ach_explore_history", "ach_qr_scanner", "ach_map_navigator", "ach_weekly_challenges", "ach_first_reward"
+            ).forEach { k ->
+                VoltUpStorage.setBoolean("${uid}_$k", false)
+                VoltUpStorage.setBoolean("${uid}_ach_$k", false)
+            }
+        }
     }
 
     LaunchedEffect(currentAuthUser) {
@@ -241,6 +253,8 @@ fun App() {
             if (currentScreen != Screen.Login && currentScreen != Screen.Register && currentScreen != Screen.ForgotPassword && currentScreen != Screen.Onboarding) {
                 currentScreen = Screen.Login
             }
+        } else {
+            achievements = getCachedAchievementsForUser(user.userId)
         }
     }
 
@@ -256,6 +270,7 @@ fun App() {
             val loadedChallenges = dbService.getUserChallenges(u.userId)
             val loadedCoupons = dbService.getUserCoupons(u.userId)
 
+            val calculatedLevel = calculateUserLevel(freshUser.rankingPoints)
             userStats = userStats.copy(
                 points = freshUser.voltPoints,
                 rankingPoints = freshUser.rankingPoints,
@@ -263,8 +278,8 @@ fun App() {
                 co2SavedKg = freshUser.co2SavedKg,
                 userName = freshUser.userName.ifBlank { "Użytkownik VoltUp" },
                 avatarId = freshUser.avatarId,
-                level = freshUser.userLevel,
-                levelTitle = calculateLevelTitle(freshUser.userLevel),
+                level = calculatedLevel,
+                levelTitle = calculateLevelTitle(calculatedLevel),
                 streakDays = freshUser.streakDays,
                 accountCreatedAt = freshUser.createdAt,
                 recentWorkouts = workouts.map { w ->
@@ -297,16 +312,33 @@ fun App() {
                 )
             }
 
+            loadedAchievements.forEach { dto ->
+                if (dto.currentLevel > 0) {
+                    for (lvl in 1..dto.currentLevel) {
+                        VoltUpStorage.setBoolean("${u.userId}_ach_awarded_${dto.achievementId}_lvl_$lvl", true)
+                    }
+                    val existingSavedLvl = VoltUpStorage.getString("${u.userId}_ach_level_${dto.achievementId}", "0").toIntOrNull() ?: 0
+                    if (dto.currentLevel > existingSavedLvl) {
+                        VoltUpStorage.setString("${u.userId}_ach_level_${dto.achievementId}", "${dto.currentLevel}")
+                    }
+                }
+            }
+
             achievements = DefaultAchievements.initialAchievements.map { ach ->
                 val match = loadedAchievements.firstOrNull { it.achievementId == ach.id }
-                if (match != null) {
-                    ach.copy(
-                        level = match.currentLevel,
-                        currentProgress = match.currentProgress
-                    )
-                } else {
-                    ach.copy(level = 0, currentProgress = 0.0)
+                val savedLvl = VoltUpStorage.getString("${u.userId}_ach_level_${ach.id}", "0").toIntOrNull() ?: 0
+                val bestLvl = maxOf(match?.currentLevel ?: 0, savedLvl, ach.level)
+                val bestProgress = maxOf(match?.currentProgress ?: 0.0, ach.currentProgress)
+                if (bestLvl > 0) {
+                    for (lvl in 1..bestLvl) {
+                        VoltUpStorage.setBoolean("${u.userId}_ach_awarded_${ach.id}_lvl_$lvl", true)
+                    }
+                    VoltUpStorage.setString("${u.userId}_ach_level_${ach.id}", "$bestLvl")
                 }
+                ach.copy(
+                    level = bestLvl,
+                    currentProgress = bestProgress
+                )
             }
 
             val evalOnLoad = evaluateAchievements(
@@ -702,7 +734,7 @@ fun App() {
 
                         is Screen.Achievements -> {
                             LaunchedEffect(Unit) {
-                                checkAndAwardAchievements(null, true)
+                                checkAndAwardAchievements(null, false)
                             }
                             AchievementsScreen(
                                 badges = achievements.map { it.toBadgeModel(isEnglish = appSettings.language == AppLanguage.ENGLISH) },
@@ -1147,6 +1179,9 @@ fun App() {
                                                 },
                                                 onTriggerAchievement = { key ->
                                                     checkAndAwardAchievements(key, true)
+                                                },
+                                                onNavigateToManageAccount = {
+                                                    currentScreen = Screen.ManageAccount
                                                 }
                                             )
                                         }
@@ -1583,24 +1618,29 @@ fun DashboardScreen(
                 }
             }
 
-            val nearbyStations = remember(currentUserLocation) {
+            var dbDeviceList by remember { mutableStateOf(MockData.sampleStations) }
+            val dbService = remember { getDatabaseService() }
+            LaunchedEffect(Unit) {
+                try {
+                    val fromDb = dbService.getDevices()
+                    if (fromDb.isNotEmpty()) {
+                        dbDeviceList = fromDb
+                    }
+                } catch (_: Exception) {}
+            }
+
+            val nearbyStations = remember(currentUserLocation, dbDeviceList) {
                 val realLoc = currentUserLocation
                 if (realLoc != null) {
                     val (uLat, uLng) = realLoc
-                    MockData.sampleStations.map { station ->
+                    dbDeviceList.map { station ->
                         val distMeters = calculateDistanceMeters(uLat, uLng, station.latitude, station.longitude)
                         val distStr = if (distMeters < 1000.0) "${distMeters.toInt()} m" else "${((distMeters / 100.0).roundToInt() / 10.0)} km"
                         Triple(station, distMeters, distStr)
                     }.sortedBy { it.second }.take(3)
                 } else {
-                    MockData.sampleStations.take(3).map { station ->
-                        val distMeters = when (station.id) {
-                            "PC-1" -> 450.0
-                            "PP-1" -> 600.0
-                            "MAN-1" -> 1100.0
-                            else -> 1200.0
-                        }
-                        Triple(station, distMeters, station.distance)
+                    dbDeviceList.take(3).map { station ->
+                        Triple(station, 500.0, station.distance)
                     }
                 }
             }

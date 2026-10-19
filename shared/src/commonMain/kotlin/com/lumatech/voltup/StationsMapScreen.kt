@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
+import kotlinx.coroutines.launch
 
 @Composable
 fun StationsMapScreen(
@@ -50,6 +51,9 @@ fun StationsMapScreen(
     var selectedStation by remember { mutableStateOf<KineticStation?>(null) }
     var expandedStationId by remember { mutableStateOf<String?>(null) }
 
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
     LaunchedEffect(deviceList) {
         if (selectedStation == null && deviceList.isNotEmpty()) {
             selectedStation = deviceList.firstOrNull()
@@ -66,6 +70,14 @@ fun StationsMapScreen(
                     station.id.contains(searchQuery, ignoreCase = true)
             val matchesType = selectedDeviceType == null || station.type == selectedDeviceType
             matchesQuery && matchesType
+        }
+    }
+
+    LaunchedEffect(selectedStation?.id) {
+        val st = selectedStation ?: return@LaunchedEffect
+        val targetIdx = filteredStations.indexOfFirst { it.id == st.id }
+        if (targetIdx >= 0) {
+            listState.animateScrollToItem(targetIdx)
         }
     }
 
@@ -126,6 +138,18 @@ fun StationsMapScreen(
                 onStationSelected = { station ->
                     selectedStation = station
                     expandedStationId = station.id
+                    if (selectedDeviceType != null && station.type != selectedDeviceType) {
+                        selectedDeviceType = null
+                    }
+                    if (searchQuery.isNotBlank() && !station.name.contains(searchQuery, true) && !station.location.contains(searchQuery, true)) {
+                        searchQuery = ""
+                    }
+                    val targetIdx = filteredStations.indexOfFirst { it.id == station.id }
+                    if (targetIdx >= 0) {
+                        coroutineScope.launch {
+                            listState.animateScrollToItem(targetIdx)
+                        }
+                    }
                 }
             )
         }
@@ -191,6 +215,7 @@ fun StationsMapScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         LazyColumn(
+            state = listState,
             contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier.fillMaxSize()

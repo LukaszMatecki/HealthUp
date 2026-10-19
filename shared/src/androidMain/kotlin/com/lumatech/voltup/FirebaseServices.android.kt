@@ -241,6 +241,10 @@ class AndroidFirebaseAuthService : VoltUpAuthService {
             if (cleanEmail.isBlank()) {
                 return AuthResult(false, null, "Wprowadź adres e-mail.")
             }
+            try {
+                val savedLang = VoltUpStorage.getString(VoltUpPreferenceKeys.KEY_SAVED_LANGUAGE, "pl")
+                auth.setLanguageCode(if (savedLang == "en") "en" else "pl")
+            } catch (_: Exception) {}
             auth.sendPasswordResetEmail(cleanEmail).await()
             AuthResult(isSuccess = true)
         } catch (e: FirebaseAuthException) {
@@ -604,7 +608,7 @@ class AndroidFirestoreService : VoltUpDatabaseService {
                 .await()
 
             val list = snapshot.documents.mapNotNull { doc ->
-                doc.data?.let { UserAchievementDto.fromMap(it) }
+                doc.data?.let { UserAchievementDto.fromMap(it, doc.id) }
             }
             if (list.isNotEmpty()) {
                 list.forEach { memoryAchievements["${it.userId}_${it.achievementId}"] = it }
@@ -1043,45 +1047,29 @@ class AndroidFirestoreService : VoltUpDatabaseService {
             val snapshot = firestore.collection("devices").get().await()
             val existingList = snapshot.documents.mapNotNull { doc ->
                 doc.data?.let { data ->
-                    KineticDeviceDto.fromMap(data, doc.id).toKineticStation().let(::cleanStation)
+                    KineticDeviceDto.fromMap(data, doc.id).toKineticStation()
                 }
             }
 
-            val resolvedList = mutableListOf<KineticStation>()
             if (existingList.isNotEmpty()) {
-                resolvedList.addAll(existingList)
-                // Add default devices if missing in Firestore
-                for (defaultDev in defaultDevices) {
-                    val cleanedDefault = cleanStation(defaultDev)
-                    if (resolvedList.none { it.id == defaultDev.id || it.qrCodeId == defaultDev.qrCodeId }) {
-                        resolvedList.add(cleanedDefault)
-                        try {
-                            val dto = KineticDeviceDto.fromStation(cleanedDefault)
-                            firestore.collection("devices").document(defaultDev.id).set(dto.toMap()).await()
-                        } catch (e: Exception) {
-                            Log.w(TAG, "Błąd zapisu stacji domyślnej ${defaultDev.id}: ${e.message}")
-                        }
-                    }
-                }
+                existingList.forEach { memoryDevices[it.id] = it }
+                existingList
             } else {
                 for (defaultDev in defaultDevices) {
-                    val cleanedDefault = cleanStation(defaultDev)
-                    resolvedList.add(cleanedDefault)
                     try {
-                        val dto = KineticDeviceDto.fromStation(cleanedDefault)
+                        val dto = KineticDeviceDto.fromStation(defaultDev)
                         firestore.collection("devices").document(defaultDev.id).set(dto.toMap()).await()
                     } catch (e: Exception) {
                         Log.w(TAG, "Błąd inicjalizacji stacji ${defaultDev.id}: ${e.message}")
                     }
                 }
+                defaultDevices.forEach { memoryDevices[it.id] = it }
+                defaultDevices
             }
-
-            resolvedList.forEach { memoryDevices[it.id] = it }
-            resolvedList
         } catch (e: Exception) {
             Log.w(TAG, "Pobieranie urządzeń z Firestore: ${e.message}")
             val fallback = if (memoryDevices.isNotEmpty()) memoryDevices.values.toList() else defaultDevices
-            fallback.map(::cleanStation)
+            fallback
         }
     }
 

@@ -1,6 +1,7 @@
 package com.lumatech.voltup
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,6 +25,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.MapsInitializer
 import com.google.android.gms.maps.model.CameraPosition
@@ -162,26 +164,55 @@ actual fun GoogleMapView(
     val initialLng = selectedStation?.longitude ?: 19.4560
 
     val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(LatLng(initialLat, initialLng), 13f)
-    }
-
-    val coroutineScope = rememberCoroutineScope()
-
-    LaunchedEffect(selectedStation) {
-        if (selectedStation != null) {
-            try {
-                cameraPositionState.animate(
-                    CameraUpdateFactory.newLatLngZoom(
-                        LatLng(selectedStation.latitude, selectedStation.longitude),
-                        15f
-                    )
-                )
-            } catch (_: Exception) { }
-        }
+        position = CameraPosition.fromLatLngZoom(LatLng(initialLat, initialLng), 14f)
     }
 
     var centerUserTrigger by remember { mutableIntStateOf(0) }
     var centerLodzTrigger by remember { mutableIntStateOf(0) }
+
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(selectedStation?.id) {
+        val st = selectedStation ?: return@LaunchedEffect
+        try {
+            cameraPositionState.animate(
+                CameraUpdateFactory.newLatLngZoom(
+                    LatLng(st.latitude, st.longitude),
+                    15.5f
+                ),
+                durationMs = 600
+            )
+        } catch (_: Exception) {}
+    }
+
+    LaunchedEffect(centerUserTrigger) {
+        val uLoc = userLocation
+        if (centerUserTrigger > 0 && uLoc != null) {
+            try {
+                cameraPositionState.animate(
+                    CameraUpdateFactory.newLatLngZoom(
+                        LatLng(uLoc.latitude, uLoc.longitude),
+                        15.5f
+                    ),
+                    durationMs = 600
+                )
+            } catch (_: Exception) {}
+        }
+    }
+
+    LaunchedEffect(centerLodzTrigger) {
+        if (centerLodzTrigger > 0) {
+            try {
+                cameraPositionState.animate(
+                    CameraUpdateFactory.newLatLngZoom(
+                        LatLng(51.7592, 19.4560),
+                        13.5f
+                    ),
+                    durationMs = 600
+                )
+            } catch (_: Exception) {}
+        }
+    }
 
     Box(
         modifier = modifier
@@ -228,18 +259,34 @@ actual fun GoogleMapView(
                 )
             ) {
                 stations.forEach { station ->
+                    val isSelected = station.id == selectedStation?.id
                     val markerState = rememberMarkerState(
-                        key = station.id,
+                        key = "${station.id}_${station.latitude}_${station.longitude}",
                         position = LatLng(station.latitude, station.longitude)
                     )
+                    LaunchedEffect(station.latitude, station.longitude) {
+                        markerState.position = LatLng(station.latitude, station.longitude)
+                    }
                     Marker(
                         state = markerState,
                         title = station.name,
                         snippet = "${station.location} • Max: ${station.maxPowerW} W",
-                        icon = if (station.id == selectedStation?.id) selectedStationIcon else normalStationIcon,
-                        anchor = Offset(0.5f, 0.5f),
+                        icon = if (isSelected) selectedStationIcon else normalStationIcon,
+                        anchor = Offset(0.5f, 0.90f),
+                        zIndex = if (isSelected) 10f else 1f,
                         onClick = {
                             onStationSelected(station)
+                            coroutineScope.launch {
+                                try {
+                                    cameraPositionState.animate(
+                                        CameraUpdateFactory.newLatLngZoom(
+                                            LatLng(station.latitude, station.longitude),
+                                            15.5f
+                                        ),
+                                        durationMs = 600
+                                    )
+                                } catch (_: Exception) {}
+                            }
                             true
                         }
                     )
@@ -357,7 +404,9 @@ private fun InteractiveSchematicMap(
     centerUserTrigger: Int = 0,
     centerLodzTrigger: Int = 0
 ) {
-    var panOffset by remember { mutableStateOf(Offset.Zero) }
+    val coroutineScope = rememberCoroutineScope()
+    val panAnimatable = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
+    val panOffset = panAnimatable.value
     var zoomScale by remember { mutableFloatStateOf(1f) }
 
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
@@ -387,7 +436,9 @@ private fun InteractiveSchematicMap(
             .fillMaxSize()
             .pointerInput(Unit) {
                 detectTransformGestures { _, pan, zoom, _ ->
-                    panOffset += pan
+                    coroutineScope.launch {
+                        panAnimatable.snapTo(panAnimatable.value + pan)
+                    }
                     zoomScale = (zoomScale * zoom).coerceIn(0.8f, 2.5f)
                 }
             }
@@ -398,25 +449,33 @@ private fun InteractiveSchematicMap(
         val panXDp = with(density) { panOffset.x.toDp() }
         val panYDp = with(density) { panOffset.y.toDp() }
 
-        LaunchedEffect(selectedStation) {
-            if (selectedStation != null) {
-                val targetPanX = (0.5f - selectedStation.mapCoordinatesX) * with(density) { width.toPx() }
-                val targetPanY = (0.40f - selectedStation.mapCoordinatesY) * with(density) { height.toPx() }
-                panOffset = Offset(targetPanX, targetPanY)
-            }
+        LaunchedEffect(selectedStation?.id) {
+            val st = selectedStation ?: return@LaunchedEffect
+            val targetPanX = (0.5f - st.mapCoordinatesX) * with(density) { width.toPx() }
+            val targetPanY = (0.40f - st.mapCoordinatesY) * with(density) { height.toPx() }
+            panAnimatable.animateTo(
+                targetValue = Offset(targetPanX, targetPanY),
+                animationSpec = spring(stiffness = Spring.StiffnessLow)
+            )
         }
 
         LaunchedEffect(centerUserTrigger) {
             if (centerUserTrigger > 0) {
                 val targetPanX = (0.5f - userNormX) * with(density) { width.toPx() }
                 val targetPanY = (0.40f - userNormY) * with(density) { height.toPx() }
-                panOffset = Offset(targetPanX, targetPanY)
+                panAnimatable.animateTo(
+                    targetValue = Offset(targetPanX, targetPanY),
+                    animationSpec = spring(stiffness = Spring.StiffnessLow)
+                )
             }
         }
 
         LaunchedEffect(centerLodzTrigger) {
             if (centerLodzTrigger > 0) {
-                panOffset = Offset.Zero
+                panAnimatable.animateTo(
+                    targetValue = Offset.Zero,
+                    animationSpec = spring(stiffness = Spring.StiffnessLow)
+                )
             }
         }
 
@@ -486,43 +545,71 @@ private fun InteractiveSchematicMap(
             }
         }
 
-        stations.forEach { station ->
+        stations.sortedBy { it.id == selectedStation?.id }.forEach { station ->
             val isSelected = station.id == selectedStation?.id
             val posX = width * station.mapCoordinatesX + panXDp
             val posY = height * station.mapCoordinatesY + panYDp
 
             Box(
                 modifier = Modifier
-                    .offset(x = posX - 16.dp, y = posY - 16.dp)
-                    .size(32.dp)
-                    .clickable { onStationSelected(station) },
+                    .offset(x = posX - 20.dp, y = posY - 34.dp)
+                    .size(40.dp)
+                    .zIndex(if (isSelected) 10f else 1f)
+                    .clickable(
+                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                        indication = null
+                    ) {
+                        onStationSelected(station)
+                        coroutineScope.launch {
+                            val targetPanX = (0.5f - station.mapCoordinatesX) * with(density) { width.toPx() }
+                            val targetPanY = (0.40f - station.mapCoordinatesY) * with(density) { height.toPx() }
+                            panAnimatable.animateTo(
+                                targetValue = Offset(targetPanX, targetPanY),
+                                animationSpec = spring(stiffness = Spring.StiffnessLow)
+                            )
+                        }
+                    },
                 contentAlignment = Alignment.Center
             ) {
+                // Drop shadow underneath pin
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 2.dp)
+                        .size(width = if (isSelected) 22.dp else 16.dp, height = 6.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = if (isDark) 0.55f else 0.30f))
+                )
+
                 if (isSelected) {
                     Box(
                         modifier = Modifier
-                            .size((haloRadius * 2).dp)
+                            .align(Alignment.Center)
+                            .padding(bottom = 6.dp)
+                            .size((haloRadius * 2.2f).dp)
                             .clip(CircleShape)
                             .background(LightPrimary.copy(alpha = haloAlpha))
                     )
                 }
 
-                Box(
+                Surface(
                     modifier = Modifier
-                        .size(if (isSelected) 24.dp else 20.dp)
-                        .border(
-                            1.6.dp,
-                            if (isSelected) LightPrimary else LightPrimary.copy(alpha = 0.9f),
-                            CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
+                        .align(Alignment.Center)
+                        .padding(bottom = 6.dp)
+                        .size(if (isSelected) 32.dp else 26.dp),
+                    shape = CircleShape,
+                    color = if (isSelected) LightPrimary else Color(0xFF1E824C),
+                    border = BorderStroke(if (isSelected) 2.5.dp else 2.dp, Color.White),
+                    shadowElevation = if (isSelected) 6.dp else 3.dp
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(if (isSelected) 15.dp else 12.dp)
-                            .clip(CircleShape)
-                            .background(LightPrimary)
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Bolt,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(if (isSelected) 18.dp else 14.dp)
+                        )
+                    }
                 }
             }
         }
@@ -599,25 +686,93 @@ private fun createStationMarkerBitmap(
     return try {
         MapsInitializer.initialize(context)
         val density = context.resources.displayMetrics.density
-        val sizePx = ((if (isSelected) 28 else 22) * density).toInt().coerceAtLeast(1)
-        val bitmap = android.graphics.Bitmap.createBitmap(sizePx, sizePx, android.graphics.Bitmap.Config.ARGB_8888)
+        val widthDp = if (isSelected) 42 else 34
+        val heightDp = if (isSelected) 52 else 42
+        val widthPx = (widthDp * density).toInt().coerceAtLeast(1)
+        val heightPx = (heightDp * density).toInt().coerceAtLeast(1)
+
+        val bitmap = android.graphics.Bitmap.createBitmap(widthPx, heightPx, android.graphics.Bitmap.Config.ARGB_8888)
         val canvas = android.graphics.Canvas(bitmap)
-        val center = sizePx / 2f
+        val centerX = widthPx / 2f
 
-        val ringPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-            color = android.graphics.Color.parseColor("#00A35B")
-            style = android.graphics.Paint.Style.STROKE
-            strokeWidth = 1.8f * density
-        }
-        val ringRadius = center - (2.5f * density)
-        canvas.drawCircle(center, center, ringRadius, ringPaint)
-
-        val dotPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-            color = android.graphics.Color.parseColor("#00A35B")
+        // Shadow at bottom
+        val shadowPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.argb(85, 0, 0, 0)
             style = android.graphics.Paint.Style.FILL
         }
-        val dotRadius = (if (isSelected) 6.8f else 5.4f) * density
-        canvas.drawCircle(center, center, dotRadius, dotPaint)
+        val shadowW = (if (isSelected) 22f else 16f) * density
+        val shadowH = (if (isSelected) 6.5f else 5f) * density
+        val shadowBottom = heightPx - (1.5f * density)
+        val shadowRect = android.graphics.RectF(
+            centerX - shadowW / 2f,
+            shadowBottom - shadowH,
+            centerX + shadowW / 2f,
+            shadowBottom
+        )
+        canvas.drawOval(shadowRect, shadowPaint)
+
+        // Pin Teardrop/Marker Path
+        val headRadius = (if (isSelected) 17f else 14f) * density
+        val headCenterY = headRadius + (2.5f * density)
+        val tipY = heightPx - (5.5f * density)
+
+        val pinPath = android.graphics.Path().apply {
+            moveTo(centerX, tipY)
+            quadTo(
+                centerX - headRadius * 1.05f,
+                headCenterY + headRadius * 0.7f,
+                centerX - headRadius,
+                headCenterY
+            )
+            arcTo(
+                android.graphics.RectF(
+                    centerX - headRadius,
+                    headCenterY - headRadius,
+                    centerX + headRadius,
+                    headCenterY + headRadius
+                ),
+                180f,
+                180f
+            )
+            quadTo(
+                centerX + headRadius * 1.05f,
+                headCenterY + headRadius * 0.7f,
+                centerX,
+                tipY
+            )
+            close()
+        }
+
+        // Fill for pin
+        val fillPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.parseColor(if (isSelected) "#00A35B" else "#1E824C")
+            style = android.graphics.Paint.Style.FILL
+        }
+        canvas.drawPath(pinPath, fillPaint)
+
+        // White border for pin
+        val borderPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.WHITE
+            style = android.graphics.Paint.Style.STROKE
+            strokeWidth = (if (isSelected) 2.8f else 2.2f) * density
+        }
+        canvas.drawPath(pinPath, borderPaint)
+
+        // Inner white circle
+        val innerCirclePaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.WHITE
+            style = android.graphics.Paint.Style.FILL
+        }
+        val innerRadius = (if (isSelected) 8f else 6.5f) * density
+        canvas.drawCircle(centerX, headCenterY, innerRadius, innerCirclePaint)
+
+        // Inner green dot
+        val dotPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.parseColor(if (isSelected) "#00A35B" else "#1E824C")
+            style = android.graphics.Paint.Style.FILL
+        }
+        val dotRadius = (if (isSelected) 4.2f else 3.4f) * density
+        canvas.drawCircle(centerX, headCenterY, dotRadius, dotPaint)
 
         com.google.android.gms.maps.model.BitmapDescriptorFactory.fromBitmap(bitmap)
     } catch (_: Exception) {
