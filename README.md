@@ -4,11 +4,11 @@
 
 <p align="center">
   <a href="https://skillicons.dev">
-    <img src="https://skillicons.dev/icons?i=kotlin,android,apple,firebase,gcp,gradle,git" alt="Technology Stack" />
+    <img src="https://skillicons.dev/icons?i=kotlin,androidstudio,apple,firebase,gcp,gradle,git" alt="Technology Stack" />
   </a>
 </p>
 
-# VoltUp: Inteligentny Ekosystem Energii Kinetycznej i Fitnessu Miejskiego
+# VoltUp: Inteligentny Ekosystem Energii Kinetycznej
 
 Aplikacja mobilna zrealizowana w architekturze Kotlin Multiplatform oraz Compose Multiplatform, integrująca miejską infrastrukturę sportowo-rekreacyjną z systemem pozyskiwania i monitorowania rozproszonej energii kinetycznej na obszarze aglomeracji łódzkiej.
 
@@ -105,25 +105,6 @@ Interfejs użytkownika zaprojektowano w standardzie Material Design 3 z pełnym 
 | Ekran Logowania | Wprowadzenie | Przewodnik i FAQ |
 | :---: | :---: | :---: |
 | <img src="VoltUp_Screenshots/z_ramka/jasny/01_Logowanie_jasny_ramka.png" width="240" alt="Logowanie" /> | <img src="VoltUp_Screenshots/z_ramka/jasny/04_Onboarding_jasny_ramka.png" width="240" alt="Onboarding" /> | <img src="VoltUp_Screenshots/z_ramka/jasny/14_Przewodnik_I_FAQ_jasny_ramka.png" width="240" alt="Przewodnik i FAQ" /> |
-
----
-
-## Wideo Prezentacyjne
-
-Zarejestrowany materiał demonstracyjny prezentuje pełny cykl pracy aplikacji: autoryzację, nawigację po punktach miejskich, skanowanie stacji oraz rejestrację sesji telemetrycznej.
-
-Materiał wideo znajduje się w repozytorium pod ścieżką:
-`VoltUp_Screenshots/voltup_demo.mp4`
-
-Polecenia do bezpośredniej rejestracji obrazu urządzenia Android za pomocą konsoli ADB:
-
-```bash
-adb shell screenrecord --time-limit 20 /sdcard/voltup_demo.mp4
-adb pull /sdcard/voltup_demo.mp4 ./VoltUp_Screenshots/voltup_demo.mp4
-adb shell rm /sdcard/voltup_demo.mp4
-```
-
----
 
 ## Struktura Repozytorium
 
@@ -256,7 +237,7 @@ Oprogramowanie VoltUp objęte jest licencją MIT. Szczegółowe warunki użytkow
 ---
 ---
 
-# VoltUp: Smart Kinetic Energy and Urban Fitness Eco-System
+# VoltUp: Smart Kinetic Energy Eco-System
 
 A mobile application developed with Kotlin Multiplatform and Compose Multiplatform, connecting urban fitness infrastructure with a decentralized kinetic energy harvesting and tracking network across the Lodz metropolitan area.
 
@@ -353,25 +334,6 @@ The application interface is styled in accordance with Material Design 3 specifi
 | Login Screen | Onboarding Overview | Guide and FAQ |
 | :---: | :---: | :---: |
 | <img src="VoltUp_Screenshots/z_ramka/jasny/01_Logowanie_jasny_ramka.png" width="240" alt="Login Screen" /> | <img src="VoltUp_Screenshots/z_ramka/jasny/04_Onboarding_jasny_ramka.png" width="240" alt="Onboarding" /> | <img src="VoltUp_Screenshots/z_ramka/jasny/14_Przewodnik_I_FAQ_jasny_ramka.png" width="240" alt="Guide and FAQ" /> |
-
----
-
-## Presentation Video
-
-The demonstration recording demonstrates app initialization, navigation flows, interactive map interactions, and the complete telemetry workout cycle.
-
-The video file is located in the repository at:
-`VoltUp_Screenshots/voltup_demo.mp4`
-
-Commands to record device screen capture directly via ADB:
-
-```bash
-adb shell screenrecord --time-limit 20 /sdcard/voltup_demo.mp4
-adb pull /sdcard/voltup_demo.mp4 ./VoltUp_Screenshots/voltup_demo.mp4
-adb shell rm /sdcard/voltup_demo.mp4
-```
-
----
 
 ## Repository Structure
 
