@@ -1,10 +1,16 @@
 <p align="center">
-  <a href="#wersja-polska">🇵🇱</a> &nbsp;&bull;&nbsp; <a href="#english-version">🇬🇧</a>
+  <a href="#spis-treści">
+    <img src="https://flagcdn.com/w40/pl.png" alt="Wersja Polska" title="Wersja Polska">
+  </a>
+  &nbsp;
+  <a href="#table-of-contents">
+    <img src="https://flagcdn.com/w40/gb.png" alt="English Version" title="English Version">
+  </a>
 </p>
 
 <p align="center">
   <a href="https://skillicons.dev">
-    <img src="https://skillicons.dev/icons?i=kotlin,android,apple,firebase,gcp,gradle,git" alt="Technology Stack" />
+    <img src="https://skillicons.dev/icons?i=kotlin,androidstudio,apple,firebase,gcp,gradle,git" alt="Technology Stack" />
   </a>
 </p>
 
@@ -15,6 +21,8 @@
 VoltUp to ekosystem kinetycznej re-witalizacji przestrzeni miejskiej w Łodzi, stworzony w technologii **Kotlin Multiplatform** oraz **Compose Multiplatform**. Aplikacja łączy miejską infrastrukturę rekreacyjną z systemem monitorowania energii wytwarzanej podczas ćwiczeń na plenerowych urządzeniach kinetycznych.
 
 ---
+
+<a id="spis-treści"></a>
 
 ## Spis Treści
 
@@ -28,7 +36,7 @@ VoltUp to ekosystem kinetycznej re-witalizacji przestrzeni miejskiej w Łodzi, s
 8. [Uruchomienie projektu i testy](#uruchomienie-projektu-i-testy)
 9. [Usługi chmurowe Firebase](#usługi-chmurowe-firebase)
 10. [Licencja](#licencja)
-11. [Executive Summary (English)](#english-version)
+11. [Executive Summary (English)](#table-of-contents)
 
 ---
 
@@ -49,8 +57,8 @@ Projekt został zbudowany z wykorzystaniem architektury **Kotlin Multiplatform (
 
 ```mermaid
 flowchart LR
-    A["Stacja QR"] -->|Moc W| B["Aplikacja VoltUp"]
-    B -->|Telemetria| C["Kalkulator Wh i CO2"]
+    A["Stacja QR"] -->|Moc| B["Aplikacja VoltUp"]
+    B -->|Telemetria| C["Kalkulator"]
     C -->|Punkty VP| D["Katalog Nagród"]
     C -->|Ranking| E["Poziomy i Odznaki"]
 ```
@@ -271,6 +279,7 @@ Projekt VoltUp jest udostępniany na warunkach licencji **MIT**. Szczegóły zna
 ---
 ---
 
+<a id="table-of-contents"></a>
 <a id="english-version"></a>
 
 # VoltUp: Kinetic Re-vitalization (Executive Overview)
@@ -278,6 +287,16 @@ Projekt VoltUp jest udostępniany na warunkach licencji **MIT**. Szczegóły zna
 VoltUp is a cross-platform mobile solution built with **Kotlin Multiplatform** and **Compose Multiplatform**. It bridges urban outdoor workout infrastructure with decentralized kinetic energy harvesting and environmental tracking across the Lodz metropolitan area.
 
 The system allows citizens to exercise on kinetic fitness stations, convert their physical effort into measurable watt-hours, offset urban carbon emissions, and redeem earned reward points with local commercial partners.
+
+---
+
+## Table of Contents
+
+1. [Key Architectural Highlights](#key-architectural-highlights)
+2. [Visual Presentation and UI Showcase](#visual-presentation-and-ui-showcase)
+3. [Technology Stack](#technology-stack-1)
+4. [Quick Start (Building and Testing)](#quick-start-building-and-testing)
+5. [License](#license-1)
 
 ---
 
