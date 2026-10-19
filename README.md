@@ -30,13 +30,12 @@ VoltUp to ekosystem kinetycznej re-witalizacji przestrzeni miejskiej w Łodzi, s
 2. [Przepływ danych](#przepływ-danych)
 3. [Główne moduły aplikacji](#główne-moduły-aplikacji)
 4. [Prezentacja wizualna (zrzuty ekranu)](#prezentacja-wizualna)
-5. [Materiał wideo z działania aplikacji](#materiał-wideo-z-działania-aplikacji)
-6. [Struktura projektu](#struktura-projektu)
-7. [Wykorzystane technologie i biblioteki](#wykorzystane-technologie-i-biblioteki)
-8. [Uruchomienie projektu i testy](#uruchomienie-projektu-i-testy)
-9. [Usługi chmurowe Firebase](#usługi-chmurowe-firebase)
-10. [Licencja](#licencja)
-11. [Executive Summary (English)](#table-of-contents)
+5. [Struktura projektu](#struktura-projektu)
+6. [Wykorzystane technologie i biblioteki](#wykorzystane-technologie-i-biblioteki)
+7. [Uruchomienie projektu i testy](#uruchomienie-projektu-i-testy)
+8. [Usługi chmurowe Firebase](#usługi-chmurowe-firebase)
+9. [Licencja](#licencja)
+10. [Executive Summary (English)](#table-of-contents)
 
 ---
 
@@ -63,9 +62,9 @@ flowchart LR
     C -->|Ranking| E["Poziomy"]
 ```
 
-* **Autoryzacja stacji:** Zeskanowanie kodu QR urządzenia za pomocą kamery CameraX weryfikuje fizyczną obecność na stacji.
-* **Rejestracja sesji:** Aplikacja mierzy moc chwilową (W), zlicza wytworzone watogodziny (Wh) i estymuje redukcję emisji CO2.
-* **Grywalizacja i nagrody:** Zakończona sesja aktualizuje punkty rankingowe w Cloud Firestore, odblokowuje odznaki i zasila portfel VoltPoints (VP) wymienialny na kody rabatowe.
+* **Autoryzacja stacji:** Zeskanowanie kodu QR urządzenia za pomocą kamery weryfikuje fizyczną obecność na stacji.
+* **Rejestracja sesji:** Aplikacja mierzy moc chwilową, zlicza wytworzoną energię i estymuje redukcję emisji CO2.
+* **Grywalizacja i nagrody:** Zakończona sesja zwiększa punkty w rankingu i zasila portfel użytkownika o zdobyte VoltPoints, które można wymienić na kody rabatowe i zniżki.
 
 ---
 
@@ -75,16 +74,16 @@ flowchart LR
 Główny ekran prezentuje bieżący poziom użytkownika, liczbę punktów rankingowych, zaoszczędzone CO2 oraz dzienny rozkład energii na dynamicznym wykresie. Moduł FusedLocationProvider automatycznie wylicza odległość w metrach do najbliższej stacji w Łodzi.
 
 ### Interaktywna mapa stacji w Łodzi
-Oparta o Google Maps Compose z customowymi znacznikami stacji, cieniami i wskaźnikami statusu (aktywna, zajęta, konserwacja). Kliknięcie stacji automatycznie animuje kamerę ze zbliżeniem 15.5 i synchronizuje kartę urządzenia na liście pod mapą.
+Oparta o Google Maps Compose z customowymi znacznikami stacji i wskaźnikami statusu. Kliknięcie stacji automatycznie animuje kamerę ze zbliżeniem i synchronizuje kartę urządzenia na liście pod mapą.
 
 ### Skaner kodów QR
-Wykorzystuje Jetpack CameraX do błyskawicznego odczytu identyfikatora stacji. Zawiera również wbudowany symulator sprzętowy na potrzeby testów w emulatorze.
+Wykorzystuje Jetpack CameraX do błyskawicznego odczytu identyfikatora stacji i dodatkowo zawiera wbudowany symulator sprzętowy na potrzeby prezentacji.
 
 ### Monitor treningu w czasie rzeczywistym
-Przejrzysty interfejs z animowanym wskaźnikiem generowanej mocy, zliczaniem watogodzin i spalonych kalorii oraz pauzą w przypadku braku aktywności.
+Przejrzysty interfejs z animowanym wskaźnikiem generowanej mocy, zliczaniem watogodzin i spalonych kalorii oraz pauzą w przypadku braku aktywności lub przerwy.
 
 ### System grywalizacji, wyzwań i nagród
-Trzydzieści osiągnięć z wieloma poziomami zaawansowania, odnawialne wyzwania tygodniowe oraz katalog kuponów zniżkowych (np. bilety MPK Łódź, zniżki w Manufakturze, gadżety sportowe) generowanych w postaci unikalnych kodów alfanumerycznych.
+Trzydzieści osiągnięć z wieloma poziomami zaawansowania, odnawialne wyzwania tygodniowe oraz katalog kuponów zniżkowych (np. bilety MPK Łódź, zniżki w sklepach parnerskich, gadżety sportowe) generowanych w postaci unikalnych kodów.
 
 ---
 
@@ -132,26 +131,7 @@ Wszystkie ekrany zostały zaprojektowane zgodnie z wytycznymi Material Design 3 
   <em>Logowanie do konta &bull; Ekran powitalny i wprowadzenie &bull; Samouczek i baza wiedzy FAQ</em>
 </p>
 
-> Kompletny zestaw 60 zrzutów ekranu w wysokiej rozdzielczości (zarówno z mockupem urządzenia Pixel 5, jak i w wersji czystego zrzutu bez ramki) znajduje się w katalogu `VoltUp_Screenshots/`.
-
----
-
-## Materiał wideo z działania aplikacji
-
-W repozytorium dostępny jest zapis wideo prezentujący przejście przez główne funkcje aplikacji: logowanie, nawigację po mapie Łodzi, skanowanie stacji, symulację treningu oraz wymianę punktów.
-
-Plik demonstracyjny:
-`VoltUp_Screenshots/voltup_demo.mp4`
-
-Nagranie bezpośrednio z podłączonego urządzenia lub emulatora przez ADB:
-
-```bash
-adb shell screenrecord --time-limit 20 /sdcard/voltup_demo.mp4
-adb pull /sdcard/voltup_demo.mp4 ./VoltUp_Screenshots/voltup_demo.mp4
-adb shell rm /sdcard/voltup_demo.mp4
-```
-
----
+> Kompletny zestaw zrzutów ekranu w wysokiej rozdzielczości znajduje się w katalogu `VoltUp_Screenshots/`.
 
 ## Struktura projektu
 
