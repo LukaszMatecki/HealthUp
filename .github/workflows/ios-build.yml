@@ -1,0 +1,85 @@
+name: Build iOS (IPA & Simulator)
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    name: Build iOS Package
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Grant Execute Permission for Gradle
+        run: chmod +x gradlew
+
+      - name: Verify Xcode Version
+        run: xcodebuild -version
+
+      - name: Compile Kotlin Multiplatform Framework
+        run: |
+          ./gradlew :shared:compileKotlinIosArm64
+          ./gradlew :shared:compileKotlinIosSimulatorArm64
+
+      - name: Build iOS App for Physical Devices (Unsigned IPA)
+        run: |
+          xcodebuild build \
+            -project iosApp/iosApp.xcodeproj \
+            -scheme iosApp \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build/device \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+          # Package .app bundle into standard IPA structure
+          mkdir -p build/ipa/Payload
+          cp -r build/device/Build/Products/Release-iphoneos/VoltUp.app build/ipa/Payload/
+          cd build/ipa
+          zip -qr VoltUp-iOS-Device.ipa Payload
+          cd ../..
+
+      - name: Build iOS App for Simulator
+        run: |
+          xcodebuild build \
+            -project iosApp/iosApp.xcodeproj \
+            -scheme iosApp \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -derivedDataPath build/simulator \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+          # Compress simulator app bundle for drag-and-drop testing
+          cd build/simulator/Build/Products/Release-iphonesimulator
+          zip -qr ../../../../VoltUp-iOS-Simulator.app.zip VoltUp.app
+          cd ../../../..
+
+      - name: Upload iOS Device IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: VoltUp-iOS-Device-IPA
+          path: build/ipa/VoltUp-iOS-Device.ipa
+          retention-days: 14
+
+      - name: Upload iOS Simulator App
+        uses: actions/upload-artifact@v4
+        with:
+          name: VoltUp-iOS-Simulator-App
+          path: VoltUp-iOS-Simulator.app.zip
+          retention-days: 14
