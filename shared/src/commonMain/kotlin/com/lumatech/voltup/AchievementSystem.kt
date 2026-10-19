@@ -608,7 +608,8 @@ fun evaluateAchievements(
     streakDays: Int,
     redeemedRewardsCount: Int,
     isEnglish: Boolean = false,
-    isDarkTheme: Boolean = false
+    isDarkTheme: Boolean = false,
+    userId: String = ""
 ): AchievementEvaluationResult {
     var bonusPointsEarned = 0
     val messages = mutableListOf<String>()
@@ -656,16 +657,16 @@ fun evaluateAchievements(
             Achievement.MetricType.CO2_MILESTONES -> co2SavedKg
             Achievement.MetricType.DEVICE_VARIETY -> (workouts.map { it.stationName }.filter { it.isNotBlank() }.distinct().size).coerceAtMost(4).toDouble()
             Achievement.MetricType.DAILY_DOUBLE -> (workouts.size / 2).toDouble()
-            Achievement.MetricType.EXPLORE_HISTORY -> if (VoltUpStorage.getBoolean("ach_explore_history", false)) 1.0 else 0.0
-            Achievement.MetricType.DARK_THEME_TOGGLE -> if (isDarkTheme || VoltUpStorage.getBoolean("ach_dark_theme", false)) 1.0 else 0.0
-            Achievement.MetricType.ABOUT_VIEWED -> if (VoltUpStorage.getBoolean("ach_about_viewed", false)) 1.0 else 0.0
-            Achievement.MetricType.PROFILE_CUSTOM -> if (VoltUpStorage.getBoolean("ach_profile_custom", false)) 1.0 else 0.0
-            Achievement.MetricType.ARCHIVE_VIEWED -> if (VoltUpStorage.getBoolean("ach_archive_viewed", false)) 1.0 else 0.0
-            Achievement.MetricType.QR_SCANNER -> if (VoltUpStorage.getBoolean("ach_qr_scanner", false)) 1.0 else 0.0
-            Achievement.MetricType.MAP_NAVIGATOR -> if (VoltUpStorage.getBoolean("ach_map_navigator", false)) 1.0 else 0.0
-            Achievement.MetricType.WEEKLY_CHALLENGES -> if (VoltUpStorage.getBoolean("ach_weekly_challenges", false)) 1.0 else 0.0
-            Achievement.MetricType.FIRST_REWARD -> if (redeemedRewardsCount >= 1 || VoltUpStorage.getBoolean("ach_first_reward", false)) 1.0 else 0.0
-            Achievement.MetricType.ECO_CALCULATOR_HERO -> if (co2SavedKg >= 0.05) 1.0 else 0.0
+            Achievement.MetricType.EXPLORE_HISTORY -> if (ach.level > 0 || (userId.isNotBlank() && VoltUpStorage.getBoolean("${userId}_ach_explore_history", false))) 1.0 else 0.0
+            Achievement.MetricType.DARK_THEME_TOGGLE -> if (ach.level > 0 || (userId.isNotBlank() && VoltUpStorage.getBoolean("${userId}_ach_dark_theme", false))) 1.0 else 0.0
+            Achievement.MetricType.ABOUT_VIEWED -> if (ach.level > 0 || (userId.isNotBlank() && VoltUpStorage.getBoolean("${userId}_ach_about_viewed", false))) 1.0 else 0.0
+            Achievement.MetricType.PROFILE_CUSTOM -> if (ach.level > 0 || (userId.isNotBlank() && VoltUpStorage.getBoolean("${userId}_ach_profile_custom", false))) 1.0 else 0.0
+            Achievement.MetricType.ARCHIVE_VIEWED -> if (ach.level > 0 || (userId.isNotBlank() && VoltUpStorage.getBoolean("${userId}_ach_archive_viewed", false))) 1.0 else 0.0
+            Achievement.MetricType.QR_SCANNER -> if (ach.level > 0 || (userId.isNotBlank() && VoltUpStorage.getBoolean("${userId}_ach_qr_scanner", false))) 1.0 else 0.0
+            Achievement.MetricType.MAP_NAVIGATOR -> if (ach.level > 0 || (userId.isNotBlank() && VoltUpStorage.getBoolean("${userId}_ach_map_navigator", false))) 1.0 else 0.0
+            Achievement.MetricType.WEEKLY_CHALLENGES -> if (ach.level > 0 || (userId.isNotBlank() && VoltUpStorage.getBoolean("${userId}_ach_weekly_challenges", false))) 1.0 else 0.0
+            Achievement.MetricType.FIRST_REWARD -> if (ach.level > 0 || redeemedRewardsCount >= 1 || (userId.isNotBlank() && VoltUpStorage.getBoolean("${userId}_ach_first_reward", false))) 1.0 else 0.0
+            Achievement.MetricType.ECO_CALCULATOR_HERO -> if (ach.level > 0 || co2SavedKg >= 0.05) 1.0 else 0.0
         }
 
         var curLvl = ach.level

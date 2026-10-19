@@ -164,12 +164,7 @@ fun OnboardingScreen(
                         .fillMaxWidth()
                 ) { pageIndex ->
                     val page = pages[pageIndex]
-                    OnboardingPageContent(
-                        page = page,
-                        isNotificationPage = pageIndex == 1,
-                        notificationsEnabled = notificationsEnabled,
-                        onEnableNotifications = { showNotificationDialog = true }
-                    )
+                    OnboardingPageContent(page = page)
                 }
 
                 Column(
@@ -177,7 +172,7 @@ fun OnboardingScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 24.dp, vertical = 20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -203,6 +198,66 @@ fun OnboardingScreen(
                                     .clip(CircleShape)
                                     .background(color)
                             )
+                        }
+                    }
+
+                    if (pagerState.currentPage == 1) {
+                        if (notificationsEnabled) {
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = Color(0xFF10B981).copy(alpha = 0.15f),
+                                border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.4f)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(52.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxSize(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = Color(0xFF10B981),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = strings.notificationsEnabledStatus,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp,
+                                        color = Color(0xFF10B981)
+                                    )
+                                }
+                            }
+                        } else {
+                            OutlinedButton(
+                                onClick = { showNotificationDialog = true },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(52.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                border = BorderStroke(1.5.dp, Color(0xFF3B82F6)),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF3B82F6))
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.NotificationsActive,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = strings.enableNotificationsBtn,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp
+                                    )
+                                }
+                            }
                         }
                     }
 
@@ -322,12 +377,8 @@ fun OnboardingScreen(
 
 @Composable
 private fun OnboardingPageContent(
-    page: OnboardingPageData,
-    isNotificationPage: Boolean = false,
-    notificationsEnabled: Boolean = false,
-    onEnableNotifications: () -> Unit = {}
+    page: OnboardingPageData
 ) {
-    val strings = strings
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -395,59 +446,5 @@ private fun OnboardingPageContent(
             textAlign = TextAlign.Center,
             lineHeight = 24.sp
         )
-
-        if (isNotificationPage) {
-            Spacer(modifier = Modifier.height(24.dp))
-            if (notificationsEnabled) {
-                Surface(
-                    shape = CircleShape,
-                    color = Color(0xFF10B981).copy(alpha = 0.15f),
-                    border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.4f))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = null,
-                            tint = Color(0xFF10B981),
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            text = strings.notificationsEnabledStatus,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            color = Color(0xFF10B981)
-                        )
-                    }
-                }
-            } else {
-                OutlinedButton(
-                    onClick = onEnableNotifications,
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.5.dp, page.accentColor),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = page.accentColor)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.NotificationsActive,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            text = strings.enableNotificationsBtn,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
-                    }
-                }
-            }
-        }
     }
 }

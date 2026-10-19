@@ -60,6 +60,10 @@ class IosMockAuthService : VoltUpAuthService {
     }
 
     override suspend fun deleteAccount(): AuthResult {
+        val uid = _currentUser.value?.userId
+        if (uid != null) {
+            getDatabaseService().deleteUser(uid)
+        }
         _currentUser.value = null
         return AuthResult(isSuccess = true)
     }

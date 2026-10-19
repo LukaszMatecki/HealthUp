@@ -729,7 +729,7 @@ object VoltUpPolishStrings : VoltUpStrings {
     override val workoutDetailsDate = "Data i godzina"
 
     override val enableNotificationsBtn = "Włącz powiadomienia"
-    override val notificationsEnabledStatus = "Powiadomienia włączone ✓"
+    override val notificationsEnabledStatus = "Powiadomienia włączone"
     override val notificationPermissionDialogTitle = "Zezwolić na powiadomienia?"
     override val notificationPermissionDialogDesc = "Aplikacja VoltUp będzie wysyłać powiadomienia o postępach treningowych, celach dzielnicowych i zniżkach na bilety."
     override val allowBtn = "Zezwól"
@@ -1096,7 +1096,7 @@ object VoltUpEnglishStrings : VoltUpStrings {
     override val workoutDetailsDate = "Date & Time"
 
     override val enableNotificationsBtn = "Enable notifications"
-    override val notificationsEnabledStatus = "Notifications enabled ✓"
+    override val notificationsEnabledStatus = "Notifications enabled"
     override val notificationPermissionDialogTitle = "Allow notifications?"
     override val notificationPermissionDialogDesc = "VoltUp will send notifications about workout milestones, city challenges, and transit ticket discounts."
     override val allowBtn = "Allow"

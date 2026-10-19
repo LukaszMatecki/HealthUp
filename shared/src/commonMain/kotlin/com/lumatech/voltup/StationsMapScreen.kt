@@ -344,27 +344,6 @@ fun StationsMapScreen(
                                     )
                                 }
 
-                                Button(
-                                    onClick = { onSelectStationToScanQr(station) },
-                                    modifier = Modifier.fillMaxWidth().height(42.dp),
-                                    shape = CircleShape,
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary,
-                                        contentColor = MaterialTheme.colorScheme.onPrimary
-                                    )
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.PlayArrow,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = strings.startWorkoutAtStationBtn,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp
-                                    )
-                                }
                             }
                         }
                     }

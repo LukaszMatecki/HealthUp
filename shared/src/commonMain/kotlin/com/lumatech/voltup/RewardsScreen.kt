@@ -1406,7 +1406,6 @@ fun RewardsScreen(
                                                     .clickable {
                                                         couponFilter = filter
                                                         if (filter == CouponTabFilter.ARCHIVE) {
-                                                            VoltUpStorage.setBoolean("ach_archive_viewed", true)
                                                             onTriggerAchievement?.invoke("ach_archive_viewed")
                                                         }
                                                     }

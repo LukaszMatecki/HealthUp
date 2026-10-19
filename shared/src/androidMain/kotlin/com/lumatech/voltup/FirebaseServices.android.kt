@@ -299,8 +299,16 @@ class AndroidFirebaseAuthService : VoltUpAuthService {
         return try {
             val user = auth.currentUser ?: return AuthResult(false, null, "Brak aktywnej sesji użytkownika.")
             val uid = user.uid
+
+            // 1. Najpierw usuwamy dane użytkownika z Firestore, póki sesja jest aktywna i posiada uprawnienia
+            val dbDeleted = dbService.deleteUser(uid)
+            if (!dbDeleted) {
+                Log.w(TAG, "Ostrzeżenie: Nie wszystkie dane Firestore zostały usunięte dla $uid")
+            }
+
+            // 2. Następnie usuwamy konto z Firebase Authentication
             user.delete().await()
-            dbService.deleteUser(uid)
+
             _currentUser.value = null
             dbService.clearCache()
             AuthResult(isSuccess = true)
@@ -870,31 +878,24 @@ class AndroidFirestoreService : VoltUpDatabaseService {
 
         return try {
             val userDoc = firestore.collection("users").document(userId)
-            try {
-                val sessionsSnap = userDoc.collection("workout_sessions").get().await()
-                for (d in sessionsSnap.documents) { d.reference.delete() }
-            } catch (_: Exception) {}
-
-            try {
-                val achSnap = userDoc.collection("user_achievements").get().await()
-                for (d in achSnap.documents) { d.reference.delete() }
-            } catch (_: Exception) {}
-
-            try {
-                val chSnap = userDoc.collection("user_challenges").get().await()
-                for (d in chSnap.documents) { d.reference.delete() }
-            } catch (_: Exception) {}
-
-            try {
-                val cpSnap = userDoc.collection("user_coupons").get().await()
-                for (d in cpSnap.documents) { d.reference.delete() }
-            } catch (_: Exception) {}
+            val subcollections = listOf("workout_sessions", "user_achievements", "user_challenges", "user_coupons")
+            for (sub in subcollections) {
+                try {
+                    val snap = userDoc.collection(sub).get().await()
+                    for (d in snap.documents) {
+                        d.reference.delete().await()
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Błąd usuwania podkolekcji $sub dla $userId: ${e.message}")
+                }
+            }
 
             userDoc.delete().await()
+            Log.d(TAG, "Pomyślnie usunięto dokument użytkownika $userId z Firestore.")
             true
         } catch (e: Exception) {
-            Log.w(TAG, "Błąd usuwania użytkownika z chmury: ${e.message}")
-            true
+            Log.e(TAG, "Błąd usuwania użytkownika z chmury: ${e.message}", e)
+            false
         }
     }
 

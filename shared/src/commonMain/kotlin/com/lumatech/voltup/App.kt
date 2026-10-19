@@ -226,6 +226,11 @@ fun App() {
             it.copy(currentValue = 0.0, currentProgress = 0.0f, isCompleted = false, isClaimed = false)
         }
         redeemedRewards = emptyList()
+
+        listOf(
+            "ach_about_viewed", "ach_dark_theme", "ach_profile_custom", "ach_archive_viewed",
+            "ach_explore_history", "ach_qr_scanner", "ach_map_navigator", "ach_weekly_challenges", "ach_first_reward"
+        ).forEach { k -> VoltUpStorage.setBoolean(k, false) }
     }
 
     LaunchedEffect(currentAuthUser) {
@@ -312,25 +317,23 @@ fun App() {
                 streakDays = userStats.streakDays,
                 redeemedRewardsCount = loadedCoupons.size,
                 isEnglish = appSettings.language == AppLanguage.ENGLISH,
-                isDarkTheme = appSettings.themeMode == AppThemeMode.DARK
+                isDarkTheme = appSettings.themeMode == AppThemeMode.DARK,
+                userId = u.userId
             )
             achievements = evalOnLoad.updatedAchievements
             if (evalOnLoad.bonusPointsEarned > 0) {
                 val newRankingPoints = userStats.rankingPoints + evalOnLoad.bonusPointsEarned
-                val newVoltPoints = userStats.points + evalOnLoad.bonusPointsEarned
                 val newLevel = calculateUserLevel(newRankingPoints)
                 val newTitle = calculateLevelTitle(newLevel)
                 userStats = userStats.copy(
                     rankingPoints = newRankingPoints,
-                    points = newVoltPoints,
-                    voltPoints = newVoltPoints,
                     level = newLevel,
                     levelTitle = newTitle
                 )
                 coroutineScope.launch {
                     dbService.updateUserStats(
                         userId = u.userId,
-                        pointsDelta = evalOnLoad.bonusPointsEarned,
+                        pointsDelta = 0,
                         whDelta = 0.0,
                         co2Delta = 0.0,
                         newLevel = newLevel,
@@ -407,8 +410,11 @@ fun App() {
     }
 
     val checkAndAwardAchievements: (triggerKey: String?, showSnackbar: Boolean) -> Unit = { triggerKey, showSnackbar ->
-        if (triggerKey != null) {
-            VoltUpStorage.setBoolean(triggerKey, true)
+        val uid = currentAuthUser?.userId.orEmpty()
+        if (triggerKey != null && uid.isNotBlank()) {
+            VoltUpStorage.setBoolean("${uid}_$triggerKey", true)
+            val cleanKey = triggerKey.removePrefix("ach_")
+            VoltUpStorage.setBoolean("${uid}_ach_$cleanKey", true)
         }
 
         val evalResult = evaluateAchievements(
@@ -419,7 +425,8 @@ fun App() {
             streakDays = userStats.streakDays,
             redeemedRewardsCount = redeemedRewards.size,
             isEnglish = appSettings.language == AppLanguage.ENGLISH,
-            isDarkTheme = appSettings.themeMode == AppThemeMode.DARK
+            isDarkTheme = appSettings.themeMode == AppThemeMode.DARK,
+            userId = uid
         )
 
         if (evalResult.bonusPointsEarned > 0 || evalResult.updatedAchievements != achievements) {
@@ -427,14 +434,11 @@ fun App() {
             val pts = evalResult.bonusPointsEarned
             if (pts > 0) {
                 val newRankingPoints = userStats.rankingPoints + pts
-                val newVoltPoints = userStats.points + pts
                 val newLevel = calculateUserLevel(newRankingPoints)
                 val newTitle = calculateLevelTitle(newLevel)
 
                 userStats = userStats.copy(
                     rankingPoints = newRankingPoints,
-                    points = newVoltPoints,
-                    voltPoints = newVoltPoints,
                     level = newLevel,
                     levelTitle = newTitle
                 )
@@ -452,7 +456,7 @@ fun App() {
                     coroutineScope.launch {
                         dbService.updateUserStats(
                             userId = u.userId,
-                            pointsDelta = pts,
+                            pointsDelta = 0,
                             whDelta = 0.0,
                             co2Delta = 0.0,
                             newLevel = newLevel,
@@ -673,6 +677,9 @@ fun App() {
                                     }
                                 },
                                 onAccountDeleted = {
+                                    VoltUpStorage.setBoolean(VoltUpPreferenceKeys.KEY_REMEMBER_ME, false)
+                                    VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_PASSWORD, "")
+                                    VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_EMAIL, "")
                                     resetAppStateToDefaults()
                                     currentScreen = Screen.Login
                                     SnackbarHelper.show("Twoje konto zostało usunięte.")
@@ -730,12 +737,13 @@ fun App() {
                                         streakDays = userStats.streakDays,
                                         redeemedRewardsCount = redeemedRewards.size,
                                         isEnglish = appSettings.language == AppLanguage.ENGLISH,
-                                        isDarkTheme = appSettings.themeMode == AppThemeMode.DARK
+                                        isDarkTheme = appSettings.themeMode == AppThemeMode.DARK,
+                                        userId = currentAuthUser?.userId.orEmpty()
                                     )
 
                                     achievements = evalResult.updatedAchievements
                                     val newRankingPoints = userStats.rankingPoints + evalResult.bonusPointsEarned
-                                    val totalPoints = userStats.points + earnedPoints + evalResult.bonusPointsEarned
+                                    val totalPoints = userStats.points + earnedPoints
                                     val newLevel = calculateUserLevel(newRankingPoints)
                                     val newTitle = calculateLevelTitle(newLevel)
 
@@ -797,7 +805,7 @@ fun App() {
 
                                             dbService.updateUserStats(
                                                 userId = u.userId,
-                                                pointsDelta = earnedPoints + evalResult.bonusPointsEarned,
+                                                pointsDelta = earnedPoints,
                                                 whDelta = earnedWh,
                                                 co2Delta = earnedWh * 0.0007,
                                                 newLevel = newLevel,
@@ -895,8 +903,7 @@ fun App() {
                                                 stats = userStats,
                                                 onOpenSettings = { currentScreen = Screen.Settings },
                                                 onGoToMap = { currentTab = MainTab.MAP },
-                                                onScanStation = { currentScreen = Screen.QrScanner() },
-                                                onStartStationWorkout = { station -> currentScreen = Screen.ActiveWorkout(station) }
+                                                onScanStation = { station -> currentScreen = Screen.QrScanner(initialStation = station) }
                                             )
                                         }
 
@@ -907,7 +914,7 @@ fun App() {
                                             StationsMapScreen(
                                                 stations = MockData.sampleStations,
                                                 onSelectStationToScanQr = { station ->
-                                                    currentScreen = Screen.ActiveWorkout(station)
+                                                    currentScreen = Screen.QrScanner(initialStation = station)
                                                 }
                                             )
                                         }
@@ -967,12 +974,13 @@ fun App() {
                                                             streakDays = userStats.streakDays,
                                                             redeemedRewardsCount = newRedeemedList.size,
                                                             isEnglish = appSettings.language == AppLanguage.ENGLISH,
-                                                            isDarkTheme = appSettings.themeMode == AppThemeMode.DARK
+                                                            isDarkTheme = appSettings.themeMode == AppThemeMode.DARK,
+                                                            userId = currentAuthUser?.userId.orEmpty()
                                                         )
 
                                                         achievements = evalResult.updatedAchievements
                                                         val newRankingPoints = userStats.rankingPoints + evalResult.bonusPointsEarned
-                                                        val finalPoints = pointsAfterRedeem + evalResult.bonusPointsEarned
+                                                        val finalPoints = pointsAfterRedeem
                                                         val finalLevel = calculateUserLevel(newRankingPoints)
                                                         val finalTitle = calculateLevelTitle(finalLevel)
 
@@ -1011,7 +1019,7 @@ fun App() {
 
                                                                 dbService.updateUserStats(
                                                                     userId = u.userId,
-                                                                    pointsDelta = -reward.costPoints + evalResult.bonusPointsEarned,
+                                                                    pointsDelta = -reward.costPoints,
                                                                     whDelta = 0.0,
                                                                     co2Delta = 0.0,
                                                                     newLevel = finalLevel,
@@ -1400,8 +1408,7 @@ fun DashboardScreen(
     stats: UserStats,
     onOpenSettings: () -> Unit,
     onGoToMap: () -> Unit,
-    onScanStation: () -> Unit,
-    onStartStationWorkout: ((KineticStation) -> Unit)? = null
+    onScanStation: (KineticStation) -> Unit
 ) {
     val scrollState = rememberScrollState()
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -1662,13 +1669,7 @@ fun DashboardScreen(
                             Surface(
                                 shape = CircleShape,
                                 color = primaryColor.copy(alpha = 0.12f),
-                                modifier = Modifier.clickable {
-                                    if (onStartStationWorkout != null) {
-                                        onStartStationWorkout(station)
-                                    } else {
-                                        onScanStation()
-                                    }
-                                }
+                                modifier = Modifier.clickable { onScanStation(station) }
                             ) {
                                 Icon(
                                     Icons.Default.QrCodeScanner,
@@ -1739,32 +1740,6 @@ fun DashboardScreen(
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = if (station.isOnline) primaryColor else MaterialTheme.colorScheme.error
-                                    )
-                                }
-
-                                Button(
-                                    onClick = {
-                                        if (onStartStationWorkout != null) {
-                                            onStartStationWorkout(station)
-                                        } else {
-                                            onScanStation()
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = 4.dp),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.PlayArrow,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "Rozpocznij trening",
-                                        fontWeight = FontWeight.Bold
                                     )
                                 }
                             }
