@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="https://skillicons.dev">
-    <img src="https://skillicons.dev/icons?i=kotlin,android,apple,firebase,gcp,gradle,git" alt="Technology Stack" />
+    <img src="https://skillicons.dev/icons?i=kotlin,androidstudio,apple,firebase,gcp,gradle,git" alt="Technology Stack" />
   </a>
 </p>
 
@@ -14,12 +14,11 @@ Aplikacja mobilna zrealizowana w architekturze Kotlin Multiplatform oraz Compose
 1. [Architektura Rozwiązania](#architektura-rozwiązania)
 2. [Moduły i Interfejs Użytkownika](#moduły-i-interfejs-użytkownika)
 3. [Prezentacja Wizualna](#prezentacja-wizualna)
-4. [Wideo Prezentacyjne](#wideo-prezentacyjne)
-5. [Struktura Repozytorium](#struktura-repozytorium)
-6. [Stos Technologiczny](#stos-technologiczny)
-7. [Weryfikacja i Środowisko Uruchomieniowe](#weryfikacja-i-środowisko-uruchomieniowe)
-8. [Integracje Usług Zewnętrznych](#integracje-usług-zewnętrznych)
-9. [Licencja](#licencja)
+4. [Struktura Repozytorium](#struktura-repozytorium)
+5. [Stos Technologiczny](#stos-technologiczny)
+6. [Weryfikacja i Środowisko Uruchomieniowe](#weryfikacja-i-środowisko-uruchomieniowe)
+7. [Integracje Usług Zewnętrznych](#integracje-usług-zewnętrznych)
+8. [Licencja](#licencja)
 
 ---
 
@@ -83,25 +82,6 @@ Interfejs użytkownika zaprojektowano w systemie Material Design 3 z pełnym wsp
 | Ekran Logowania | Wprowadzenie | Przewodnik i FAQ |
 | :---: | :---: | :---: |
 | <img src="VoltUp_Screenshots/z_ramka/jasny/01_Logowanie_jasny_ramka.png" width="240" alt="Logowanie" /> | <img src="VoltUp_Screenshots/z_ramka/jasny/04_Onboarding_jasny_ramka.png" width="240" alt="Onboarding" /> | <img src="VoltUp_Screenshots/z_ramka/jasny/14_Przewodnik_I_FAQ_jasny_ramka.png" width="240" alt="Przewodnik i FAQ" /> |
-
----
-
-## Wideo Prezentacyjne
-
-Materiał demonstracyjny zarejestrowany bezpośrednio na fizycznym urządzeniu testowym prezentuje uruchomienie aplikacji, przepływ nawigacyjny, dynamiczną mapę stacji oraz cykl sesji treningowej:
-
-Plik nagrania wideo znajduje się w repozytorium pod ścieżką:
-`VoltUp_Screenshots/voltup_demo.mp4`
-
-Rejestrację wideo z poziomu konsoli deweloperskiej na podłączonym urządzeniu Android wykonuje polecenie:
-
-```bash
-adb shell screenrecord --time-limit 20 /sdcard/voltup_demo.mp4
-adb pull /sdcard/voltup_demo.mp4 ./VoltUp_Screenshots/voltup_demo.mp4
-adb shell rm /sdcard/voltup_demo.mp4
-```
-
----
 
 ## Struktura Repozytorium
 
