@@ -319,7 +319,7 @@ object DefaultAchievements {
         Achievement(
             id = "ACH_ENERGY",
             title = "Generator",
-            icon = Icons.Default.ElectricBolt,
+            icon = Icons.Default.Bolt,
             metricType = Achievement.MetricType.TOTAL_ENERGY_WH,
             level = 0,
             currentProgress = 0.0

@@ -215,7 +215,7 @@ fun ProfileScreen(
                     ) {
                         val avatarIcon = when (stats.avatarId) {
                             1 -> Icons.AutoMirrored.Filled.DirectionsBike
-                            2 -> Icons.Default.ElectricBolt
+                            2 -> Icons.Default.Bolt
                             3 -> Icons.Default.Eco
                             else -> Icons.Default.Person
                         }
@@ -547,7 +547,7 @@ fun ProfileScreen(
                         listOf(
                             0 to Icons.Default.Person,
                             1 to Icons.AutoMirrored.Filled.DirectionsBike,
-                            2 to Icons.Default.ElectricBolt,
+                            2 to Icons.Default.Bolt,
                             3 to Icons.Default.Eco
                         ).forEach { (id, icon) ->
                             val isSel = editAvatar == id

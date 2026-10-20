@@ -1353,7 +1353,7 @@ fun App(
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
-                                    imageVector = Icons.Default.ElectricBolt,
+                                    imageVector = Icons.Default.Bolt,
                                     contentDescription = "VoltUp Logo",
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(44.dp)

@@ -308,7 +308,7 @@ object MockData {
             message = "W Parku Poniatowskiego do godziny 20:00 każdy wygenerowany Wh liczy się podwójnie (+2x VoltPoints).",
             timeAgo = "10 min temu",
             isRead = false,
-            icon = Icons.Default.FlashOn
+            icon = Icons.Default.Bolt
         ),
         NotificationItem(
             id = "N-2",

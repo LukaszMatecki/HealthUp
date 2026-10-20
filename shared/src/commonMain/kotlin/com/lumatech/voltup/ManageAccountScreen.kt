@@ -112,7 +112,7 @@ fun ManageAccountScreen(
                         ) {
                             val avatarIcon = when (userStats.avatarId) {
                                 1 -> Icons.AutoMirrored.Filled.DirectionsBike
-                                2 -> Icons.Default.ElectricBolt
+                                2 -> Icons.Default.Bolt
                                 3 -> Icons.Default.Eco
                                 else -> Icons.Default.Person
                             }
