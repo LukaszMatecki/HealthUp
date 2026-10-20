@@ -87,6 +87,17 @@ Trzydzieści osiągnięć z wieloma poziomami zaawansowania, odnawialne wyzwania
 
 ---
 
+## Logo aplikacji
+
+<p align="center">
+  <img src="voltup_app_icon.png" width="128" height="128" alt="Logo aplikacji VoltUp" />
+</p>
+<p align="center">
+  <em>Oficjalna ikona aplikacji VoltUp</em>
+</p>
+
+---
+
 ## Prezentacja wizualna
 
 Wszystkie ekrany zostały zaprojektowane zgodnie z wytycznymi Material Design 3 z pełną obsługą trybu ciemnego i jasnego, jednolitą nawigacją gestami oraz czystym paskiem stanu.

@@ -1063,7 +1063,11 @@ fun App(
                                                                 )
                                                             }
                                                         }
-                                                        SnackbarHelper.show("+100 pkt rankingu!", icon = Icons.Default.Leaderboard)
+                                                        val isEnglish = appSettings.language == AppLanguage.ENGLISH
+                                                        SnackbarHelper.show(
+                                                            if (isEnglish) "Purchased: +100 ranking points!" else "Kupiono: +100 pkt rankingu!",
+                                                            icon = Icons.Default.Leaderboard
+                                                        )
                                                     } else {
                                                         val pointsAfterRedeem = (userStats.points - reward.costPoints).coerceAtLeast(0)
                                                         val newCouponId = "${reward.id}_${(100000..999999).random()}"
@@ -1665,6 +1669,14 @@ fun DashboardScreen(
             primaryColor = primaryColor
         )
 
+        val todayEnergyWh = remember(stats.recentWorkouts) {
+            val now = currentTimeMillis()
+            val startOfDay = now - (now % 86400000L)
+            stats.recentWorkouts
+                .filter { it.timestampMs >= startOfDay }
+                .sumOf { it.generatedWh }
+        }
+
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
                 text = strings.communityGoalTitle,
@@ -1676,7 +1688,7 @@ fun DashboardScreen(
             )
 
             CommunityGoalCard(
-                userWh = stats.totalEnergyWh,
+                userWh = todayEnergyWh,
                 primaryColor = primaryColor
             )
         }

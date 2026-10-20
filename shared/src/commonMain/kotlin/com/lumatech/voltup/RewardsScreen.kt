@@ -1215,8 +1215,6 @@ fun RewardsScreen(
                     if (!detailReward.id.contains("RANK")) {
                         activeSubTab = 1
                         SnackbarHelper.show(if (isEnglish) "Coupon added to My Coupons tab." else "Kupon dodany do zakładki Moje Kody.")
-                    } else {
-                        SnackbarHelper.show(if (isEnglish) "+100 ranking points added!" else "+100 pkt rankingu dodane!", icon = Icons.Default.EmojiEvents)
                     }
                 },
                 onBack = { selectedRewardDetail = null }

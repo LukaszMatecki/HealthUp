@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- Tło: Czysta biel -->
+  <rect width="512" height="512" fill="#FFFFFF"/>
+  
+  <!-- Grupa z mapowaniem skali (obszar bezpieczny 74dp na 512x512) -->
+  <g transform="translate(256, 256) scale(6.9189) translate(-54, -54)">
+    <!-- Pełen okrąg konturowy: VoltUp Primary Green (#00C853) -->
+    <circle cx="54" cy="54" r="28" fill="none" stroke="#00C853" stroke-width="2.4" stroke-linecap="round"/>
+    
+    <!-- Piorun: VoltUp Primary Green (#00C853) -->
+    <path d="M64,40 L42,54 L52,54 L44,68 L66,54 L56,54 Z" 
+          fill="#00C853" 
+          stroke="#00C853" 
+          stroke-width="2.2" 
+          stroke-linejoin="round" 
+          stroke-linecap="round"/>
+  </g>
+</svg>
