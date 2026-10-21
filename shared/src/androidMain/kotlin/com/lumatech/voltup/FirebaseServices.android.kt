@@ -1,6 +1,9 @@
 package com.lumatech.voltup
 
 import android.util.Log
+import com.google.firebase.appcheck.FirebaseAppCheck
+import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
+import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthException
@@ -74,6 +77,24 @@ fun initVoltUpFirebase(context: android.content.Context) {
                 .setStorageBucket(storageBucket)
                 .build()
             com.google.firebase.FirebaseApp.initializeApp(context, options)
+        }
+
+        try {
+            val appCheck = FirebaseAppCheck.getInstance()
+            val isDebug = (context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
+            if (isDebug) {
+                appCheck.installAppCheckProviderFactory(
+                    DebugAppCheckProviderFactory.getInstance()
+                )
+                Log.d(TAG, "Firebase App Check zainicjalizowany z DebugAppCheckProviderFactory")
+            } else {
+                appCheck.installAppCheckProviderFactory(
+                    PlayIntegrityAppCheckProviderFactory.getInstance()
+                )
+                Log.d(TAG, "Firebase App Check zainicjalizowany z PlayIntegrityAppCheckProviderFactory")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Błąd inicjalizacji Firebase App Check: ${e.message}", e)
         }
     } catch (e: Exception) {
         Log.e(TAG, "Błąd inicjalizacji Firebase: ${e.message}", e)

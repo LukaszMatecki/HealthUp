@@ -57,6 +57,8 @@ kotlin {
             implementation("com.google.maps.android:maps-compose:6.2.1")
             implementation("com.google.firebase:firebase-auth:23.2.0")
             implementation("com.google.firebase:firebase-firestore:25.1.2")
+            implementation("com.google.firebase:firebase-appcheck-playintegrity:18.0.0")
+            implementation("com.google.firebase:firebase-appcheck-debug:18.0.0")
             implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
         }
         commonMain.dependencies {
