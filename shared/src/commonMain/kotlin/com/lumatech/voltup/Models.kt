@@ -22,7 +22,21 @@ data class UserStats(
     val streakDays: Int = 1,
     val recentWorkouts: List<WorkoutSessionRecord> = emptyList(),
     val accountCreatedAt: Long = 0L,
-)
+    val totalCaloriesBurned: Int = 0,
+    val activeCardioMinutes: Int = 0,
+) {
+    val effectiveCalories: Int
+        get() = if (totalCaloriesBurned > 0) totalCaloriesBurned else {
+            val fromWorkouts = recentWorkouts.sumOf { it.caloriesKcal }
+            if (fromWorkouts > 0) fromWorkouts else (totalEnergyWh * 0.7).roundToInt()
+        }
+
+    val effectiveActiveMinutes: Int
+        get() = if (activeCardioMinutes > 0) activeCardioMinutes else {
+            val fromWorkouts = recentWorkouts.sumOf { it.durationSeconds } / 60
+            if (fromWorkouts > 0) fromWorkouts else (totalEnergyWh * 0.12).roundToInt()
+        }
+}
 
 data class KineticStation(
     val id: String,
@@ -175,23 +189,23 @@ data class Challenge(
     val rewardPoints: Int get() = voltPointsReward
 
     fun getLocalizedTitle(isEnglish: Boolean): String = if (!isEnglish) title else when (id) {
-        "C1" -> "City Charging"
-        "C2" -> "Triple Workout"
-        "C3" -> "Power Surge"
+        "C1" -> "Heart in Motion"
+        "C2" -> "Healthy Habit"
+        "C3" -> "Energy Pulse"
         else -> title
     }
 
     fun getLocalizedDescription(isEnglish: Boolean): String = if (!isEnglish) description else when (id) {
-        "C1" -> "Generate a total of 150 Wh of energy across stations in Łódź"
-        "C2" -> "Complete 3 full workout sessions on kinetic stations"
-        "C3" -> "Reach a peak power output of at least 80 W"
+        "C1" -> "Burn a total of 250 kcal in cardio sessions at park stations in Łódź"
+        "C2" -> "Complete 3 cardio sessions this week on your way from work or university"
+        "C3" -> "Reach a momentary power of at least 80 W on a park kinetic station"
         else -> description
     }
 
     fun getLocalizedDetails(isEnglish: Boolean): String = if (!isEnglish) details else when (id) {
-        "C1" -> "Every workout session on city bikes or ellipticals counts towards this challenge. Power local park lighting!"
-        "C2" -> "Visit stations in any city park (e.g., Poniatowski Park, Zdrowie Park) and complete 3 separate workouts."
-        "C3" -> "Give it your all in a sprint on a kinetic bike to reach at least 80 Watts."
+        "C1" -> "Every park session strengthens your heart, improves blood circulation, and brings you closer to a free MPK transit ticket!"
+        "C2" -> "Visit outdoor stations in any park (e.g. Poniatowski Park, Park na Zdrowiu) and build a lasting habit of daily movement."
+        "C3" -> "Power your movement: reach 80 W during training and earn leaderboard ranking points!"
         else -> details
     }
 

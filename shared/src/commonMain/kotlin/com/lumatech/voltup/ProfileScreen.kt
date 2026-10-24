@@ -307,8 +307,8 @@ fun ProfileScreen(
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         ProfileStatNumber(
-                            value = formatEnergySmart(stats.totalEnergyWh),
-                            label = strings.generatedEnergy,
+                            value = "${stats.effectiveCalories} kcal",
+                            label = strings.caloriesBurned,
                             valueColor = MaterialTheme.colorScheme.onSurface
                         )
                         ProfileStatNumber(
@@ -837,7 +837,7 @@ fun WorkoutDetailsDialog(
                     WorkoutDetailRow(label = strings.workoutDetailsPlace, value = workout.stationLocation)
                     WorkoutDetailRow(label = strings.workoutDetailsDuration, value = "${workout.durationSeconds / 60} min ${workout.durationSeconds % 60} s")
                     WorkoutDetailRow(label = strings.workoutDetailsEnergy, value = "${workout.generatedWh.roundToInt()} Wh", valueColor = primaryColor)
-                    WorkoutDetailRow(label = strings.workoutDetailsPoints, value = "+${workout.earnedPoints} VP", valueColor = EnergyYellow)
+                    WorkoutDetailRow(label = strings.workoutDetailsPoints, value = "+${workout.earnedPoints} VP", valueColor = Color(0xFFFF9800))
                     WorkoutDetailRow(label = strings.workoutDetailsCalories, value = "${workout.caloriesKcal} kcal")
                     val co2Grams = (workout.co2SavedKg * 1000).roundToInt()
                     WorkoutDetailRow(label = strings.workoutDetailsCo2, value = "$co2Grams g CO₂", valueColor = Color(0xFF10B981))

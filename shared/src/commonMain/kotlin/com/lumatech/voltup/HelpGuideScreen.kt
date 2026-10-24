@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -111,6 +112,8 @@ fun HelpGuideScreen(
                 }
             }
 
+            Spacer(modifier = Modifier.height(6.dp))
+
             when (selectedTab) {
                 HelpTab.FAQ -> FaqTabContent()
                 HelpTab.SUPPORT -> SupportTabContent(uriHandler = uriHandler)
@@ -124,8 +127,8 @@ private fun FaqTabContent() {
     val isEnglish = strings is VoltUpEnglishStrings
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item {
             Card(
@@ -146,13 +149,13 @@ private fun FaqTabContent() {
                             modifier = Modifier
                                 .size(44.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                                .background(Color(0xFF10B981).copy(alpha = 0.15f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Bolt,
+                                imageVector = Icons.Default.Favorite,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = Color(0xFF10B981),
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -164,7 +167,7 @@ private fun FaqTabContent() {
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = if (isEnglish) "4 simple steps to green energy in Łódź" else "4 proste kroki do zielonej energii w Łodzi",
+                                text = if (isEnglish) "Safe movement & health for every Łódź resident" else "Zdrowie i bezpieczny ruch dla każdego łodzianina",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -175,23 +178,23 @@ private fun FaqTabContent() {
 
                     GuideStepRow(
                         "1",
-                        if (isEnglish) "Locate a station" else "Zlokalizuj stację",
-                        if (isEnglish) "Open the map and pick any kinetic bike or cross trainer in Łódź parks." else "Otwórz mapę i wybierz dowolny rower lub orbitrek w łódzkich parkach."
+                        if (isEnglish) "Find a friendly park station" else "Wybierz stację w parku",
+                        if (isEnglish) "Check the map for recumbent bikes, steppers or cross-trainers in Łódź parks (e.g. Park na Zdrowiu, Poniatowski Park)." else "Sprawdź mapę i wybierz wygodny rower poziomy, orbitrek lub stepper w łódzkim parku (np. Park na Zdrowiu, Park Poniatowskiego)."
                     )
                     GuideStepRow(
                         "2",
-                        if (isEnglish) "Scan QR code" else "Zeskanuj kod QR",
-                        if (isEnglish) "Tap the QR scanner and aim at the code placed on the equipment frame." else "Kliknij przycisk skanera QR i wyceluj w kod umieszczony na ramie stacji."
+                        if (isEnglish) "Simple start without hassle" else "Wygodny start bez pośpiechu",
+                        if (isEnglish) "Scan the QR code on the machine or tap the station directly from the map list." else "Zeskanuj kod QR aparatem lub wybierz stację jednym kliknięciem bezpośrednio z listy na mapie."
                     )
                     GuideStepRow(
                         "3",
-                        if (isEnglish) "Exercise & generate power" else "Ćwicz i twórz prąd",
-                        if (isEnglish) "Pedal or exercise! Every movement produces watt-hours (Wh) and saves CO₂." else "Pedałuj lub ruszaj się! Każdy ruch wytwarza watogodziny (Wh) i redukuje CO₂."
+                        if (isEnglish) "Move gently at your own pace" else "Ćwicz we własnym tempie",
+                        if (isEnglish) "15–20 minutes of mild exercise improves heart health and mobility. The built-in generator measures your calories and minutes." else "Spokojny 15-minutowy ruch dotlenia organizm i poprawia krążenie. Kinetostacja zlicza Twój wysiłek, spalone kalorie i czas."
                     )
                     GuideStepRow(
                         "4",
-                        if (isEnglish) "Claim rewards" else "Odbieraj nagrody",
-                        if (isEnglish) "Redeem your VoltPoints for free MPK-Łódź transit tickets and partner coupons." else "Wymieniaj zgromadzone VoltPoints na darmowe bilety MPK-Łódź i kupony partnerów."
+                        if (isEnglish) "Claim MPK transit tickets & perks" else "Odbieraj darmowe bilety MPK",
+                        if (isEnglish) "Exchange earned VoltPoints for free MPK-Łódź public transit tickets, discounts to Fala aquapark, and local cafes." else "Wymieniaj zdobyte VoltPoints na bezpłatne bilety MPK-Łódź, wejściówki do Aquaparku Fala, EC1 i zniżki w lokalnych kawiarniach."
                     )
                 }
             }
@@ -201,54 +204,86 @@ private fun FaqTabContent() {
             Text(
                 text = if (isEnglish) "FREQUENTLY ASKED QUESTIONS (FAQ)" else "CZĘSTO ZADAWANE PYTANIA (FAQ)",
                 style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary,
                 letterSpacing = 1.sp,
-                modifier = Modifier.padding(start = 4.dp, top = 8.dp)
+                modifier = Modifier.padding(start = 4.dp, top = 22.dp, bottom = 8.dp)
             )
         }
 
         val faqItems = if (isEnglish) listOf(
             FaqItemData(
-                question = "How do kinetic stations power the city of Łódź?",
-                answer = "Every VoltUp outdoor gym station contains a brushless kinetic generator and micro-inverter. The electricity generated during your workout flows directly to illuminate park pathways (such as in Poniatowski Park or Zdrowie Park) and public USB chargers."
+                question = "App Idea",
+                answer = "VoltUp was created in Łódź to encourage residents — particularly seniors and people aged 50+ — to adopt regular, safe outdoor physical activity. Over 60% of Łódź citizens do not meet the minimum WHO physical activity recommendations, and outdoor gyms often sit empty due to lack of motivation.\n\nVoltUp gives movement a tangible purpose: kinetic outdoor gym machines measure your minutes and calories, awarding VoltPoints. You can redeem these points for free MPK-Łódź transit tickets and city discounts. While machines generate small amounts of electricity to light the station, the true mission is cardiovascular health, vitality, and mobility for all generations."
             ),
             FaqItemData(
-                question = "What is the difference between VoltPoints and ranking points?",
-                answer = "Ranking points represent your overall level, achievements, and leaderboard rank. VoltPoints are your spending wallet currency used to redeem free MPK-Łódź transit tickets and merchant discounts."
+                question = "Workout Safety",
+                answer = "Yes, 100%! The kinetic equipment in Łódź parks (such as recumbent cycles with ergonomic back support and low-impact steppers) provides smooth, guided movement without heavy weights or joint strain. You exercise at a relaxed walking pace and can pause or rest at any moment."
             ),
             FaqItemData(
-                question = "How do I activate an MPK-Łódź ticket purchased with points?",
-                answer = "Go to 'Rewards' -> 'My Coupons'. Tap 'Tap to activate' right when boarding the tram or bus. An official validation code and a 20-minute countdown clock will appear for the ticket controller."
+                question = "Training Intensity",
+                answer = "Absolutely not! VoltUp rewards consistency and gentle aerobic movement in the heart-health zone, rather than athletic exhaustion. 15 to 20 minutes of relaxed pedaling per day is all you need to steadily accumulate points for transit tickets."
             ),
             FaqItemData(
-                question = "Does the app require GPS to be constantly enabled?",
-                answer = "No! Location permission is completely optional. GPS is only used to center the map on your position and show distances to nearby equipment."
+                question = "Energy & City Power",
+                answer = "Physics dictates that an exercising adult generates about 50–100 Watts of electrical power. One hour of effort produces ~0.06 kWh (worth a few cents), which cannot realistically power city districts. In VoltUp, this electricity illuminates the station and powers public USB ports, but its main role is a tamper-proof meter of effort. The real municipal value is citizen health and chronic disease prevention."
             ),
             FaqItemData(
-                question = "What should I do if a kinetic machine does not respond to QR code?",
-                answer = "Make sure the station has an 'Online' status on the map. You can also start the session directly from the map station list. If the machine is physically damaged, use the 'Help & Support' tab to alert our maintenance technicians."
+                question = "Free MPK Tickets",
+                answer = "Navigate to 'Rewards' and select the MPK-Łódź 20-minute ticket. Tap 'Redeem' and it will be stored in 'My Coupons'. When boarding a bus or tram, tap 'Tap to activate' to reveal your official validation code and a 20-minute countdown timer to present during ticket inspection."
+            ),
+            FaqItemData(
+                question = "Required Equipment",
+                answer = "No. Any basic smartphone works. You don't need smartwatches or chest straps — the kinetic station sensors automatically track your RPM, resistance, and duration directly."
+            ),
+            FaqItemData(
+                question = "GPS Location",
+                answer = "No! Location permission is completely optional. It is solely used to center the park map on your position and show distances to nearby equipment."
+            ),
+            FaqItemData(
+                question = "Points & Ranking",
+                answer = "Ranking points (XP) reflect your long-term engagement and community milestones in Łódź. VoltPoints are your spending balance in the app wallet, used to redeem transit tickets and merchant discounts."
+            ),
+            FaqItemData(
+                question = "QR Code Issues",
+                answer = "Check if the station has an 'Online' status on the map. You can also start the session directly from the map list without scanning. If the machine has a mechanical issue, submit a ticket in 'Help & Support'."
             )
         ) else listOf(
             FaqItemData(
-                question = "Jak stacje kinetyczne zasilają miasto Łódź?",
-                answer = "Każda stacja VoltUp wyposażona jest w bezszczotkową prądnicę kinetyczną i mikrofallowy inwerter. Energia elektryczna wygenerowana podczas Twojego treningu trafia bezpośrednio do zasilania oświetlenia parkowych alejek (np. w Parku Poniatowskiego czy na Zdrowiu) oraz ładowarek miejskich."
+                question = "Idea aplikacji",
+                answer = "VoltUp powstał w Łodzi, aby odwrócić negatywne trendy zdrowotne i zachęcić mieszkańców – w szczególności osoby w wieku 50+ oraz seniorów – do regularnego, bezpiecznego ruchu na świeżym powietrzu. Ponad 60% łodzian nie osiąga minimalnej normy aktywności fizycznej zalecanej przez WHO, a tradycyjne siłownie plenerowe w parkach często stoją puste z braku motywacji.\n\nVoltUp nadaje ruchowi cel: maszyny wyposażone w małe prądnice zliczają spalone kalorie i czas aktywności, zamieniając je na punkty VoltPoints. Te punkty wymieniasz na darmowe bilety MPK-Łódź, wejściówki do Aquaparku Fala, EC1 czy zniżki na zdrowy obiad. Wygenerowana energia to symboliczny dowód wysiłku i zasilenie stacji – prawdziwym sercem projektu jest Twoje serce, stawy i lepsze samopoczucie!"
             ),
             FaqItemData(
-                question = "Czym różnią się VoltPoints od punktów w rankingu?",
-                answer = "Punkty w rankingu reprezentują Twój łączny dorobek i poziom zaangażowania w VoltUp. VoltPoints to natomiast Twój wirtualny portfel punktów do wydania w sklepie na darmowe bilety komunikacji miejskiej MPK-Łódź i rabaty partnerskie."
+                question = "Bezpieczeństwo ćwiczeń",
+                answer = "Tak, w 100%! Maszyny kinetyczne VoltUp (rowerki poziome ze stabilnym oparciem, steppery i orbitreki) gwarantują płynny ruch o niskim oporze. Nie obciążają kręgosłupa ani stawów kolanowych i biodrowych. Każdy ćwiczy we własnym, bezpiecznym tempie spacerowym, mogąc w każdej chwili zrobić przerwę."
             ),
             FaqItemData(
-                question = "Jak aktywować bilet MPK-Łódź kupiony za punkty?",
-                answer = "Wejdź w zakładkę 'Nagrody' -> 'Moje kupony'. Kliknij 'Aktywuj kupon' w momencie wsiadania do pojazdu. Wyświetli się oficjalny kod z odliczającym zegarem ważności 20 minut, który możesz okazać kontrolerowi biletów MPK."
+                question = "Intensywność treningu",
+                answer = "Absolutnie nie! VoltUp premiuje regularność i spokojną aktywność w strefie zdrowia serca, a nie bicie wyczynowych rekordów. Już 15–20 minut łagodnego pedałowania dziennie wystarczy, by systematycznie gromadzić punkty na bezpłatny bilet MPK."
             ),
             FaqItemData(
-                question = "Czy aplikacja wymaga stałego włączonego GPS?",
-                answer = "Nie! Korzystanie z lokalizacji jest całkowicie opcjonalne. GPS służy jedynie do wycentrowania mapy na Twojej pozycji i wyświetlania dokładnej odległości do najbliższych stacji."
+                question = "Energia a zasilanie miasta",
+                answer = "Z praw fizyki wynika, że człowiek podczas ćwiczeń generuje średnio 50–100 watów mocy. Godzina wysiłku to ok. 0,06 kWh (wartość kilkunastu groszy) – to nie wystarczy na zasilenie miasta. W VoltUp energia napędza lokalne oświetlenie maszyny, ekran LED i ładowarkę USB, ale jej kluczową rolą jest weryfikacja realnego wysiłku. Prawdziwą wartością dla Łodzi jest zdrowsze społeczeństwo i profilaktyka!"
             ),
             FaqItemData(
-                question = "Co zrobić, jeśli stacja kinetyczna nie reaguje na QR kod?",
-                answer = "Upewnij się, że stacja na mapie ma status 'Online'. Możesz również wybrać stację bezpośrednio z listy na mapie bez skanowania. Jeśli urządzenie ma usterkę fizyczną, skorzystaj z zakładki 'Dział Pomocy', aby zgłosić awarię naszym serwisantom."
+                question = "Darmowe bilety MPK",
+                answer = "W zakładce 'Nagrody' wybierz bilet MPK-Łódź (np. bilet 20-minutowy) i kliknij 'Odbierz bilet'. Zostanie on zapisany w zakładce 'Moje kupony'. Przy wsiadaniu do tramwaju lub autobusu kliknij 'Aktywuj kupon' – wyświetli się kod i oficjalny zegar ważności do okazania kontrolerowi."
+            ),
+            FaqItemData(
+                question = "Wymagany sprzęt",
+                answer = "Nie. Wystarczy dowolny smartfon. Nie potrzebujesz opasek fitness ani smartwatchy – sensory wbudowane w maszynę na siłowni same łączą się z Twoim kontem i mierzą Twój ruch."
+            ),
+            FaqItemData(
+                question = "Lokalizacja GPS",
+                answer = "Nie! Korzystanie z GPS jest opcjonalne. Służy wyłącznie do tego, by pokazać na mapie najbliższy park i wygodną trasę do urządzeń."
+            ),
+            FaqItemData(
+                question = "VoltPoints a ranking",
+                answer = "Punkty w rankingu (XP) odzwierciedlają Twój staż i osiągnięcia w społeczności Łodzi. VoltPoints to Twoja waluta w portfelu – to je wydajesz na bilety MPK i kupony miejskie."
+            ),
+            FaqItemData(
+                question = "Problem z kodem QR",
+                answer = "Upewnij się, że stacja na mapie ma status 'Online'. Możesz również uruchomić trening bezpośrednio z listy stacji na mapie (bez użycia aparatu). W przypadku fizycznej usterki sprzętu, zgłoś ją w zakładce 'Dział Pomocy & Kontakt'."
             )
         )
 
@@ -263,8 +298,8 @@ private fun SupportTabContent(uriHandler: androidx.compose.ui.platform.UriHandle
     val isEnglish = strings is VoltUpEnglishStrings
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
             Card(
@@ -278,32 +313,38 @@ private fun SupportTabContent(uriHandler: androidx.compose.ui.platform.UriHandle
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                        modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Email,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(52.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Email,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(26.dp)
+                            )
+                        }
                     }
 
-                    Column {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                         Text(
                             text = if (isEnglish) "Contact Support Team" else "Skontaktuj się z działem pomocy",
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = if (isEnglish) "Have a question about your account, MPK tickets, or how VoltPoints are calculated? Our Łódź support team is happy to help!" else "Masz pytanie dotyczące konta, biletów MPK lub sposobu naliczania VoltPoints? Nasz łódzki zespół wsparcia chętnie pomoże!",
+                            text = if (isEnglish) "Have a question about your account, MPK tickets, or how VoltPoints work? Our Łódź support team is happy to help!" else "Masz pytanie o konto, bilety MPK lub naliczanie punktów? Nasz łódzki zespół chętnie pomoże!",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
                             lineHeight = 20.sp
                         )
                     }
@@ -342,32 +383,38 @@ private fun SupportTabContent(uriHandler: androidx.compose.ui.platform.UriHandle
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFEF4444).copy(alpha = 0.15f)),
+                        modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Build,
-                            contentDescription = null,
-                            tint = Color(0xFFEF4444),
-                            modifier = Modifier.size(24.dp)
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(52.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFEF4444).copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Build,
+                                contentDescription = null,
+                                tint = Color(0xFFEF4444),
+                                modifier = Modifier.size(26.dp)
+                            )
+                        }
                     }
 
-                    Column {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                         Text(
                             text = if (isEnglish) "Report issue or station damage" else "Zgłoś błąd lub awarię stacji",
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = if (isEnglish) "Noticed a damaged machine in the park, faulty generator resistance, or an app bug? Submit a report and our technical crew will handle it immediately." else "Zauważyłeś uszkodzoną stację w parku, niedziałający opór prądnicy lub błąd w aplikacji? Zgłoś usterkę, a technicy niezwłocznie się nią zajmą.",
+                            text = if (isEnglish) "Damaged machine in the park or app glitch? Let us know and we will fix it promptly." else "Uszkodzona maszyna w parku lub problem w aplikacji? Daj nam znać, a szybko to naprawimy.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
                             lineHeight = 20.sp
                         )
                     }
@@ -443,15 +490,15 @@ private fun FaqAccordionCard(faq: FaqItemData) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(18.dp))
             .clickable { isExpanded = !isExpanded },
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
     ) {
         Column(
             modifier = Modifier
-                .padding(18.dp)
+                .padding(horizontal = 20.dp, vertical = 16.dp)
                 .animateContentSize()
         ) {
             Row(
@@ -461,9 +508,10 @@ private fun FaqAccordionCard(faq: FaqItemData) {
             ) {
                 Text(
                     text = faq.question,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 16.sp,
                     color = MaterialTheme.colorScheme.onSurface,
+                    lineHeight = 22.sp,
                     modifier = Modifier.weight(1f).padding(end = 8.dp)
                 )
                 Icon(
@@ -474,15 +522,22 @@ private fun FaqAccordionCard(faq: FaqItemData) {
             }
 
             if (isExpanded) {
-                Spacer(modifier = Modifier.height(10.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                Spacer(modifier = Modifier.height(10.dp))
-                Text(
-                    text = faq.answer,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 18.sp
-                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = faq.answer,
+                        fontSize = 13.5.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 20.sp,
+                        fontWeight = FontWeight.Normal,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)
+                    )
+                }
             }
         }
     }

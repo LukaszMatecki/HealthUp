@@ -1,5 +1,10 @@
 import SwiftUI
+
+#if canImport(FirebaseCore)
 import FirebaseCore
+#endif
+
+#if canImport(FirebaseAppCheck)
 import FirebaseAppCheck
 
 class VoltUpAppCheckProviderFactory: NSObject, AppCheckProviderFactory {
@@ -15,15 +20,18 @@ class VoltUpAppCheckProviderFactory: NSObject, AppCheckProviderFactory {
         #endif
     }
 }
+#endif
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
     ) -> Bool {
+        #if canImport(FirebaseCore) && canImport(FirebaseAppCheck)
         let providerFactory = VoltUpAppCheckProviderFactory()
         AppCheck.setAppCheckProviderFactory(providerFactory)
         FirebaseApp.configure()
+        #endif
         return true
     }
 }

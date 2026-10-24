@@ -14,11 +14,11 @@
   </a>
 </p>
 
-# VoltUp: Kinetyczna Re-witalizacja
+# VoltUp: Miejski Ekosystem Zdrowia i Mikronagród (Health Shift)
 
 <a id="wersja-polska"></a>
 
-VoltUp to ekosystem kinetycznej re-witalizacji przestrzeni miejskiej w Łodzi, stworzony w technologii **Kotlin Multiplatform** oraz **Compose Multiplatform**. Aplikacja łączy miejską infrastrukturę rekreacyjną z systemem monitorowania energii wytwarzanej podczas ćwiczeń na plenerowych urządzeniach kinetycznych.
+VoltUp to ekosystem profilaktyki zdrowotnej, mikronawyków i mikronagród miejskich w Łodzi (ścieżka **Health Shift**), stworzony w technologii **Kotlin Multiplatform** oraz **Compose Multiplatform**. Aplikacja ożywia ponad 120 istniejących siłowni plenerowych w łódzkich parkach, motywując mieszkańców do codziennego ruchu poprzez mechanizm **Proof-of-Effort** (sprzężenie prądnicy z aplikacją), natychmiastowe korzyści (darmowe bilety MPK Łódź, zniżki na basen Fala i do EC1) oraz budowanie regularnych nawyków kardio zalecanych przez WHO.
 
 ---
 
@@ -273,11 +273,11 @@ Projekt VoltUp jest udostępniany na warunkach licencji **MIT**. Szczegóły zna
 <a id="table-of-contents"></a>
 <a id="english-version"></a>
 
-# VoltUp: Kinetic Re-vitalization (Executive Overview)
+# VoltUp: Urban Health Gamification & Micro-Rewards (Health Shift)
 
-VoltUp is a cross-platform mobile solution built with **Kotlin Multiplatform** and **Compose Multiplatform**. It bridges urban outdoor workout infrastructure with decentralized kinetic energy harvesting and environmental tracking across the Lodz metropolitan area.
+VoltUp is a cross-platform mobile solution built with **Kotlin Multiplatform** and **Compose Multiplatform**. It bridges urban outdoor workout infrastructure with preventive cardio health, gamification, and municipal micro-rewards across the Lodz metropolitan area.
 
-The system allows citizens to exercise on kinetic fitness stations, convert their physical effort into measurable watt-hours, offset urban carbon emissions, and redeem earned reward points with local commercial partners.
+The system empowers citizens to activate underutilized outdoor fitness stations, track calories and cardio intensity via hardware-backed Proof-of-Effort, charge their mobile devices on-site, and redeem earned reward points for public transit tickets (MPK Łódź) and cultural attractions.
 
 ---
 

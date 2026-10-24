@@ -222,12 +222,12 @@ object MockData {
     val sampleChallenges = listOf(
         Challenge(
             id = "C1",
-            title = "Ładowanie Miasta",
-            description = "Wygeneruj łącznie 150 Wh energii na dowolnych stacjach w Łodzi",
-            details = "Każda sesja treningowa na miejskich rowerach lub orbitrekach sumuje się do tego wyzwania. Zasil lokalną sieć oświetlenia miejskiego!",
-            targetValue = 150.0,
+            title = "Serce w Ruchu",
+            description = "Spal łącznie 250 kcal w sesjach kardio na stacjach w Łodzi",
+            details = "Każda sesja w parku wzmacnia Twoje serce, poprawia krążenie i przybliża Cię do darmowego biletu MPK!",
+            targetValue = 250.0,
             currentValue = 0.0,
-            unit = "Wh",
+            unit = "kcal",
             rankingPointsReward = 120,
             voltPointsReward = 10,
             currentProgress = 0.0f,
@@ -236,9 +236,9 @@ object MockData {
         ),
         Challenge(
             id = "C2",
-            title = "Potrójny Trening",
-            description = "Ukończ 3 pełne sesje treningowe na stacjach kinetycznych",
-            details = "Odwiedź stacje w dowolnym parku (np. Park Poniatowskiego, Park na Zdrowiu) i ukończ 3 niezależne treningi.",
+            title = "Zdrowy Nawyk",
+            description = "Ukończ 3 sesje kardio w tym tygodniu w drodze z pracy lub uczelni",
+            details = "Odwiedź stacje w dowolnym parku (np. Park Poniatowskiego, Park na Zdrowiu) i zbuduj regularny nawyk aktywności fizycznej.",
             targetValue = 3.0,
             currentValue = 0.0,
             unit = "sesji",
@@ -250,9 +250,9 @@ object MockData {
         ),
         Challenge(
             id = "C3",
-            title = "Mocny Impuls",
-            description = "Osiągnij chwilową moc szczytową co najmniej 80 W",
-            details = "Daj z siebie wszystko w krótkim sprincie na rowerze kinetycznym, aby rozwinąć moc co najmniej 80 Watów.",
+            title = "Impuls Energii",
+            description = "Osiągnij moc chwilową co najmniej 80 W na stacji kinetycznej",
+            details = "Wyzwól energię swoich mięśni: rozwiń moc 80 W podczas treningu i zdobądź punkty rankingowe!",
             targetValue = 80.0,
             currentValue = 0.0,
             unit = "W",
@@ -264,7 +264,6 @@ object MockData {
         )
     )
 
-
     val sampleRecentWorkouts = listOf(
         WorkoutSessionRecord(
             id = "W-01",
@@ -272,9 +271,9 @@ object MockData {
             stationLocation = "Park Poniatowskiego",
             dateText = "Wczoraj, 18:30",
             durationSeconds = 720,
-            generatedWh = 142.0,
-            earnedPoints = 142,
-            co2SavedKg = 0.10,
+            generatedWh = 14.2,
+            earnedPoints = 95,
+            co2SavedKg = 0.01,
             caloriesKcal = 95
         ),
         WorkoutSessionRecord(
@@ -283,9 +282,9 @@ object MockData {
             stationLocation = "Park na Zdrowiu",
             dateText = "3 dni temu, 10:15",
             durationSeconds = 1200,
-            generatedWh = 210.0,
-            earnedPoints = 210,
-            co2SavedKg = 0.15,
+            generatedWh = 24.5,
+            earnedPoints = 160,
+            co2SavedKg = 0.02,
             caloriesKcal = 160
         ),
         WorkoutSessionRecord(
@@ -294,9 +293,9 @@ object MockData {
             stationLocation = "Manufaktura",
             dateText = "5 dni temu, 16:45",
             durationSeconds = 900,
-            generatedWh = 118.0,
-            earnedPoints = 118,
-            co2SavedKg = 0.08,
+            generatedWh = 12.0,
+            earnedPoints = 78,
+            co2SavedKg = 0.01,
             caloriesKcal = 78
         )
     )
@@ -304,35 +303,35 @@ object MockData {
     val sampleNotifications = listOf(
         NotificationItem(
             id = "N-1",
-            title = "⚡ Godzina Podwójnej Energii!",
-            message = "W Parku Poniatowskiego do godziny 20:00 każdy wygenerowany Wh liczy się podwójnie (+2x VoltPoints).",
+            title = "❤️ Rekord Aktywności Serca!",
+            message = "Twoja ostatnia sesja w Parku Poniatowskiego pokryła 30% dziennej rekomendacji kardio WHO.",
             timeAgo = "10 min temu",
             isRead = false,
-            icon = Icons.Default.Bolt
+            icon = Icons.Default.Favorite
         ),
         NotificationItem(
             id = "N-2",
-            title = "🌱 Osiągnięcie 80% Celu Miasta!",
-            message = "Aleja Lipowa w Parku na Zdrowiu już prawie oświetlona! Dziękujemy za Twój wkład.",
+            title = "🌱 80% Celu Zdrowia Łodzi!",
+            message = "Społeczność wyćwiczyła 80% celu w Parku na Zdrowiu. Dziękujemy za Twój wkład w zdrowsze miasto!",
             timeAgo = "2 godz. temu",
             isRead = false,
             icon = Icons.Default.Park
         ),
         NotificationItem(
             id = "N-3",
-            title = "🏆 Awans w Rankingu Ogólnym!",
-            message = "Twój wkład w energię miejską Łodzi plasuje Cię w ścisłej czołówce aktywistów VoltUp!",
+            title = "🏆 Awans w Rankingu Zdrowia!",
+            message = "Twój wkład w ruch i profilaktykę plasuje Cię w ścisłej czołówce aktywnych łodzian VoltUp!",
             timeAgo = "Wczoraj",
             isRead = true,
             icon = Icons.Default.EmojiEvents
         ),
         NotificationItem(
             id = "N-4",
-            title = "🎟️ Nowy Partner: Kino Cinema City",
-            message = "Wymieniaj punkty kinetyczne na bilety ulgowe w Manufakturze.",
+            title = "🎟️ Odbierz Bilet MPK za Wysiłek",
+            message = "Wymień zgromadzone VoltPoints na darmowy bilet 20-minutowy MPK Łódź w katalogu nagród.",
             timeAgo = "3 dni temu",
             isRead = true,
-            icon = Icons.Default.CardGiftcard
+            icon = Icons.Default.DirectionsBus
         )
     )
 }

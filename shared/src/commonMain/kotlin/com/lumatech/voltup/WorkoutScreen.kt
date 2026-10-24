@@ -104,12 +104,12 @@ fun WorkoutScreen(
         }
     }
 
-    val earnedPoints = (totalGeneratedWh * 0.2).toInt()
+    val caloriesBurned = (totalGeneratedWh * 3.5 + (secondsElapsed * 0.08)).roundToInt()
+    val earnedPoints = (caloriesBurned * 0.2 + totalGeneratedWh * 0.4).roundToInt().coerceAtLeast(secondsElapsed / 30)
     val co2Saved = totalGeneratedWh * 0.0007
     val strings = strings
     val isDark = isAppInDarkTheme()
 
-    val caloriesBurned = (totalGeneratedWh * 0.7 + (secondsElapsed * 0.08)).roundToInt()
     val distanceKm = (secondsElapsed * 0.0065) + (totalGeneratedWh * 0.012)
 
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -417,7 +417,7 @@ fun WorkoutScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     MiniRingGauge(
-                        progress = (totalGeneratedWh / 5.0).toFloat().coerceIn(0f, 1f),
+                        progress = (totalGeneratedWh / 20.0).toFloat().coerceIn(0f, 1f),
                         gradientColors = energyGradient,
                         title = strings.generatedEnergy
                     ) {
@@ -714,20 +714,20 @@ fun WorkoutScreen(
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(strings.generatedEnergy + ":", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("${totalGeneratedWh.formatOneDecimal()} Wh", fontWeight = FontWeight.ExtraBold, color = primaryColor)
-                            }
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(strings.voltPoints + ":", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("+$earnedPoints VoltPoints", fontWeight = FontWeight.ExtraBold, color = warningColor)
+                                Text(strings.caloriesBurned + ":", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("$caloriesBurned kcal", fontWeight = FontWeight.ExtraBold, color = Color(0xFFEF4444))
                             }
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text(strings.sessionDuration + ":", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text(secondsElapsed.formatSeconds(), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                             }
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(strings.caloriesBurned + ":", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("$caloriesBurned kcal", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                                Text(strings.voltPoints + ":", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("+$earnedPoints VoltPoints", fontWeight = FontWeight.ExtraBold, color = warningColor)
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(strings.generatedEnergy + ":", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("${totalGeneratedWh.formatOneDecimal()} Wh", fontWeight = FontWeight.Bold, color = primaryColor)
                             }
                         }
                     }

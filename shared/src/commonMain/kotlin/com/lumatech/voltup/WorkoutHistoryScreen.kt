@@ -31,6 +31,7 @@ fun WorkoutHistoryScreen(
     val strings = strings
     val primaryColor = MaterialTheme.colorScheme.primary
     val isDark = isAppInDarkTheme()
+    val voltPointsColor = Color(0xFFFF9800)
     var selectedWorkout by remember { mutableStateOf<WorkoutSessionRecord?>(null) }
 
     Column(
@@ -136,7 +137,7 @@ fun WorkoutHistoryScreen(
                         text = "+$totalVp VP",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = EnergyYellow
+                        color = voltPointsColor
                     )
                     Text(
                         text = "VoltPoints",
@@ -322,16 +323,27 @@ fun WorkoutHistoryScreen(
                                 }
 
                                 Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = EnergyYellow.copy(alpha = 0.15f)
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = voltPointsColor.copy(alpha = 0.15f)
                                 ) {
-                                    Text(
-                                        text = "+${workout.earnedPoints} VP",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isDark) EnergyYellow else Color(0xFFD97706),
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                    )
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Stars,
+                                            contentDescription = null,
+                                            tint = voltPointsColor,
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                        Text(
+                                            text = "+${workout.earnedPoints} VP",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = voltPointsColor
+                                        )
+                                    }
                                 }
 
                                 val displayDate = if (workout.dateText.isNotBlank() && workout.dateText != "Ostatnio") {

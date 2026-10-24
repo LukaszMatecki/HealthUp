@@ -154,7 +154,7 @@ fun ManageAccountScreen(
                         ) {
                             AccountSummaryNumber(
                                 value = "${userStats.level}",
-                                label = "Poziom",
+                                label = if (isEnglish) "Level" else "Poziom",
                                 color = primaryColor
                             )
                             AccountSummaryNumber(
@@ -163,9 +163,9 @@ fun ManageAccountScreen(
                                 color = Color(0xFFFF9800)
                             )
                             AccountSummaryNumber(
-                                value = "${userStats.totalEnergyWh.roundToInt()} Wh",
-                                label = "Energia",
-                                color = Color(0xFF29B6F6)
+                                value = "${userStats.totalCaloriesBurned} kcal",
+                                label = if (isEnglish) "Calories" else "Kalorie",
+                                color = Color(0xFFFF5722)
                             )
                         }
                     }

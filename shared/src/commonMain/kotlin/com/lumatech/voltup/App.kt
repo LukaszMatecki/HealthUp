@@ -148,7 +148,7 @@ fun App(
             if (previewThemeName.equals("LIGHT", ignoreCase = true)) AppThemeMode.LIGHT else AppThemeMode.DARK
         } else {
             val themeName = VoltUpStorage.getString(VoltUpPreferenceKeys.KEY_SAVED_THEME, "")
-            AppThemeMode.entries.find { it.name == themeName } ?: AppThemeMode.DARK
+            AppThemeMode.entries.find { it.name == themeName } ?: AppThemeMode.SYSTEM
         }
     }
     val savedEmail = remember { VoltUpStorage.getString(VoltUpPreferenceKeys.KEY_SAVED_EMAIL, "") }
@@ -201,6 +201,8 @@ fun App(
                     level = 3,
                     levelTitle = "Miejski Odkrywca",
                     streakDays = 5,
+                    totalCaloriesBurned = 333,
+                    activeCardioMinutes = 47,
                     recentWorkouts = MockData.sampleRecentWorkouts
                 )
             } else {
@@ -379,6 +381,7 @@ fun App(
                 } catch (_: Exception) {
                     AppThemeMode.SYSTEM
                 }
+                VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_THEME, themeModeEnum.name)
                 appSettings = appSettings.copy(
                     themeMode = themeModeEnum,
                     notificationsEnabled = loadedSettings.notificationsEnabled,
@@ -722,6 +725,8 @@ fun App(
                                 settings = appSettings,
                                 onSettingsChanged = { newSettings ->
                                     appSettings = newSettings
+                                    VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_THEME, newSettings.themeMode.name)
+                                    VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_LANGUAGE, newSettings.language.name)
                                     currentAuthUser?.let { u ->
                                         coroutineScope.launch {
                                             dbService.saveUserSettings(
@@ -741,7 +746,10 @@ fun App(
                                     userStats = userStats.copy(recentWorkouts = emptyList())
                                 },
                                 onResetDefaults = {
-                                    appSettings = AppSettings()
+                                    val defaultSettings = AppSettings()
+                                    appSettings = defaultSettings
+                                    VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_THEME, defaultSettings.themeMode.name)
+                                    VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_LANGUAGE, defaultSettings.language.name)
                                     SnackbarHelper.show("Ustawienia przywrócone.")
                                 },
                                 authService = authService,
@@ -865,6 +873,7 @@ fun App(
                                         points = totalPoints,
                                         voltPoints = totalPoints,
                                         totalEnergyWh = newTotalWh,
+                                        totalCaloriesBurned = userStats.totalCaloriesBurned + workoutRecord.caloriesKcal,
                                         co2SavedKg = newCo2,
                                         level = newLevel,
                                         levelTitle = newTitle,
@@ -884,7 +893,7 @@ fun App(
                                     challenges = challenges.map { ch ->
                                         if (!ch.isCompleted) {
                                             val newCurrVal = when (ch.id) {
-                                                "C1" -> ch.currentValue + earnedWh
+                                                "C1" -> ch.currentValue + workoutRecord.caloriesKcal
                                                 "C2" -> ch.currentValue + 1.0
                                                 "C3" -> maxOf(ch.currentValue, sessionPeakWatts)
                                                 else -> ch.currentValue + earnedWh
@@ -1630,13 +1639,13 @@ fun DashboardScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     DesignerMetricBox(
-                        label = strings.generatedEnergy,
-                        value = formatEnergySmart(stats.totalEnergyWh),
+                        label = strings.caloriesBurned,
+                        value = "${stats.effectiveCalories} kcal",
                         modifier = Modifier.weight(1f)
                     )
                     DesignerMetricBox(
-                        label = strings.co2Reduction,
-                        value = formatCo2Smart(stats.co2SavedKg),
+                        label = strings.minutesLabel,
+                        value = "${stats.effectiveActiveMinutes} min",
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -1647,34 +1656,36 @@ fun DashboardScreen(
             getDayOfWeekIndex()
         }
 
-        val weeklyActivityWh = remember(stats.recentWorkouts, stats.totalEnergyWh, currentDayIndex) {
+        val weeklyActivityMinutes = remember(stats.recentWorkouts, stats.totalEnergyWh, currentDayIndex) {
             val arr = DoubleArray(7) { 0.0 }
             val now = currentTimeMillis()
             for (w in stats.recentWorkouts) {
                 val t = if (w.timestampMs > 0L) w.timestampMs else now
                 val dayIdx = getDayOfWeekIndex(t)
                 if (dayIdx in 0..6) {
-                    arr[dayIdx] += w.generatedWh
+                    val mins = if (w.durationSeconds > 0) w.durationSeconds / 60.0 else w.generatedWh * 0.8
+                    arr[dayIdx] += mins
                 }
             }
             if (arr.all { it == 0.0 } && stats.totalEnergyWh > 0.0) {
-                arr[currentDayIndex] = stats.totalEnergyWh.coerceAtMost(500.0)
+                arr[currentDayIndex] = (stats.totalEnergyWh * 0.1).coerceIn(10.0, 60.0)
             }
             arr.toList()
         }
 
         SinusoidActivityChartCard(
-            weeklyData = weeklyActivityWh,
+            weeklyData = weeklyActivityMinutes,
             currentDayIndex = currentDayIndex,
             primaryColor = primaryColor
         )
 
-        val todayEnergyWh = remember(stats.recentWorkouts) {
+        val todayCaloriesKcal = remember(stats.recentWorkouts) {
             val now = currentTimeMillis()
             val startOfDay = now - (now % 86400000L)
-            stats.recentWorkouts
+            val fromWorkouts = stats.recentWorkouts
                 .filter { it.timestampMs >= startOfDay }
-                .sumOf { it.generatedWh }
+                .sumOf { it.caloriesKcal }
+            if (fromWorkouts > 0) fromWorkouts else (stats.effectiveCalories / 3).coerceAtLeast(60)
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1688,7 +1699,7 @@ fun DashboardScreen(
             )
 
             CommunityGoalCard(
-                userWh = todayEnergyWh,
+                userCalories = todayCaloriesKcal,
                 primaryColor = primaryColor
             )
         }
@@ -1915,7 +1926,7 @@ fun DesignerMetricBox(label: String, value: String, modifier: Modifier = Modifie
 
 @Composable
 fun CommunityGoalCard(
-    userWh: Double,
+    userCalories: Int,
     primaryColor: Color
 ) {
     val strings = strings
@@ -1943,12 +1954,12 @@ fun CommunityGoalCard(
     val seconds = secondsRemaining % 60
     val timeFormatted = "${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}"
 
-    val targetWh = 1000.0
-    val baseCommunityWh = 0.0
-    val totalCommunityWh = (baseCommunityWh + userWh).coerceAtMost(targetWh * 1.5)
-    val progressFraction = (totalCommunityWh / targetWh).toFloat().coerceIn(0f, 1f)
+    val targetKcal = 15000
+    val baseCommunityKcal = 8450
+    val totalCommunityKcal = (baseCommunityKcal + userCalories).coerceAtMost(targetKcal * 2)
+    val progressFraction = (totalCommunityKcal.toFloat() / targetKcal.toFloat()).coerceIn(0f, 1f)
     val percentage = (progressFraction * 100).toInt()
-    val isGoalCompleted = totalCommunityWh >= targetWh
+    val isGoalCompleted = totalCommunityKcal >= targetKcal
 
     Card(
         modifier = Modifier
@@ -2008,6 +2019,25 @@ fun CommunityGoalCard(
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                     )
                 }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (strings is VoltUpEnglishStrings) "Community: $totalCommunityKcal / $targetKcal kcal" else "Mieszkańcy Łodzi: $totalCommunityKcal / $targetKcal kcal",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = if (strings is VoltUpEnglishStrings) "Your share: $userCalories kcal" else "Twój wkład: $userCalories kcal",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = primaryColor
+                )
             }
 
             Box(
@@ -2097,7 +2127,7 @@ fun CommunityGoalCard(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "${totalCommunityWh.toInt()} / ${targetWh.toInt()} Wh",
+                                text = "$totalCommunityKcal / $targetKcal kcal",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -2135,7 +2165,7 @@ fun CommunityGoalCard(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = formatEnergySmart(userWh),
+                                text = "$userCalories kcal",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = primaryColor

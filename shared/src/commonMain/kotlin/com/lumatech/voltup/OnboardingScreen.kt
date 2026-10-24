@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CardGiftcard
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -70,7 +71,7 @@ fun OnboardingScreen(
             title = strings.onboardingWelcomeTitle,
             subtitle = strings.onboardingWelcomeSubtitle,
             description = strings.onboardingWelcomeDesc,
-            icon = Icons.Default.Bolt,
+            icon = Icons.Default.Favorite,
             accentColor = Color(0xFF10B981)
         ),
         OnboardingPageData(

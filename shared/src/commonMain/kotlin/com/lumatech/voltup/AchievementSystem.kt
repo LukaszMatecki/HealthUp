@@ -93,10 +93,10 @@ data class Achievement(
                 else -> Triple(15.0 + (lvl - 3) * 15.0, 500, if (isEnglish) "Complete ${15 + (lvl - 3) * 15} workouts" else "Ukończ ${15 + (lvl - 3) * 15} treningów")
             }
             MetricType.TOTAL_ENERGY_WH -> when (lvl) {
-                1 -> Triple(50.0, 50, if (isEnglish) "Generate a total of 50 Wh of energy" else "Wygeneruj łącznie 50 Wh energii")
-                2 -> Triple(200.0, 100, if (isEnglish) "Generate a total of 200 Wh of energy" else "Wygeneruj łącznie 200 Wh energii")
-                3 -> Triple(1000.0, 250, if (isEnglish) "Generate a total of 1 000 Wh of energy" else "Wygeneruj łącznie 1 000 Wh energii")
-                else -> Triple(1000.0 + (lvl - 3) * 2000.0, 500, if (isEnglish) "Generate ${1 + (lvl - 3) * 2} kWh of energy" else "Wygeneruj ${1 + (lvl - 3) * 2} kWh energii")
+                1 -> Triple(15.0, 50, if (isEnglish) "Generate a total of 15 Wh of energy" else "Wygeneruj łącznie 15 Wh energii")
+                2 -> Triple(50.0, 100, if (isEnglish) "Generate a total of 50 Wh of energy" else "Wygeneruj łącznie 50 Wh energii")
+                3 -> Triple(150.0, 250, if (isEnglish) "Generate a total of 150 Wh of energy" else "Wygeneruj łącznie 150 Wh energii")
+                else -> Triple(150.0 + (lvl - 3) * 150.0, 500, if (isEnglish) "Generate ${(150 + (lvl - 3) * 150)} Wh of energy" else "Wygeneruj ${(150 + (lvl - 3) * 150)} Wh energii")
             }
             MetricType.MAX_WATTS -> when (lvl) {
                 1 -> Triple(50.0, 50, if (isEnglish) "Reach a peak power output of 50 Watts" else "Osiągnij moc chwilową 50 Watów")
@@ -105,10 +105,10 @@ data class Achievement(
                 else -> Triple(120.0 + (lvl - 3) * 30.0, 300, if (isEnglish) "Reach peak power of ${(120 + (lvl - 3) * 30)} W" else "Osiągnij moc ${(120 + (lvl - 3) * 30)} W")
             }
             MetricType.CO2_SAVED_G -> when (lvl) {
-                1 -> Triple(100.0, 50, if (isEnglish) "Save 100 g of CO₂ emissions" else "Zaoszczędź 100 g emisji CO₂")
-                2 -> Triple(500.0, 150, if (isEnglish) "Save 500 g of CO₂ emissions" else "Zaoszczędź 500 g emisji CO₂")
-                3 -> Triple(2000.0, 300, if (isEnglish) "Save 2,000 g of CO₂ emissions" else "Zaoszczędź 2 000 g emisji CO₂")
-                else -> Triple(2000.0 + (lvl - 3) * 2000.0, 500, if (isEnglish) "Save ${(2 + (lvl - 3) * 2)} kg of CO₂" else "Zaoszczędź ${(2 + (lvl - 3) * 2)} kg CO₂")
+                1 -> Triple(15.0, 50, if (isEnglish) "Save 15 g of CO₂ emissions" else "Zaoszczędź 15 g emisji CO₂")
+                2 -> Triple(50.0, 150, if (isEnglish) "Save 50 g of CO₂ emissions" else "Zaoszczędź 50 g emisji CO₂")
+                3 -> Triple(150.0, 300, if (isEnglish) "Save 150 g of CO₂ emissions" else "Zaoszczędź 150 g emisji CO₂")
+                else -> Triple(150.0 + (lvl - 3) * 150.0, 500, if (isEnglish) "Save ${(150 + (lvl - 3) * 150)} g of CO₂" else "Zaoszczędź ${(150 + (lvl - 3) * 150)} g CO₂")
             }
             MetricType.STREAK_DAYS -> when (lvl) {
                 1 -> Triple(2.0, 50, if (isEnglish) "Maintain a 2-day workout streak" else "Utrzymaj serię 2 dni treningowych")
@@ -133,10 +133,10 @@ data class Achievement(
                 else -> Triple(120.0 + (lvl - 3) * 180.0, 500, if (isEnglish) "Train for ${2 + (lvl - 3) * 3} hours total" else "Trenuj łącznie przez ${2 + (lvl - 3) * 3} godzin")
             }
             MetricType.SINGLE_SESSION_MAX_WH -> when (lvl) {
-                1 -> Triple(25.0, 50, if (isEnglish) "Generate 25 Wh in a single session" else "Wygeneruj 25 Wh podczas jednej pojedynczej sesji")
-                2 -> Triple(75.0, 150, if (isEnglish) "Generate 75 Wh in a single session" else "Wygeneruj 75 Wh podczas jednej pojedynczej sesji")
-                3 -> Triple(200.0, 350, if (isEnglish) "Generate 200 Wh in a single session" else "Wygeneruj 200 Wh podczas jednej sesji")
-                else -> Triple(200.0 + (lvl - 3) * 200.0, 600, if (isEnglish) "Generate ${200 + (lvl - 3) * 200} Wh in one session" else "Wygeneruj ${200 + (lvl - 3) * 200} Wh w jednej sesji")
+                1 -> Triple(8.0, 50, if (isEnglish) "Generate 8 Wh in a single session" else "Wygeneruj 8 Wh podczas jednej pojedynczej sesji")
+                2 -> Triple(18.0, 150, if (isEnglish) "Generate 18 Wh in a single session" else "Wygeneruj 18 Wh podczas jednej pojedynczej sesji")
+                3 -> Triple(35.0, 350, if (isEnglish) "Generate 35 Wh in a single session" else "Wygeneruj 35 Wh podczas jednej sesji")
+                else -> Triple(35.0 + (lvl - 3) * 15.0, 600, if (isEnglish) "Generate ${35 + (lvl - 3) * 15} Wh in one session" else "Wygeneruj ${35 + (lvl - 3) * 15} Wh w jednej sesji")
             }
             MetricType.NIGHT_WORKOUTS -> when (lvl) {
                 1 -> Triple(1.0, 50, if (isEnglish) "Complete 1 evening workout (after 7 PM)" else "Ukończ 1 wieczorny trening (po 19:00 lub przed 7:00)")
