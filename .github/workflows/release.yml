@@ -1,0 +1,215 @@
+name: Publish Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Wersja tagu wydania (np. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+      release_name:
+        description: 'Tytuł wydania (opcjonalnie, np. VoltUp v1.0.0)'
+        required: false
+        default: ''
+      draft:
+        description: 'Utwórz jako wersję roboczą (Draft)'
+        type: boolean
+        default: false
+      prerelease:
+        description: 'Oznacz jako wersję przedpremierową (Pre-release)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-android:
+    name: Build Android Packages (APK & AAB)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Grant Execute Permission for Gradle
+        run: chmod +x gradlew
+
+      - name: Build Android APKs & AAB Bundle
+        run: |
+          ./gradlew :androidApp:assembleRelease :androidApp:assembleDebug :androidApp:bundleRelease
+
+      - name: Organize Android Artifacts
+        run: |
+          mkdir -p build/release-assets
+          cp androidApp/build/outputs/apk/debug/androidApp-debug.apk build/release-assets/VoltUp-Android-debug.apk
+          cp androidApp/build/outputs/apk/release/androidApp-release-unsigned.apk build/release-assets/VoltUp-Android-release-unsigned.apk
+          cp androidApp/build/outputs/bundle/release/androidApp-release.aab build/release-assets/VoltUp-Android-release.aab
+
+      - name: Upload Android Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-assets
+          path: build/release-assets/
+          retention-days: 1
+
+  build-ios:
+    name: Build iOS Packages (IPA & Simulator)
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Grant Execute Permission for Gradle
+        run: chmod +x gradlew
+
+      - name: Setup Java Path for Xcode Build Phases
+        run: |
+          sudo ln -sfn "$JAVA_HOME/bin/java" /usr/local/bin/java
+          echo "JAVA_HOME=$JAVA_HOME" >> $GITHUB_ENV
+          echo "$JAVA_HOME/bin" >> $GITHUB_PATH
+
+      - name: Verify Xcode & Java Versions
+        run: |
+          xcodebuild -version
+          java -version
+
+      - name: Compile Kotlin Multiplatform Framework
+        run: |
+          ./gradlew :shared:compileKotlinIosArm64
+          ./gradlew :shared:compileKotlinIosSimulatorArm64
+
+      - name: Build iOS App for Physical Devices (Unsigned IPA)
+        run: |
+          xcodebuild build \
+            -project iosApp/iosApp.xcodeproj \
+            -scheme iosApp \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -sdk iphoneos \
+            -derivedDataPath build/device \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            JAVA_HOME="$JAVA_HOME" \
+            PATH="$JAVA_HOME/bin:$PATH"
+
+          APP_PATH=$(find build/device/Build/Products -name "*.app" -type d | head -n 1)
+          echo "Found app at: $APP_PATH"
+          mkdir -p build/ipa/Payload
+          cp -r "$APP_PATH" build/ipa/Payload/
+          cd build/ipa
+          zip -qr VoltUp-iOS-Device.ipa Payload
+          cd ../..
+
+      - name: Build iOS App for Simulator
+        run: |
+          xcodebuild build \
+            -project iosApp/iosApp.xcodeproj \
+            -scheme iosApp \
+            -configuration Release \
+            -destination 'generic/platform=iOS Simulator' \
+            -sdk iphonesimulator \
+            -derivedDataPath build/simulator \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            JAVA_HOME="$JAVA_HOME" \
+            PATH="$JAVA_HOME/bin:$PATH"
+
+          SIM_APP_PATH=$(find build/simulator/Build/Products -name "*.app" -type d | head -n 1)
+          echo "Found simulator app at: $SIM_APP_PATH"
+          cd "$(dirname "$SIM_APP_PATH")"
+          zip -qr ../../../../VoltUp-iOS-Simulator.app.zip "$(basename "$SIM_APP_PATH")"
+          cd ../../../..
+
+      - name: Organize iOS Artifacts
+        run: |
+          mkdir -p build/release-assets
+          cp build/ipa/VoltUp-iOS-Device.ipa build/release-assets/VoltUp-iOS-Device.ipa
+          cp VoltUp-iOS-Simulator.app.zip build/release-assets/VoltUp-iOS-Simulator.app.zip
+
+      - name: Upload iOS Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-release-assets
+          path: build/release-assets/
+          retention-days: 1
+
+  publish-release:
+    name: Create & Publish GitHub Release
+    needs: [build-android, build-ios]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download Android Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: android-release-assets
+          path: dist-android
+
+      - name: Download iOS Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-release-assets
+          path: dist-ios
+
+      - name: Consolidate Release Assets
+        run: |
+          mkdir -p dist
+          cp dist-android/* dist/
+          cp dist-ios/* dist/
+          echo "=== Pliki do załączenia w wydaniu GitHub Release ==="
+          ls -lh dist/
+
+      - name: Determine Release Metadata
+        id: meta
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            TAG_NAME="${{ github.ref_name }}"
+          elif [ -n "${{ inputs.tag_name }}" ]; then
+            TAG_NAME="${{ inputs.tag_name }}"
+          else
+            TAG_NAME="v1.0.0"
+          fi
+          
+          if [ -n "${{ inputs.release_name }}" ]; then
+            RELEASE_NAME="${{ inputs.release_name }}"
+          else
+            RELEASE_NAME="VoltUp ${TAG_NAME}"
+          fi
+
+          echo "tag=${TAG_NAME}" >> $GITHUB_OUTPUT
+          echo "name=${RELEASE_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: ${{ steps.meta.outputs.name }}
+          target_commitish: ${{ github.sha }}
+          draft: ${{ inputs.draft || false }}
+          prerelease: ${{ inputs.prerelease || false }}
+          generate_release_notes: true
+          files: dist/*

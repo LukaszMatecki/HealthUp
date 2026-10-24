@@ -14,6 +14,20 @@
   </a>
 </p>
 
+<p align="center">
+  <a href="https://github.com/LukaszMatecki/VoltUp/releases">
+    <img src="https://img.shields.io/github/v/release/LukaszMatecki/VoltUp?color=00C853&label=Release&logo=github" alt="GitHub Release" />
+  </a>
+  &nbsp;
+  <a href="https://github.com/LukaszMatecki/VoltUp/actions/workflows/release.yml">
+    <img src="https://github.com/LukaszMatecki/VoltUp/actions/workflows/release.yml/badge.svg" alt="Release Workflow Status" />
+  </a>
+  &nbsp;
+  <a href="https://github.com/LukaszMatecki/VoltUp/blob/master/LICENSE">
+    <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" />
+  </a>
+</p>
+
 # VoltUp: Miejski Ekosystem Zdrowia i Mikronagród (Health Shift)
 
 <a id="wersja-polska"></a>
@@ -33,9 +47,10 @@ VoltUp to ekosystem profilaktyki zdrowotnej, mikronawyków i mikronagród miejsk
 5. [Struktura projektu](#struktura-projektu)
 6. [Wykorzystane technologie i biblioteki](#wykorzystane-technologie-i-biblioteki)
 7. [Uruchomienie projektu i testy](#uruchomienie-projektu-i-testy)
-8. [Usługi chmurowe Firebase](#usługi-chmurowe-firebase)
-9. [Licencja](#licencja)
-10. [Executive Summary (English)](#table-of-contents)
+8. [Pobieranie aplikacji i wydania (GitHub Releases)](#pobieranie-aplikacji-i-wydania)
+9. [Usługi chmurowe Firebase](#usługi-chmurowe-firebase)
+10. [Licencja](#licencja)
+11. [Executive Summary (English)](#table-of-contents)
 
 ---
 
@@ -250,6 +265,40 @@ Uruchomienie zestawu testów współdzielonych:
 
 ---
 
+<a id="pobieranie-aplikacji-i-wydania"></a>
+
+## Pobieranie aplikacji i wydania (GitHub Releases)
+
+Wszystkie oficjalne wydania binarne aplikacji VoltUp są automatycznie budowane i publikowane w sekcji [GitHub Releases](https://github.com/LukaszMatecki/VoltUp/releases).
+
+Każde wydanie zawiera kompletny zestaw gotowych pakietów instalacyjnych:
+
+| Nazwa pliku | Platforma | Format | Przeznaczenie |
+| :--- | :--- | :--- | :--- |
+| **`VoltUp-Android-debug.apk`** | Android | APK | **Zalecany do testów:** Gotowy do natychmiastowej instalacji na smartfonie Android (podpisany kluczem debugującym). |
+| **`VoltUp-Android-release-unsigned.apk`** | Android | APK | Zoptymalizowany pakiet Release pod kątem wydajności i minimalnego rozmiaru. |
+| **`VoltUp-Android-release.aab`** | Android | AAB | Oficjalny format Android App Bundle gotowy do publikacji w Google Play Console. |
+| **`VoltUp-iOS-Device.ipa`** | iOS | IPA | Paczka instalacyjna dla fizycznych urządzeń iPhone (instalacja przez AltStore, Sideloadly lub Apple Configurator). |
+| **`VoltUp-iOS-Simulator.app.zip`** | iOS Simulator | ZIP / .app | Paczka dla symulatorów Xcode (instalacja metodą drag-and-drop na okno symulatora). |
+
+### Jak publikować nowe wydania?
+Repozytorium posiada w pełni zautomatyzowany potok CI/CD oparty na GitHub Actions ([`.github/workflows/release.yml`](.github/workflows/release.yml)):
+
+* **Opcja 1 (Automatyczna przez Git Tag):**
+  Utwórz i wyślij tag wersji (np. `v1.0.0`):
+  ```bash
+  git tag -a v1.0.0 -m "Release v1.0.0"
+  git push origin v1.0.0
+  ```
+  GitHub Actions automatycznie skompiluje pakiety dla Androida (APK, AAB) oraz iOS (IPA, Simulator), wygeneruje changelog na podstawie commitów i utworzy oficjalny GitHub Release z załączonymi plikami.
+
+* **Opcja 2 (Ręczna przez interfejs GitHub Actions):**
+  1. Przejdź do zakładki **Actions** w repozytorium na GitHubie.
+  2. Z menu bocznego wybierz workflow **Publish Release**.
+  3. Kliknij przycisk **Run workflow**, podaj numer wersji (np. `v1.0.0`) i zatwierdź.
+
+---
+
 ## Usługi chmurowe Firebase
 
 ### Kolekcje w Cloud Firestore
@@ -287,7 +336,8 @@ The system empowers citizens to activate underutilized outdoor fitness stations,
 2. [Visual Presentation and UI Showcase](#visual-presentation-and-ui-showcase)
 3. [Technology Stack](#technology-stack-1)
 4. [Quick Start (Building and Testing)](#quick-start-building-and-testing)
-5. [License](#license-1)
+5. [Releases & Downloads](#releases--downloads)
+6. [License](#license-1)
 
 ---
 
@@ -335,6 +385,30 @@ Open the `/iosApp` project in Xcode 15+ and run on an iOS simulator or physical 
 ./gradlew :shared:testAndroidHostTest
 ./gradlew :shared:iosSimulatorArm64Test
 ```
+
+---
+
+<a id="releases--downloads"></a>
+
+## Releases & Downloads
+
+Binary packages for Android and iOS are automatically compiled and published with every release under [GitHub Releases](https://github.com/LukaszMatecki/VoltUp/releases).
+
+| Asset | Platform | Type | Note |
+| :--- | :--- | :--- | :--- |
+| **`VoltUp-Android-debug.apk`** | Android | APK | **Recommended for quick testing:** Pre-signed with debug key, installs directly on devices. |
+| **`VoltUp-Android-release-unsigned.apk`** | Android | APK | Production release binary optimized for performance. |
+| **`VoltUp-Android-release.aab`** | Android | AAB | Official Android App Bundle ready for Google Play Store upload. |
+| **`VoltUp-iOS-Device.ipa`** | iOS | IPA | Packaged application for physical iOS devices (AltStore / Sideloadly / TestFlight). |
+| **`VoltUp-iOS-Simulator.app.zip`** | iOS Simulator | ZIP / .app | Packaged application for Xcode Simulator drag-and-drop installation. |
+
+### Publishing New Releases
+1. **Via Git Tag:**
+   ```bash
+   git tag -a v1.0.0 -m "Release v1.0.0"
+   git push origin v1.0.0
+   ```
+2. **Via GitHub Actions UI:** Navigate to **Actions** -> **Publish Release** -> **Run workflow** and specify the tag version.
 
 ---
 
