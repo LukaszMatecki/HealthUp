@@ -14,25 +14,12 @@
   </a>
 </p>
 
-<p align="center">
-  <a href="https://github.com/LukaszMatecki/VoltUp/releases">
-    <img src="https://img.shields.io/github/v/release/LukaszMatecki/VoltUp?color=00C853&label=Release&logo=github" alt="GitHub Release" />
-  </a>
-  &nbsp;
-  <a href="https://github.com/LukaszMatecki/VoltUp/actions/workflows/release.yml">
-    <img src="https://github.com/LukaszMatecki/VoltUp/actions/workflows/release.yml/badge.svg" alt="Release Workflow Status" />
-  </a>
-  &nbsp;
-  <a href="https://github.com/LukaszMatecki/VoltUp/blob/master/LICENSE">
-    <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT" />
-  </a>
-</p>
-
-# VoltUp: Miejski Ekosystem Zdrowia i Mikronagród (Health Shift)
+# VoltUp: Miejski Ekosystem Zdrowia i Mikronagród
 
 <a id="wersja-polska"></a>
 
-VoltUp to ekosystem profilaktyki zdrowotnej, mikronawyków i mikronagród miejskich w Łodzi (ścieżka **Health Shift**), stworzony w technologii **Kotlin Multiplatform** oraz **Compose Multiplatform**. Aplikacja ożywia ponad 120 istniejących siłowni plenerowych w łódzkich parkach, motywując mieszkańców do codziennego ruchu poprzez mechanizm **Proof-of-Effort** (sprzężenie prądnicy z aplikacją), natychmiastowe korzyści (darmowe bilety MPK Łódź, zniżki na basen Fala i do EC1) oraz budowanie regularnych nawyków kardio zalecanych przez WHO.
+**VoltUp** to ekosystem wspierający profilaktykę zdrowotną, rozwój zdrowych nawyków i system mikronagród miejskich w Łodzi, tworzony w technologiach **Kotlin Multiplatform** i **Compose Multiplatform**. Projekt wykorzystuje potencjał ponad 120 istniejących siłowni plenerowych w łódzkich parkach, zachęcając mieszkańców do regularnej aktywności fizycznej. Łączy budowanie trwałych nawyków ruchowych, zgodnych z zaleceniami WHO, z systemem natychmiastowych korzyści, obejmującym m.in. darmowe bilety MPK Łódź oraz zniżki na basen Fala i atrakcje EC1. Dzięki temu VoltUp łączy troskę o zdrowie z lokalną infrastrukturą i realnymi korzyściami dla mieszkańców.
+
 
 ---
 
