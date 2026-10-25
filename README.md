@@ -102,49 +102,66 @@ Trzydzieści osiągnięć z wieloma poziomami zaawansowania, odnawialne wyzwania
 
 ## Prezentacja wizualna
 
-Wszystkie ekrany zostały zaprojektowane zgodnie z wytycznymi Material Design 3 z pełną obsługą trybu ciemnego i jasnego, jednolitą nawigacją gestami oraz czystym paskiem stanu.
+Wszystkie ekrany zostały zaprojektowane zgodnie z wytycznymi Material Design 3 z pełną obsługą trybu ciemnego i jasnego, nowoczesną nawigacją gestami (poziomy pasek gestów Pixel 9 Pro) oraz czystym paskiem stanu (Android Demo Mode).
 
-### Kluczowe ekrany aplikacji (Tryb ciemny)
-
-<p align="center">
-  <img src="VoltUp_Screenshots/z_ramka/ciemny/05_Pulpit_Glowny_ciemny_ramka.png" width="31%" alt="Pulpit Główny" />
-  <img src="VoltUp_Screenshots/z_ramka/ciemny/06_Mapa_Stacji_ciemny_ramka.png" width="31%" alt="Mapa Stacji" />
-  <img src="VoltUp_Screenshots/z_ramka/ciemny/09_Aktywny_Trening_ciemny_ramka.png" width="31%" alt="Aktywny Trening" />
-</p>
-<p align="center">
-  <em>Pulpit główny ze statystykami &bull; Interaktywna mapa stacji kinetycznych &bull; Monitor aktywnego treningu</em>
-</p>
+### Pulpit główny, ranking miejski i mapa stacji (Tryb ciemny)
 
 <p align="center">
-  <img src="VoltUp_Screenshots/z_ramka/ciemny/15_Skaner_QR_ciemny_ramka.png" width="31%" alt="Skaner QR" />
-  <img src="VoltUp_Screenshots/z_ramka/ciemny/10_Osiagniecia_I_Odznaki_ciemny_ramka.png" width="31%" alt="Osiągnięcia" />
-  <img src="VoltUp_Screenshots/z_ramka/ciemny/07_Katalog_Nagrod_ciemny_ramka.png" width="31%" alt="Katalog Nagród" />
+  <img src="voltup_screens/z_ramka/ciemny/08_Pulpit_Glowny_ciemny_ramka.png" width="31%" alt="Pulpit Główny" />
+  <img src="voltup_screens/z_ramka/ciemny/09_Pulpit_Ranking_I_Wyzwania_ciemny_ramka.png" width="31%" alt="Ranking i Wyzwania" />
+  <img src="voltup_screens/z_ramka/ciemny/10_Mapa_Stacji_ciemny_ramka.png" width="31%" alt="Mapa Stacji" />
 </p>
 <p align="center">
-  <em>Skaner kodów QR stacji &bull; Osiągnięcia i ranga miejska &bull; Sklep nagród i kuponów zniżkowych</em>
+  <em>Pulpit główny z bilansem energii &bull; Miejska tabela liderów i wyzwania tygodniowe &bull; Interaktywna mapa łódzkich siłowni plenerowych</em>
 </p>
 
+### Trening kinetyczny na żywo, skaner i osiągnięcia
+
 <p align="center">
-  <img src="VoltUp_Screenshots/z_ramka/ciemny/08_Profil_Uzytkownika_ciemny_ramka.png" width="31%" alt="Profil Użytkownika" />
-  <img src="VoltUp_Screenshots/z_ramka/ciemny/11_Historia_Treningow_ciemny_ramka.png" width="31%" alt="Historia Treningów" />
-  <img src="VoltUp_Screenshots/z_ramka/ciemny/12_Ustawienia_ciemny_ramka.png" width="31%" alt="Ustawienia Aplikacji" />
+  <img src="voltup_screens/z_ramka/ciemny/18_Aktywny_Trening_Live_ciemny_ramka.png" width="31%" alt="Aktywny Trening Live" />
+  <img src="voltup_screens/z_ramka/ciemny/19_Skaner_QR_ciemny_ramka.png" width="31%" alt="Skaner QR" />
+  <img src="voltup_screens/z_ramka/ciemny/16_Osiagniecia_I_Odznaki_ciemny_ramka.png" width="31%" alt="Osiągnięcia i Odznaki" />
 </p>
 <p align="center">
-  <em>Profil użytkownika i serie treningowe &bull; Archiwum ukończonych sesji &bull; Ustawienia i personalizacja</em>
+  <em>Dynamiczny kokpit treningu z mocą w watach i prędkościomierzem &bull; Skaner optyczny QR stacji &bull; System 30 odznak miejskich i progres</em>
+</p>
+
+### Katalog mikronagród, aktywne vouchery i profil
+
+<p align="center">
+  <img src="voltup_screens/z_ramka/ciemny/11_Katalog_Nagrod_ciemny_ramka.png" width="31%" alt="Katalog Nagród" />
+  <img src="voltup_screens/z_ramka/ciemny/12_Nagrody_Moje_Kody_Aktywne_ciemny_ramka.png" width="31%" alt="Moje Kody i Vouchery" />
+  <img src="voltup_screens/z_ramka/ciemny/14_Profil_Uzytkownika_ciemny_ramka.png" width="31%" alt="Profil Użytkownika" />
+</p>
+<p align="center">
+  <em>Katalog nagród (MPK Łódź, Fala, EC1) &bull; Moje Kody i aktywne bilety z kodami kreskowymi &bull; Profil użytkownika i ranga Miejski Odkrywca</em>
+</p>
+
+### Historia treningów, przewodnik FAQ i ustawienia
+
+<p align="center">
+  <img src="voltup_screens/z_ramka/ciemny/15_Historia_Treningow_ciemny_ramka.png" width="31%" alt="Historia Treningów" />
+  <img src="voltup_screens/z_ramka/ciemny/20_Przewodnik_I_FAQ_ciemny_ramka.png" width="31%" alt="Przewodnik i FAQ" />
+  <img src="voltup_screens/z_ramka/ciemny/21_Ustawienia_Aplikacji_ciemny_ramka.png" width="31%" alt="Ustawienia Aplikacji" />
+</p>
+<p align="center">
+  <em>Historia sesji kinetycznych &bull; Baza wiedzy FAQ i zasady generowania prądu &bull; Ustawienia motywu i języka</em>
 </p>
 
 ### Onboarding i uwierzytelnianie (Tryb jasny)
 
 <p align="center">
-  <img src="VoltUp_Screenshots/z_ramka/jasny/01_Logowanie_jasny_ramka.png" width="31%" alt="Ekran Logowania" />
-  <img src="VoltUp_Screenshots/z_ramka/jasny/04_Onboarding_jasny_ramka.png" width="31%" alt="Onboarding" />
-  <img src="VoltUp_Screenshots/z_ramka/jasny/14_Przewodnik_I_FAQ_jasny_ramka.png" width="31%" alt="Przewodnik i FAQ" />
+  <img src="voltup_screens/z_ramka/jasny/02_Onboarding_Krok1_jasny_ramka.png" width="31%" alt="Onboarding Powitanie" />
+  <img src="voltup_screens/z_ramka/jasny/05_Logowanie_jasny_ramka.png" width="31%" alt="Ekran Logowania" />
+  <img src="voltup_screens/z_ramka/jasny/06_Rejestracja_jasny_ramka.png" width="31%" alt="Ekran Rejestracji" />
 </p>
 <p align="center">
-  <em>Logowanie do konta &bull; Ekran powitalny i wprowadzenie &bull; Samouczek i baza wiedzy FAQ</em>
+  <em>Wprowadzenie do aplikacji &bull; Formularz logowania &bull; Rejestracja nowego mieszkańca</em>
 </p>
 
-> Kompletny zestaw zrzutów ekranu w wysokiej rozdzielczości znajduje się w katalogu `VoltUp_Screenshots/`.
+> Kompletny zestaw 88 zrzutów ekranu w ultrawysokiej rozdzielczości (Google Pixel 9 Pro z paskiem gestów, w wersjach bez ramki oraz z oficjalną ramką w motywach ciemnym i jasnym) znajduje się w katalogu `voltup_screens/`.
+
+---
 
 ## Struktura projektu
 
@@ -162,14 +179,16 @@ VoltUp/
 │   │   └── ContentView.swift
 │   └── iosApp.xcodeproj/
 │
-├── VoltUp_Screenshots/
+├── voltup_screens/
 │   ├── bez_ramki/
 │   │   ├── ciemny/
 │   │   └── jasny/
-│   ├── z_ramka/
-│   │   ├── ciemny/
-│   │   └── jasny/
-│   └── voltup_demo.mp4
+│   └── z_ramka/
+│       ├── ciemny/
+│       └── jasny/
+│
+├── voltup_recordings/
+│   └── VoltUp_Walkthrough_Pixel9Pro_ciemny.mp4
 │
 └── shared/
     └── src/
@@ -341,7 +360,7 @@ The system empowers citizens to activate underutilized outdoor fitness stations,
 ## Visual Presentation and UI Showcase
 
 > To explore the complete visual showcase of the application in both Dark and Light themes, please refer to the [Prezentacja wizualna (zrzuty ekranu)](#prezentacja-wizualna) section above.
-All high-resolution screenshots are organized in the `VoltUp_Screenshots/` directory.
+All high-resolution screenshots are organized in the `voltup_screens/` directory.
 
 ---
 
