@@ -1,19 +1,19 @@
-#!/usr/bin/env python3
+#!python3.12
 """
-VoltUp - Zautomatyzowany generator zrzutów ekranu (Android Emulator)
-===================================================================
+VoltUp - Zautomatyzowany generator zrzutów ekranu (Pixel 9 Pro / Gesture Bar)
+=============================================================================
 Ten skrypt automatycznie:
- 1. Wykrywa lub uruchamia emulator telefonu z Androidem (AVD).
- 2. Weryfikuje i instaluje aplikację VoltUp (debug APK).
- 3. Aktywuje Android Demo Mode (czysty pasek statusu: 09:41, 100% baterii, pełne Wi-Fi).
- 4. Przechodzi przez wszystkie ekrany, stany, podzakładki i animacje aplikacji.
- 5. Zapisuje wysokiej rozdzielczości zrzuty ekranu (.png) dla wybranego motywu (Dark / Light / All).
+ 1. Wykrywa lub uruchamia emulator telefonu Pixel 9 Pro (AVD: Pixel_9_Pro_API_36 / Pixel_9_Pro_XL).
+ 2. Włącza nowoczesną nawigację gestami (poziomy pasek gestów, ukrywając stare przyciski funkcyjne).
+ 3. Weryfikuje i instaluje aplikację VoltUp (debug APK).
+ 4. Aktywuje Android Demo Mode (czysty pasek statusu: 09:41, 100% baterii, pełne Wi-Fi i 5G).
+ 5. Przechodzi przez wszystkie ekrany, stany, podzakładki i animacje aplikacji.
+ 6. Zapisuje wysokiej jakości zrzuty ekranu (.png) dla wybranego motywu (Dark / Light / All).
 
 Użycie:
     py take_screenshots.py
-    py take_screenshots.py --theme ciemny
-    py take_screenshots.py --theme all
-    py take_screenshots.py --avd Pixel_8
+    py -3.12 take_screenshots.py
+    .\run_screenshots.ps1
 """
 
 import argparse
@@ -103,18 +103,19 @@ class VoltUpScreenshotRunner:
         return [l.strip() for l in out.splitlines() if l.strip()]
 
     def ensure_emulator(self):
-        print_step("📱", "Sprawdzanie stanu emulatora Android...")
+        print_step("📱", "Weryfikacja emulatora Android (Pixel 9 Pro)...")
         if self.is_device_running():
             print_success("Aktywne urządzenie/emulator jest już podłączone i gotowe.")
             return
 
         avds = self.list_avds()
         if not avds:
-            raise RuntimeError("Nie znaleziono żadnego emulatora AVD w systemie. Utwórz emulator w Android Studio Device Manager.")
+            raise RuntimeError("Nie znaleziono żadnego emulatora AVD w systemie. Utwórz Pixel 9 Pro w Android Studio Device Manager.")
 
         chosen_avd = self.requested_avd
         if not chosen_avd or chosen_avd not in avds:
-            priority = ["Pixel_8", "Pixel_9_Pro_XL", "Pixel_9_Pro_API_36", "Pixel_5"]
+            # Domyślnie preferujemy Pixel 9 Pro
+            priority = ["Pixel_9_Pro_API_36", "Pixel_9_Pro_XL", "Pixel_8", "Pixel_5"]
             for p in priority:
                 if p in avds:
                     chosen_avd = p
@@ -128,13 +129,12 @@ class VoltUpScreenshotRunner:
             "-avd", chosen_avd,
             "-no-boot-anim",
         ]
-        # Uruchomienie w tle bez blokowania procesu
         subprocess.Popen(emulator_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-        print_info("Oczekiwanie na rozruch systemu Android (wait-for-device)...")
+        print_info("Oczekiwanie na rozruch emulatora (wait-for-device)...")
         self.run_adb("wait-for-device")
 
-        print_info("Czekanie na zakończenie procesu bootowania (sys.boot_completed)...")
+        print_info("Czekanie na pełne uruchomienie systemu Android...")
         timeout = 180
         start_time = time.time()
         while time.time() - start_time < timeout:
@@ -148,15 +148,33 @@ class VoltUpScreenshotRunner:
 
         raise TimeoutError("Przekroczono limit czasu oczekiwania na uruchomienie emulatora.")
 
+    def enable_gesture_navigation(self):
+        """Wymusza tryb nawigacji gestami (poziomy pasek gestów, ukrywa 3 przyciski funkcyjne)."""
+        print_step("👆", "Konfiguracja paska nawigacji (tryb gestów zamiast przycisków funkcyjnych)...")
+        try:
+            # 1. Wyłącz tradycyjne przyciski nawigacyjne (3-button / 2-button)
+            self.run_adb("shell", "cmd", "overlay", "disable", "com.android.internal.systemui.navbar.threebutton", check=False)
+            self.run_adb("shell", "cmd", "overlay", "disable", "com.android.internal.systemui.navbar.twobutton", check=False)
+            
+            # 2. Włącz nakładkę nawigacji gestami (pozioma belka u dołu)
+            self.run_adb("shell", "cmd", "overlay", "enable", "com.android.internal.systemui.navbar.gestural", check=False)
+            
+            # 3. Ustawienie systemowe navigation_mode = 2 (0 = 3 przyciski, 1 = 2 przyciski, 2 = gesty)
+            self.run_adb("shell", "settings", "put", "secure", "navigation_mode", "2", check=False)
+            
+            time.sleep(1)
+            print_success("Włączono poziomy pasek gestów (Gesture Navigation Bar)!")
+        except Exception as e:
+            print_warn(f"Nie udało się wymusić nakładki gestów (możliwe, że jest już aktywna): {e}")
+
     def update_screen_dimensions(self):
         try:
             out = self.run_adb("shell", "wm", "size")
-            # Np: Physical size: 1080x2400
             if "size:" in out:
                 dim = out.split("size:")[-1].strip().split("x")
                 self.screen_width = int(dim[0])
                 self.screen_height = int(dim[1])
-                print_info(f"Wymiary ekranu urządzenia: {self.screen_width} x {self.screen_height} px")
+                print_info(f"Rozdzielczość ekranu Pixel 9 Pro: {self.screen_width} x {self.screen_height} px")
         except Exception:
             pass
 
@@ -190,7 +208,7 @@ class VoltUpScreenshotRunner:
         print_success("Aplikacja VoltUp pomyślnie zainstalowana!")
 
     def setup_demo_mode(self, enable: bool = True):
-        """Włącza czysty pasek stanu (godzina 09:41, bateria 100%, pełny sygnał)."""
+        """Włącza czysty pasek stanu (godzina 09:41, bateria 100%, pełny sygnał sieci bez zbędnych ikon)."""
         try:
             if enable:
                 self.run_adb("shell", "settings", "put", "global", "sysui_demo_allowed", "1", check=False)
@@ -232,7 +250,6 @@ class VoltUpScreenshotRunner:
 
     def take_screenshot(self, target_path: Path):
         target_path.parent.mkdir(parents=True, exist_ok=True)
-        # Bezpośredni zrzut klatki bufora graficznego do pliku PNG
         with open(target_path, "wb") as f:
             cmd = [self.adb, "exec-out", "screencap", "-p"]
             subprocess.run(cmd, check=True, stdout=f)
@@ -396,6 +413,7 @@ class VoltUpScreenshotRunner:
     def execute(self):
         try:
             self.ensure_emulator()
+            self.enable_gesture_navigation()
             self.update_screen_dimensions()
             self.ensure_app_installed()
             self.setup_demo_mode(True)
@@ -413,8 +431,8 @@ class VoltUpScreenshotRunner:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Automatyczny generator zrzutów ekranu aplikacji VoltUp na emulatorze Android")
-    parser.add_argument("--avd", type=str, default=None, help="Nazwa emulatora AVD (np. Pixel_8, Pixel_9_Pro_XL)")
+    parser = argparse.ArgumentParser(description="Automatyczny generator zrzutów ekranu VoltUp na emulatorze Pixel 9 Pro")
+    parser.add_argument("--avd", type=str, default="Pixel_9_Pro_API_36", help="Nazwa emulatora AVD (domyślnie: Pixel_9_Pro_API_36)")
     parser.add_argument("--theme", type=str, default="ciemny", choices=["ciemny", "jasny", "all", "dark", "light"], help="Motyw graficzny (ciemny / jasny / all)")
     parser.add_argument("--output", type=str, default="VoltUp_Screenshots", help="Katalog wyjściowy dla zrzutów ekranu")
     args = parser.parse_args()
