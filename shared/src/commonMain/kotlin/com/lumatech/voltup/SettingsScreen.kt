@@ -527,7 +527,7 @@ fun SettingsScreen(
                             onClick = {
                                 onClearHistory()
                                 showClearHistoryDialog = false
-                                SnackbarHelper.show("Historia sesji została wyczyszczona.")
+                                SnackbarHelper.show(strings.historyClearedMessage)
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -609,7 +609,7 @@ fun SettingsScreen(
                             onClick = {
                                 onResetDefaults()
                                 showResetDefaultsDialog = false
-                                SnackbarHelper.show("Przywrócono ustawienia domyślne.")
+                                SnackbarHelper.show(strings.defaultSettingsRestored)
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -642,7 +642,7 @@ fun SettingsScreen(
             onDismiss = { showChangePasswordDialog = false },
             onSuccess = {
                 showChangePasswordDialog = false
-                SnackbarHelper.show("Hasło zostało pomyślnie zmienione.")
+                SnackbarHelper.show(strings.passwordChangedSuccess)
             }
         )
     }
@@ -960,10 +960,10 @@ fun RateAppDialog(onDismiss: () -> Unit) {
                 ) {
                     Text(
                         text = when (selectedStars) {
-                            5 -> "Rewelacja! Dziękujemy za wsparcie!"
-                            4 -> "Bardzo dobrze! Cały czas się doskonalimy."
-                            3 -> "Dziękujemy, pracujemy nad nowymi funkcjami."
-                            else -> "Pracujemy nad tym, aby stacje działały jeszcze lepiej!"
+                            5 -> strings.rateRating5
+                            4 -> strings.rateRating4
+                            3 -> strings.rateRating3
+                            else -> strings.rateRatingDefault
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface,
@@ -982,7 +982,7 @@ fun RateAppDialog(onDismiss: () -> Unit) {
                                 uriHandler.openUri("https://play.google.com/store/apps/details?id=com.lumatech.voltup")
                             } catch (_: Exception) {}
                             onDismiss()
-                            SnackbarHelper.show("Dziękujemy za opinię w Google Play!")
+                            SnackbarHelper.show(strings.rateAppThankYou)
                         },
                         modifier = Modifier.fillMaxWidth().height(48.dp),
                         shape = CircleShape,

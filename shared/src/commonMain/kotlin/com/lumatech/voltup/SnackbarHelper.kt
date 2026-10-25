@@ -49,12 +49,72 @@ object SnackbarHelper {
 
     private var messageIdCounter = 0L
 
+    fun isEnglish(): Boolean {
+        return VoltUpStorage.getString(VoltUpPreferenceKeys.KEY_SAVED_LANGUAGE, "") == AppLanguage.ENGLISH.name
+    }
+
+    private val polishToEnglishMap = mapOf(
+        "Profil zaktualizowany." to "Profile updated.",
+        "Ustawienia przywrócone." to "Default settings restored.",
+        "Przywrócono ustawienia domyślne." to "Default settings restored.",
+        "Wylogowano z konta." to "Logged out successfully.",
+        "Twoje konto zostało usunięte." to "Your account has been deleted.",
+        "Sesja zakończona!" to "Workout completed!",
+        "Historia sesji została wyczyszczona." to "Workout history cleared.",
+        "Hasło zostało pomyślnie zmienione." to "Password changed successfully.",
+        "Dziękujemy za opinię w Google Play!" to "Thank you for your rating on Google Play!",
+        "Imię nie może być puste." to "Name cannot be empty.",
+        "Wprowadź dotychczasowe hasło." to "Enter current password.",
+        "Nowe hasło musi mieć co najmniej 6 znaków." to "New password must be at least 6 characters.",
+        "Nowe hasła nie są identyczne." to "New passwords do not match.",
+        "Nowe hasło musi być inne niż dotychczasowe." to "New password must be different from current password.",
+        "Nowe hasło musi być inne niż stare." to "New password must be different from current password.",
+        "Błąd zmiany hasła." to "Failed to change password.",
+        "Błąd usuwania konta." to "Failed to delete account.",
+        "Podaj adres e-mail oraz hasło." to "Please enter your email and password.",
+        "Podaj poprawny format adresu e-mail." to "Please enter a valid email address.",
+        "Wpisz poprawny adres e-mail." to "Please enter a valid email address.",
+        "Wprowadź poprawny adres e-mail." to "Please enter a valid email address.",
+        "Błąd logowania. Spróbuj ponownie." to "Login failed. Please try again.",
+        "Wpisz swoje imię lub pseudonim." to "Please enter your name or nickname.",
+        "Imię lub pseudonim może mieć maksymalnie 30 znaków." to "Name or nickname can have at most 30 characters.",
+        "Błąd rejestracji. Spróbuj ponownie." to "Registration failed. Please try again.",
+        "Wysłano ponownie! Sprawdź skrzynkę i SPAM." to "Sent again! Check your inbox and SPAM.",
+        "Nie udało się ponowić wysyłki." to "Failed to resend. Please try again.",
+        "Nie udało się wysłać linku. Sprawdź e-mail." to "Failed to send reset link. Check your email.",
+        "Archiwum zostało wyczyszczone." to "Archive cleared.",
+        "Kupon dodany do zakładki Moje Kody." to "Coupon added to My Coupons tab."
+    )
+
+    fun show(
+        polishText: String,
+        englishText: String,
+        type: SnackbarType = SnackbarType.SUCCESS,
+        icon: ImageVector? = null
+    ) {
+        show(if (isEnglish()) englishText else polishText, type, icon)
+    }
+
     fun show(
         text: String,
         type: SnackbarType = SnackbarType.SUCCESS,
         icon: ImageVector? = null
     ) {
-        val msg = SnackbarMessage(++messageIdCounter, text, type, icon)
+        val resolvedText = if (isEnglish()) {
+            polishToEnglishMap[text] ?: run {
+                if (text.startsWith("Witaj ponownie w VoltUp, ")) {
+                    text.replace("Witaj ponownie w VoltUp, ", "Welcome back to VoltUp, ")
+                } else if (text.startsWith("Konto utworzone! Witaj w VoltUp, ")) {
+                    text.replace("Konto utworzone! Witaj w VoltUp, ", "Account created! Welcome to VoltUp, ")
+                } else if (text.contains("pkt rankingu") && text.contains("VP!")) {
+                    text.replace("pkt rankingu", "rank pts")
+                } else {
+                    text
+                }
+            }
+        } else text
+
+        val msg = SnackbarMessage(++messageIdCounter, resolvedText, type, icon)
         if (_currentMessage.value == null) {
             _currentMessage.value = msg
         } else {

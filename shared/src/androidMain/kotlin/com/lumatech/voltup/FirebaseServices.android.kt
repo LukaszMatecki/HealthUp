@@ -153,16 +153,21 @@ class AndroidFirebaseAuthService : VoltUpAuthService {
         }
     }
 
+    private fun isEnglish(): Boolean {
+        val lang = VoltUpStorage.getString(VoltUpPreferenceKeys.KEY_SAVED_LANGUAGE, "")
+        return lang == "ENGLISH" || lang.equals("en", ignoreCase = true)
+    }
+
     override suspend fun signIn(email: String, password: String): AuthResult {
         val cleanEmail = email.trim()
         val cleanPass = password.trim()
         if (cleanEmail.isBlank() || cleanPass.isBlank()) {
-            return AuthResult(false, null, "Wypełnij wszystkie pola.")
+            return AuthResult(false, null, if (isEnglish()) "Please fill in all fields." else "Wypełnij wszystkie pola.")
         }
 
         return try {
             val result = auth.signInWithEmailAndPassword(cleanEmail, cleanPass).await()
-            val fbUser = result.user ?: return AuthResult(false, null, "Nie udało się pobrać konta.")
+            val fbUser = result.user ?: return AuthResult(false, null, if (isEnglish()) "Failed to load account." else "Nie udało się pobrać konta.")
 
             var voltUpUser = dbService.getUser(fbUser.uid)
             if (voltUpUser == null) {
@@ -202,15 +207,15 @@ class AndroidFirebaseAuthService : VoltUpAuthService {
         val cleanName = userName.trim()
 
         if (cleanEmail.isBlank() || cleanPass.isBlank() || cleanName.isBlank()) {
-            return AuthResult(false, null, "Uzupełnij wszystkie wymagane dane.")
+            return AuthResult(false, null, if (isEnglish()) "Please complete all required fields." else "Uzupełnij wszystkie wymagane dane.")
         }
         if (cleanPass.length < 6) {
-            return AuthResult(false, null, "Hasło musi mieć co najmniej 6 znaków.")
+            return AuthResult(false, null, if (isEnglish()) "Password must be at least 6 characters." else "Hasło musi mieć co najmniej 6 znaków.")
         }
 
         return try {
             val result = auth.createUserWithEmailAndPassword(cleanEmail, cleanPass).await()
-            val fbUser = result.user ?: return AuthResult(false, null, "Błąd tworzenia konta.")
+            val fbUser = result.user ?: return AuthResult(false, null, if (isEnglish()) "Error creating account." else "Błąd tworzenia konta.")
 
             val newUser = VoltUpUser(
                 userId = fbUser.uid,
@@ -260,11 +265,11 @@ class AndroidFirebaseAuthService : VoltUpAuthService {
         return try {
             val cleanEmail = email.trim()
             if (cleanEmail.isBlank()) {
-                return AuthResult(false, null, "Wprowadź adres e-mail.")
+                return AuthResult(false, null, if (isEnglish()) "Please enter an email address." else "Wprowadź adres e-mail.")
             }
             try {
                 val savedLang = VoltUpStorage.getString(VoltUpPreferenceKeys.KEY_SAVED_LANGUAGE, "pl")
-                auth.setLanguageCode(if (savedLang == "en") "en" else "pl")
+                auth.setLanguageCode(if (isEnglish()) "en" else "pl")
             } catch (_: Exception) {}
             auth.sendPasswordResetEmail(cleanEmail).await()
             AuthResult(isSuccess = true)
@@ -282,20 +287,20 @@ class AndroidFirebaseAuthService : VoltUpAuthService {
             val cleanOld = oldPassword.trim()
             val cleanNew = newPassword.trim()
             if (cleanOld.isBlank()) {
-                return AuthResult(false, null, "Wprowadź swoje dotychczasowe hasło.")
+                return AuthResult(false, null, if (isEnglish()) "Please enter your current password." else "Wprowadź swoje dotychczasowe hasło.")
             }
             if (cleanNew.length < 6) {
-                return AuthResult(false, null, "Nowe hasło musi zawierać co najmniej 6 znaków.")
+                return AuthResult(false, null, if (isEnglish()) "New password must contain at least 6 characters." else "Nowe hasło musi zawierać co najmniej 6 znaków.")
             }
-            val user = auth.currentUser ?: return AuthResult(false, null, "Brak zalogowanego użytkownika.")
-            val email = user.email ?: return AuthResult(false, null, "Brak przypisanego adresu e-mail.")
+            val user = auth.currentUser ?: return AuthResult(false, null, if (isEnglish()) "No logged in user." else "Brak zalogowanego użytkownika.")
+            val email = user.email ?: return AuthResult(false, null, if (isEnglish()) "No email associated with this account." else "Brak przypisanego adresu e-mail.")
 
             try {
                 val credential = EmailAuthProvider.getCredential(email, cleanOld)
                 user.reauthenticate(credential).await()
             } catch (e: Exception) {
                 Log.w(TAG, "Błędne dotychczasowe hasło: ${e.message}")
-                return AuthResult(false, null, "Aktualne hasło jest nieprawidłowe.")
+                return AuthResult(false, null, if (isEnglish()) "Current password is incorrect." else "Aktualne hasło jest nieprawidłowe.")
             }
 
             user.updatePassword(cleanNew).await()
@@ -310,19 +315,19 @@ class AndroidFirebaseAuthService : VoltUpAuthService {
     }
 
     override suspend fun updateProfile(userName: String, avatarId: Int): AuthResult {
-        val current = _currentUser.value ?: return AuthResult(false, null, "Brak aktywnej sesji.")
+        val current = _currentUser.value ?: return AuthResult(false, null, if (isEnglish()) "No active session." else "Brak aktywnej sesji.")
         val updated = current.copy(userName = userName.trim(), avatarId = avatarId)
         val success = dbService.saveUser(updated)
         if (success) {
             _currentUser.value = updated
             return AuthResult(true, updated)
         }
-        return AuthResult(false, null, "Nie udało się zaktualizować profilu.")
+        return AuthResult(false, null, if (isEnglish()) "Failed to update profile." else "Nie udało się zaktualizować profilu.")
     }
 
     override suspend fun deleteAccount(): AuthResult {
         return try {
-            val user = auth.currentUser ?: return AuthResult(false, null, "Brak aktywnej sesji użytkownika.")
+            val user = auth.currentUser ?: return AuthResult(false, null, if (isEnglish()) "No active user session." else "Brak aktywnej sesji użytkownika.")
             val uid = user.uid
 
             // 1. Najpierw usuwamy dane użytkownika z Firestore, póki sesja jest aktywna i posiada uprawnienia
@@ -340,7 +345,7 @@ class AndroidFirebaseAuthService : VoltUpAuthService {
         } catch (e: FirebaseAuthException) {
             Log.e(TAG, "Błąd usuwania konta: ${e.errorCode}")
             if (e.errorCode == "ERROR_REQUIRES_RECENT_LOGIN" || e.message?.contains("requires-recent-login", ignoreCase = true) == true) {
-                AuthResult(isSuccess = false, errorMessage = "Operacja wymaga ponownego zalogowania ze względów bezpieczeństwa. Wyloguj się i zaloguj ponownie przed usunięciem konta.")
+                AuthResult(isSuccess = false, errorMessage = if (isEnglish()) "This action requires recent authentication. Please sign in again before deleting your account." else "Operacja wymaga ponownego zalogowania ze względów bezpieczeństwa. Wyloguj się i zaloguj ponownie przed usunięciem konta.")
             } else {
                 AuthResult(isSuccess = false, errorMessage = mapFirebaseError(e))
             }
@@ -361,54 +366,56 @@ class AndroidFirebaseAuthService : VoltUpAuthService {
     }
 
     private fun mapFirebaseError(e: FirebaseAuthException): String {
+        val en = isEnglish()
         val msg = e.message.orEmpty()
         if (msg.contains("INVALID_LOGIN_CREDENTIALS", ignoreCase = true) || msg.contains("invalid-credential", ignoreCase = true)) {
-            return "Nieprawidłowy e-mail lub hasło (konto nie istnieje)."
+            return if (en) "Invalid email or password (account does not exist)." else "Nieprawidłowy e-mail lub hasło (konto nie istnieje)."
         }
         if (msg.contains("has not been used", ignoreCase = true) || msg.contains("identitytoolkit", ignoreCase = true)) {
-            return "Włącz usługę: W konsoli Firebase przejdź do Authentication i kliknij 'Rozpocznij' oraz włącz 'Adres e-mail/hasło'."
+            return if (en) "Enable service: In Firebase Console go to Authentication, click Get Started and enable Email/Password." else "Włącz usługę: W konsoli Firebase przejdź do Authentication i kliknij 'Rozpocznij' oraz włącz 'Adres e-mail/hasło'."
         }
         if (msg.contains("blocked", ignoreCase = true) || msg.contains("API_KEY_SERVICE_BLOCKED", ignoreCase = true)) {
-            return "Klucz API w Google Cloud blokuje Identity Toolkit. Odblokuj 'Identity Toolkit API' w Google Cloud Console dla klucza API projektu voltup-21c34."
+            return if (en) "API key in Google Cloud blocks Identity Toolkit. Unblock 'Identity Toolkit API' in Google Cloud Console." else "Klucz API w Google Cloud blokuje Identity Toolkit. Odblokuj 'Identity Toolkit API' w Google Cloud Console dla klucza API projektu voltup-21c34."
         }
         return when (e.errorCode) {
-            "ERROR_INVALID_EMAIL", "invalid-email" -> "Niepoprawny format adresu e-mail."
-            "ERROR_WRONG_PASSWORD", "wrong-password" -> "Nieprawidłowe hasło."
-            "ERROR_USER_NOT_FOUND", "user-not-found" -> "Konto z tym adresem e-mail nie istnieje."
-            "ERROR_INVALID_CREDENTIAL", "invalid-credential", "INVALID_LOGIN_CREDENTIALS" -> "Nieprawidłowy e-mail lub hasło (konto nie istnieje)."
-            "ERROR_USER_DISABLED", "user-disabled" -> "To konto zostało zablokowane."
-            "ERROR_TOO_MANY_REQUESTS", "too-many-requests" -> "Zbyt wiele prób. Spróbuj ponownie za chwilę."
-            "ERROR_EMAIL_ALREADY_IN_USE", "email-already-in-use" -> "Konto z tym adresem e-mail już istnieje. Zaloguj się."
-            "ERROR_WEAK_PASSWORD", "weak-password" -> "Hasło jest za słabe. Wymagane min. 6 znaków."
-            "ERROR_OPERATION_NOT_ALLOWED", "operation-not-allowed" -> "Logowanie e-mail/hasło nie jest włączone w Firebase Console."
+            "ERROR_INVALID_EMAIL", "invalid-email" -> if (en) "Invalid email address format." else "Niepoprawny format adresu e-mail."
+            "ERROR_WRONG_PASSWORD", "wrong-password" -> if (en) "Incorrect password." else "Nieprawidłowe hasło."
+            "ERROR_USER_NOT_FOUND", "user-not-found" -> if (en) "No account found with this email address." else "Konto z tym adresem e-mail nie istnieje."
+            "ERROR_INVALID_CREDENTIAL", "invalid-credential", "INVALID_LOGIN_CREDENTIALS" -> if (en) "Invalid email or password (account does not exist)." else "Nieprawidłowy e-mail lub hasło (konto nie istnieje)."
+            "ERROR_USER_DISABLED", "user-disabled" -> if (en) "This account has been disabled." else "To konto zostało zablokowane."
+            "ERROR_TOO_MANY_REQUESTS", "too-many-requests" -> if (en) "Too many attempts. Please try again later." else "Zbyt wiele prób. Spróbuj ponownie za chwilę."
+            "ERROR_EMAIL_ALREADY_IN_USE", "email-already-in-use" -> if (en) "An account with this email already exists. Please log in." else "Konto z tym adresem e-mail już istnieje. Zaloguj się."
+            "ERROR_WEAK_PASSWORD", "weak-password" -> if (en) "Password is too weak. Minimum 6 characters required." else "Hasło jest za słabe. Wymagane min. 6 znaków."
+            "ERROR_OPERATION_NOT_ALLOWED", "operation-not-allowed" -> if (en) "Email/Password sign-in is not enabled in Firebase Console." else "Logowanie e-mail/hasło nie jest włączone w Firebase Console."
             else -> {
                 if (e.errorCode.contains("INVALID_CREDENTIAL", ignoreCase = true)) {
-                    "Nieprawidłowy e-mail lub hasło (konto nie istnieje)."
+                    if (en) "Invalid email or password (account does not exist)." else "Nieprawidłowy e-mail lub hasło (konto nie istnieje)."
                 } else {
-                    e.localizedMessage ?: "Wystąpił błąd autoryzacji (${e.errorCode})."
+                    e.localizedMessage ?: if (en) "Authentication error occurred (${e.errorCode})." else "Wystąpił błąd autoryzacji (${e.errorCode})."
                 }
             }
         }
     }
 
     private fun mapGenericError(e: Exception): String {
+        val en = isEnglish()
         val msg = e.message.orEmpty()
         return when {
             msg.contains("INVALID_LOGIN_CREDENTIALS", ignoreCase = true) || msg.contains("invalid-credential", ignoreCase = true) ->
-                "Nieprawidłowy e-mail lub hasło (konto nie istnieje)."
+                if (en) "Invalid email or password (account does not exist)." else "Nieprawidłowy e-mail lub hasło (konto nie istnieje)."
             msg.contains("USER_NOT_FOUND", ignoreCase = true) || msg.contains("user-not-found", ignoreCase = true) ->
-                "Konto z tym adresem e-mail nie istnieje."
+                if (en) "No account found with this email address." else "Konto z tym adresem e-mail nie istnieje."
             msg.contains("EMAIL_ALREADY_IN_USE", ignoreCase = true) || msg.contains("email-already-in-use", ignoreCase = true) ->
-                "Konto z tym adresem e-mail już istnieje. Zaloguj się."
+                if (en) "An account with this email already exists. Please log in." else "Konto z tym adresem e-mail już istnieje. Zaloguj się."
             msg.contains("has not been used", ignoreCase = true) || msg.contains("identitytoolkit", ignoreCase = true) ->
-                "Włącz usługę: W konsoli Firebase przejdź do Authentication i kliknij 'Rozpocznij' oraz włącz 'Adres e-mail/hasło'."
+                if (en) "Enable service: In Firebase Console go to Authentication and enable Email/Password." else "Włącz usługę: W konsoli Firebase przejdź do Authentication i kliknij 'Rozpocznij' oraz włącz 'Adres e-mail/hasło'."
             msg.contains("API_KEY_SERVICE_BLOCKED", ignoreCase = true) || msg.contains("blocked", ignoreCase = true) ->
-                "Klucz API w Google Cloud blokuje Identity Toolkit. Odblokuj klucz w Google Cloud Console."
+                if (en) "API key in Google Cloud blocks Identity Toolkit. Unblock the key in Google Cloud Console." else "Klucz API w Google Cloud blokuje Identity Toolkit. Odblokuj klucz w Google Cloud Console."
             msg.contains("PERMISSION_DENIED", ignoreCase = true) ->
-                "Brak uprawnień bazy danych. Sprawdź reguły Firestore w konsoli Firebase."
+                if (en) "Database permission denied. Check Firestore rules in Firebase console." else "Brak uprawnień bazy danych. Sprawdź reguły Firestore w konsoli Firebase."
             msg.contains("network", ignoreCase = true) || msg.contains("timeout", ignoreCase = true) ->
-                "Błąd połączenia z siecią. Sprawdź dostęp do internetu."
-            else -> msg.ifBlank { "Wystąpił nieoczekiwany błąd. Spróbuj ponownie." }
+                if (en) "Network error. Please check your internet connection." else "Błąd połączenia z siecią. Sprawdź dostęp do internetu."
+            else -> msg.ifBlank { if (en) "An unexpected error occurred. Please try again." else "Wystąpił nieoczekiwany błąd. Spróbuj ponownie." }
         }
     }
 

@@ -604,7 +604,7 @@ fun ProfileScreen(
                     Button(
                         onClick = {
                             if (editName.isBlank()) {
-                                SnackbarHelper.show("Imię nie może być puste.")
+                                SnackbarHelper.show(strings.nameCannotBeEmpty)
                                 return@Button
                             }
                             onUpdateUserProfile(editName.trim(), editAvatar)

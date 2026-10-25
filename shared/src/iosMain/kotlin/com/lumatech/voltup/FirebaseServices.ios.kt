@@ -53,7 +53,8 @@ class IosMockAuthService : VoltUpAuthService {
     }
 
     override suspend fun updateProfile(userName: String, avatarId: Int): AuthResult {
-        val cur = _currentUser.value ?: return AuthResult(false, null, "Brak sesji")
+        val isEn = VoltUpStorage.getString(VoltUpPreferenceKeys.KEY_SAVED_LANGUAGE, "") == AppLanguage.ENGLISH.name
+        val cur = _currentUser.value ?: return AuthResult(false, null, if (isEn) "No active session." else "Brak sesji")
         val updated = cur.copy(userName = userName, avatarId = avatarId)
         _currentUser.value = updated
         return AuthResult(true, updated)

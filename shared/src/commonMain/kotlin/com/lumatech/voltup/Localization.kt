@@ -388,6 +388,38 @@ interface VoltUpStrings {
     val expandDetails: String
     val collapseDetails: String
     val levelPointsSuffix: String
+
+    val profileUpdated: String
+    val welcomeBackUser: (String) -> String
+    val accountCreatedUser: (String) -> String
+    val defaultSettingsRestored: String
+    val signedOutMessage: String
+    val accountDeletedMessage: String
+    val sessionFinishedMessage: String
+    val challengeRewardEarned: (Int, Int) -> String
+    val historyClearedMessage: String
+    val passwordChangedSuccess: String
+    val rateAppThankYou: String
+    val nameCannotBeEmpty: String
+    val enterCurrentPassword: String
+    val passwordMinLength: String
+    val passwordsDoNotMatch: String
+    val passwordMustBeDifferent: String
+    val passwordChangeError: String
+    val accountDeleteError: String
+    val emailAndPasswordRequired: String
+    val invalidEmailFormat: String
+    val loginFailedRetry: String
+    val enterNameOrNickname: String
+    val nameMaxLength: String
+    val registrationFailedRetry: String
+    val resendLinkSuccess: String
+    val resendLinkFailed: String
+    val resetLinkFailed: String
+    val rateRating5: String
+    val rateRating4: String
+    val rateRating3: String
+    val rateRatingDefault: String
 }
 
 object VoltUpPolishStrings : VoltUpStrings {
@@ -761,6 +793,38 @@ object VoltUpPolishStrings : VoltUpStrings {
     override val expandDetails = "Rozwiń"
     override val collapseDetails = "Zwiń"
     override val levelPointsSuffix = "pkt poziomu"
+
+    override val profileUpdated = "Profil zaktualizowany."
+    override val welcomeBackUser: (String) -> String = { "Witaj ponownie w VoltUp, $it!" }
+    override val accountCreatedUser: (String) -> String = { "Konto utworzone! Witaj w VoltUp, $it!" }
+    override val defaultSettingsRestored = "Przywrócono ustawienia domyślne."
+    override val signedOutMessage = "Wylogowano z konta."
+    override val accountDeletedMessage = "Twoje konto zostało usunięte."
+    override val sessionFinishedMessage = "Sesja zakończona!"
+    override val challengeRewardEarned: (Int, Int) -> String = { rank, vp -> "+$rank pkt rankingu, +$vp VP!" }
+    override val historyClearedMessage = "Historia sesji została wyczyszczona."
+    override val passwordChangedSuccess = "Hasło zostało pomyślnie zmienione."
+    override val rateAppThankYou = "Dziękujemy za opinię w Google Play!"
+    override val nameCannotBeEmpty = "Imię nie może być puste."
+    override val enterCurrentPassword = "Wprowadź dotychczasowe hasło."
+    override val passwordMinLength = "Nowe hasło musi mieć co najmniej 6 znaków."
+    override val passwordsDoNotMatch = "Nowe hasła nie są identyczne."
+    override val passwordMustBeDifferent = "Nowe hasło musi być inne niż dotychczasowe."
+    override val passwordChangeError = "Błąd zmiany hasła."
+    override val accountDeleteError = "Błąd usuwania konta."
+    override val emailAndPasswordRequired = "Podaj adres e-mail oraz hasło."
+    override val invalidEmailFormat = "Podaj poprawny format adresu e-mail."
+    override val loginFailedRetry = "Błąd logowania. Spróbuj ponownie."
+    override val enterNameOrNickname = "Wpisz swoje imię lub pseudonim."
+    override val nameMaxLength = "Imię lub pseudonim może mieć maksymalnie 30 znaków."
+    override val registrationFailedRetry = "Błąd rejestracji. Spróbuj ponownie."
+    override val resendLinkSuccess = "Wysłano ponownie! Sprawdź skrzynkę i SPAM."
+    override val resendLinkFailed = "Nie udało się ponowić wysyłki."
+    override val resetLinkFailed = "Nie udało się wysłać linku. Sprawdź e-mail."
+    override val rateRating5 = "Rewelacja! Dziękujemy za wsparcie!"
+    override val rateRating4 = "Bardzo dobrze! Cały czas się doskonalimy."
+    override val rateRating3 = "Dziękujemy, pracujemy nad nowymi funkcjami."
+    override val rateRatingDefault = "Pracujemy nad tym, aby stacje działały jeszcze lepiej!"
 }
 
 object VoltUpEnglishStrings : VoltUpStrings {
@@ -1134,4 +1198,36 @@ object VoltUpEnglishStrings : VoltUpStrings {
     override val expandDetails = "Expand"
     override val collapseDetails = "Collapse"
     override val levelPointsSuffix = "level pts"
+
+    override val profileUpdated = "Profile updated."
+    override val welcomeBackUser: (String) -> String = { "Welcome back to VoltUp, $it!" }
+    override val accountCreatedUser: (String) -> String = { "Account created! Welcome to VoltUp, $it!" }
+    override val defaultSettingsRestored = "Default settings restored."
+    override val signedOutMessage = "Logged out successfully."
+    override val accountDeletedMessage = "Your account has been deleted."
+    override val sessionFinishedMessage = "Workout completed!"
+    override val challengeRewardEarned: (Int, Int) -> String = { rank, vp -> "+$rank rank pts, +$vp VP!" }
+    override val historyClearedMessage = "Workout history cleared."
+    override val passwordChangedSuccess = "Password changed successfully."
+    override val rateAppThankYou = "Thank you for your rating on Google Play!"
+    override val nameCannotBeEmpty = "Name cannot be empty."
+    override val enterCurrentPassword = "Enter current password."
+    override val passwordMinLength = "New password must be at least 6 characters."
+    override val passwordsDoNotMatch = "New passwords do not match."
+    override val passwordMustBeDifferent = "New password must be different from current password."
+    override val passwordChangeError = "Failed to change password."
+    override val accountDeleteError = "Failed to delete account."
+    override val emailAndPasswordRequired = "Please enter your email and password."
+    override val invalidEmailFormat = "Please enter a valid email address."
+    override val loginFailedRetry = "Login failed. Please try again."
+    override val enterNameOrNickname = "Please enter your name or nickname."
+    override val nameMaxLength = "Name or nickname can have at most 30 characters."
+    override val registrationFailedRetry = "Registration failed. Please try again."
+    override val resendLinkSuccess = "Sent again! Check your inbox and SPAM."
+    override val resendLinkFailed = "Failed to resend. Please try again."
+    override val resetLinkFailed = "Failed to send reset link. Check your email."
+    override val rateRating5 = "Awesome! Thank you for your support!"
+    override val rateRating4 = "Very good! We are constantly improving."
+    override val rateRating3 = "Thank you! We are working on new features."
+    override val rateRatingDefault = "We are working to make stations work even better!"
 }

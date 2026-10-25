@@ -688,7 +688,7 @@ fun App(
                                 onNavigateToForgotPassword = { currentScreen = Screen.ForgotPassword },
                                 onLoginSuccess = { user ->
                                     currentScreen = Screen.Main
-                                    SnackbarHelper.show("Witaj ponownie w VoltUp, ${user.userName}!")
+                                    SnackbarHelper.show(polishText = "Witaj ponownie w VoltUp, ${user.userName}!", englishText = "Welcome back to VoltUp, ${user.userName}!")
                                 }
                             )
                         }
@@ -700,7 +700,7 @@ fun App(
                                 onRegisterSuccess = { user ->
                                     val onboardingCompleted = VoltUpStorage.getBoolean(VoltUpPreferenceKeys.KEY_ONBOARDING_COMPLETED, false)
                                     currentScreen = if (!onboardingCompleted) Screen.Onboarding else Screen.Main
-                                    SnackbarHelper.show("Konto utworzone! Witaj w VoltUp, ${user.userName}!")
+                                    SnackbarHelper.show(polishText = "Konto utworzone! Witaj w VoltUp, ${user.userName}!", englishText = "Account created! Welcome to VoltUp, ${user.userName}!")
                                 }
                             )
                         }
@@ -750,7 +750,7 @@ fun App(
                                     appSettings = defaultSettings
                                     VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_THEME, defaultSettings.themeMode.name)
                                     VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_LANGUAGE, defaultSettings.language.name)
-                                    SnackbarHelper.show("Ustawienia przywrócone.")
+                                    SnackbarHelper.show(polishText = "Przywrócono ustawienia domyślne.", englishText = "Default settings restored.")
                                 },
                                 authService = authService,
                                 userEmail = currentAuthUser?.email.orEmpty(),
@@ -760,7 +760,7 @@ fun App(
                                         VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_PASSWORD, "")
                                         authService.signOut()
                                         currentScreen = Screen.Login
-                                        SnackbarHelper.show("Wylogowano z konta.")
+                                        SnackbarHelper.show(polishText = "Wylogowano z konta.", englishText = "Logged out successfully.")
                                     }
                                 },
                                 onNavigateToManageAccount = {
@@ -794,7 +794,7 @@ fun App(
                                         authService.signOut()
                                         resetAppStateToDefaults()
                                         currentScreen = Screen.Login
-                                        SnackbarHelper.show("Wylogowano z konta.")
+                                        SnackbarHelper.show(polishText = "Wylogowano z konta.", englishText = "Logged out successfully.")
                                     }
                                 },
                                 onAccountDeleted = {
@@ -803,7 +803,7 @@ fun App(
                                     VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_EMAIL, "")
                                     resetAppStateToDefaults()
                                     currentScreen = Screen.Login
-                                    SnackbarHelper.show("Twoje konto zostało usunięte.")
+                                    SnackbarHelper.show(polishText = "Twoje konto zostało usunięte.", englishText = "Your account has been deleted.")
                                 }
                             )
                         }
@@ -965,7 +965,7 @@ fun App(
                                     }
 
                                     currentScreen = Screen.Main
-                                    SnackbarHelper.show("Sesja zakończona!", icon = Icons.Default.Check)
+                                    SnackbarHelper.show(polishText = "Sesja zakończona!", englishText = "Workout completed!", icon = Icons.Default.Check)
                                     if (evalResult.bonusPointsEarned > 0) {
                                         evalResult.levelUpMessages.forEach { achMsg ->
                                             SnackbarHelper.show(
@@ -1235,7 +1235,7 @@ fun App(
                                                             )
                                                         }
                                                     }
-                                                    SnackbarHelper.show("+${challenge.rankingPointsReward} pkt rankingu, +${challenge.voltPointsReward} VP!", icon = Icons.Default.EmojiEvents)
+                                                    SnackbarHelper.show(polishText = "+${challenge.rankingPointsReward} pkt rankingu, +${challenge.voltPointsReward} VP!", englishText = "+${challenge.rankingPointsReward} rank pts, +${challenge.voltPointsReward} VP!", icon = Icons.Default.EmojiEvents)
                                                 },
                                                 onUpdateUserProfile = { newName, newAvatarId ->
                                                     userStats = userStats.copy(
@@ -1247,7 +1247,7 @@ fun App(
                                                             authService.updateProfile(newName, newAvatarId)
                                                         }
                                                     }
-                                                    SnackbarHelper.show("Profil zaktualizowany.")
+                                                    SnackbarHelper.show(polishText = "Profil zaktualizowany.", englishText = "Profile updated.")
                                                     checkAndAwardAchievements("ach_profile_custom", true)
                                                 },
                                                 onOpenSettings = {
@@ -1268,7 +1268,7 @@ fun App(
                                                         authService.signOut()
                                                         resetAppStateToDefaults()
                                                         currentScreen = Screen.Login
-                                                        SnackbarHelper.show("Wylogowano z konta.")
+                                                        SnackbarHelper.show(polishText = "Wylogowano z konta.", englishText = "Logged out successfully.")
                                                     }
                                                 },
                                                 onTriggerAchievement = { key ->

@@ -46,6 +46,7 @@ fun LoginScreen(
     onNavigateToForgotPassword: () -> Unit,
     onLoginSuccess: (VoltUpUser) -> Unit
 ) {
+    val strings = strings
     val initialEmail = remember { VoltUpStorage.getString(VoltUpPreferenceKeys.KEY_SAVED_EMAIL, "") }
     val initialRememberMe = remember { VoltUpStorage.getBoolean(VoltUpPreferenceKeys.KEY_REMEMBER_ME, false) }
     val initialPassword = remember {
@@ -195,7 +196,7 @@ fun LoginScreen(
                             IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
                                 Icon(
                                     imageVector = if (isPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = if (isPasswordVisible) "Ukryj hasło" else "Pokaż hasło",
+                                    contentDescription = if (isPasswordVisible) (if (strings is VoltUpEnglishStrings) "Hide password" else "Ukryj hasło") else (if (strings is VoltUpEnglishStrings) "Show password" else "Pokaż hasło"),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -303,15 +304,15 @@ fun LoginScreen(
                             val cleanEmail = email.trim()
                             val cleanPassword = password.trim()
                             if (cleanEmail.isBlank() || cleanPassword.isBlank()) {
-                                errorMessage = "Podaj adres e-mail oraz hasło."
+                                errorMessage = strings.emailAndPasswordRequired
                                 return@Button
                             }
                             if (!EMAIL_REGEX.matches(cleanEmail)) {
-                                errorMessage = "Podaj poprawny format adresu e-mail."
+                                errorMessage = strings.invalidEmailFormat
                                 return@Button
                             }
                             if (cleanPassword.length < 6) {
-                                errorMessage = "Hasło musi mieć co najmniej 6 znaków."
+                                errorMessage = strings.passwordMinLength
                                 return@Button
                             }
                             isLoading = true
@@ -329,7 +330,7 @@ fun LoginScreen(
                                     }
                                     onLoginSuccess(result.user)
                                 } else {
-                                    errorMessage = result.errorMessage ?: "Błąd logowania. Spróbuj ponownie."
+                                    errorMessage = result.errorMessage ?: strings.loginFailedRetry
                                 }
                             }
                         },
@@ -395,6 +396,7 @@ fun RegisterScreen(
     onNavigateToLogin: () -> Unit,
     onRegisterSuccess: (VoltUpUser) -> Unit
 ) {
+    val strings = strings
     var userName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -686,23 +688,23 @@ fun RegisterScreen(
                             val cleanConfirm = confirmPassword.trim()
 
                             if (cleanName.isBlank()) {
-                                errorMessage = "Wpisz swoje imię lub pseudonim."
+                                errorMessage = strings.enterNameOrNickname
                                 return@Button
                             }
                             if (cleanName.length > 30) {
-                                errorMessage = "Imię lub pseudonim może mieć maksymalnie 30 znaków."
+                                errorMessage = strings.nameMaxLength
                                 return@Button
                             }
                             if (cleanEmail.isBlank() || !EMAIL_REGEX.matches(cleanEmail)) {
-                                errorMessage = "Wpisz poprawny adres e-mail."
+                                errorMessage = strings.invalidEmailFormat
                                 return@Button
                             }
                             if (cleanPass.length < 6) {
-                                errorMessage = "Hasło musi mieć co najmniej 6 znaków."
+                                errorMessage = strings.passwordMinLength
                                 return@Button
                             }
                             if (cleanPass != cleanConfirm) {
-                                errorMessage = "Hasła nie są identyczne."
+                                errorMessage = strings.passwordsDoNotMatch
                                 return@Button
                             }
 
@@ -722,7 +724,7 @@ fun RegisterScreen(
                                     VoltUpStorage.setString(VoltUpPreferenceKeys.KEY_SAVED_PASSWORD, cleanPass)
                                     onRegisterSuccess(result.user)
                                 } else {
-                                    errorMessage = result.errorMessage ?: "Błąd rejestracji. Spróbuj ponownie."
+                                    errorMessage = result.errorMessage ?: strings.registrationFailedRetry
                                 }
                             }
                         },
@@ -787,6 +789,7 @@ fun ForgotPasswordScreen(
     authService: VoltUpAuthService,
     onNavigateBack: () -> Unit
 ) {
+    val strings = strings
     var email by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var isSubmittedSuccess by remember { mutableStateOf(false) }
@@ -819,12 +822,12 @@ fun ForgotPasswordScreen(
                 IconButton(onClick = onNavigateBack) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Wróć",
+                        contentDescription = strings.back,
                         tint = MaterialTheme.colorScheme.onBackground
                     )
                 }
                 Text(
-                    text = "Resetowanie hasła",
+                    text = strings.forgotPasswordTitle,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
@@ -870,7 +873,7 @@ fun ForgotPasswordScreen(
                         }
 
                         Text(
-                            text = "Link w drodze!",
+                            text = if (strings is VoltUpEnglishStrings) "Reset link sent!" else "Link w drodze!",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -878,7 +881,7 @@ fun ForgotPasswordScreen(
                         )
 
                         Text(
-                            text = "Wysłaliśmy bezpieczny link do zresetowania hasła na podany adres e-mail:",
+                            text = if (strings is VoltUpEnglishStrings) "We have sent a secure link to reset your password to the email address:" else "Wysłaliśmy bezpieczny link do zresetowania hasła na podany adres e-mail:",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
@@ -933,14 +936,14 @@ fun ForgotPasswordScreen(
                                         modifier = Modifier.size(18.dp)
                                     )
                                     Text(
-                                        text = "Sprawdź folder SPAM lub Oferty",
+                                        text = if (strings is VoltUpEnglishStrings) "Check SPAM or Promotions folder" else "Sprawdź folder SPAM lub Oferty",
                                         style = MaterialTheme.typography.bodySmall,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
                                 Text(
-                                    text = "Automatyczne wiadomości z linkiem resetującym mogą trafić do folderu SPAM lub Oferty. Po znalezieniu e-maila kliknij „To nie jest spam”, aby link resetujący zadziałał w przeglądarce.",
+                                    text = if (strings is VoltUpEnglishStrings) "Automated reset messages might land in your SPAM or Promotions folder. If so, mark as 'Not Spam' so the reset link works in your browser." else "Automatyczne wiadomości z linkiem resetującym mogą trafić do folderu SPAM lub Oferty. Po znalezieniu e-maila kliknij „To nie jest spam”, aby link resetujący zadziałał w przeglądarce.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     lineHeight = 18.sp
@@ -973,9 +976,9 @@ fun ForgotPasswordScreen(
                                             val res = authService.sendPasswordReset(email.trim())
                                             isResending = false
                                             if (res.isSuccess) {
-                                                resendFeedback = "Wysłano ponownie! Sprawdź skrzynkę i SPAM."
+                                                resendFeedback = strings.resendLinkSuccess
                                             } else {
-                                                resendFeedback = res.errorMessage ?: "Nie udało się ponowić wysyłki."
+                                                resendFeedback = res.errorMessage ?: strings.resendLinkFailed
                                             }
                                         }
                                     }
@@ -999,7 +1002,7 @@ fun ForgotPasswordScreen(
                                     Spacer(modifier = Modifier.width(6.dp))
                                 }
                                 Text(
-                                    text = if (isResending) "Wysyłanie..." else "Nie otrzymałeś? Wyślij link ponownie",
+                                    text = if (isResending) (if (strings is VoltUpEnglishStrings) "Sending..." else "Wysyłanie...") else (if (strings is VoltUpEnglishStrings) "Didn't receive it? Resend link" else "Nie otrzymałeś? Wyślij link ponownie"),
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = primaryColor
@@ -1016,7 +1019,7 @@ fun ForgotPasswordScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
                         ) {
                             Text(
-                                text = "Wróć do logowania",
+                                text = strings.backToLogin,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onPrimary
                             )
@@ -1118,7 +1121,7 @@ fun ForgotPasswordScreen(
                                 focusManager.clearFocus()
                                 val cleanEmail = email.trim()
                                 if (cleanEmail.isBlank() || !EMAIL_REGEX.matches(cleanEmail)) {
-                                    errorMessage = "Wprowadź poprawny adres e-mail."
+                                    errorMessage = strings.invalidEmailFormat
                                     return@Button
                                 }
                                 isLoading = true
@@ -1129,7 +1132,7 @@ fun ForgotPasswordScreen(
                                     if (result.isSuccess) {
                                         isSubmittedSuccess = true
                                     } else {
-                                        errorMessage = result.errorMessage ?: "Nie udało się wysłać linku. Sprawdź e-mail."
+                                        errorMessage = result.errorMessage ?: strings.resetLinkFailed
                                     }
                                 }
                             },
@@ -1170,6 +1173,7 @@ fun ChangePasswordDialog(
     onDismiss: () -> Unit,
     onSuccess: () -> Unit
 ) {
+    val strings = strings
     var oldPassword by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -1281,7 +1285,7 @@ fun ChangePasswordDialog(
             Button(
                 onClick = {
                     if (oldPassword.isBlank()) {
-                        errorMessage = "Wprowadź dotychczasowe hasło."
+                        errorMessage = strings.enterCurrentPassword
                         return@Button
                     }
                     if (newPassword.length < 6) {
@@ -1289,11 +1293,11 @@ fun ChangePasswordDialog(
                         return@Button
                     }
                     if (newPassword != confirmPassword) {
-                        errorMessage = "Nowe hasła nie są identyczne."
+                        errorMessage = strings.passwordsDoNotMatch
                         return@Button
                     }
                     if (oldPassword == newPassword) {
-                        errorMessage = "Nowe hasło musi być inne niż stare."
+                        errorMessage = strings.passwordMustBeDifferent
                         return@Button
                     }
 
@@ -1305,7 +1309,7 @@ fun ChangePasswordDialog(
                         if (result.isSuccess) {
                             onSuccess()
                         } else {
-                            errorMessage = result.errorMessage ?: "Błąd zmiany hasła."
+                            errorMessage = result.errorMessage ?: strings.passwordChangeError
                         }
                     }
                 },

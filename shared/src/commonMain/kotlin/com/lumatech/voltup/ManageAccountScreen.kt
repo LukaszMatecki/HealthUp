@@ -330,14 +330,14 @@ fun ManageAccountScreen(
                     }
 
                     Text(
-                        text = "Zmień hasło",
+                        text = strings.changePasswordDialogTitle,
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp,
                         color = MaterialTheme.colorScheme.onSurface
                     )
 
                     Text(
-                        text = "Wprowadź dotychczasowe hasło oraz nowe bezpieczne hasło (minimum 6 znaków).",
+                        text = strings.changePasswordHelpText,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
@@ -346,7 +346,7 @@ fun ManageAccountScreen(
                     OutlinedTextField(
                         value = oldPasswordText,
                         onValueChange = { oldPasswordText = it },
-                        label = { Text("Dotychczasowe hasło") },
+                        label = { Text(strings.oldPasswordLabel) },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         shape = RoundedCornerShape(14.dp),
@@ -366,7 +366,7 @@ fun ManageAccountScreen(
                     OutlinedTextField(
                         value = newPasswordText,
                         onValueChange = { newPasswordText = it },
-                        label = { Text("Nowe hasło") },
+                        label = { Text(strings.newPasswordLabel) },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         shape = RoundedCornerShape(14.dp),
@@ -386,7 +386,7 @@ fun ManageAccountScreen(
                     OutlinedTextField(
                         value = repeatNewPasswordText,
                         onValueChange = { repeatNewPasswordText = it },
-                        label = { Text("Powtórz nowe hasło") },
+                        label = { Text(strings.confirmNewPasswordLabel) },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         shape = RoundedCornerShape(14.dp),
@@ -416,19 +416,19 @@ fun ManageAccountScreen(
                                 val cleanRepeat = repeatNewPasswordText.trim()
 
                                 if (cleanOld.isBlank()) {
-                                    SnackbarHelper.show("Wprowadź dotychczasowe hasło.")
+                                    SnackbarHelper.show(strings.enterCurrentPassword)
                                     return@Button
                                 }
                                 if (cleanNew.length < 6) {
-                                    SnackbarHelper.show("Nowe hasło musi mieć co najmniej 6 znaków.")
+                                    SnackbarHelper.show(strings.passwordMinLength)
                                     return@Button
                                 }
                                 if (cleanNew != cleanRepeat) {
-                                    SnackbarHelper.show("Nowe hasła nie są identyczne.")
+                                    SnackbarHelper.show(strings.passwordsDoNotMatch)
                                     return@Button
                                 }
                                 if (cleanOld == cleanNew) {
-                                    SnackbarHelper.show("Nowe hasło musi być inne niż dotychczasowe.")
+                                    SnackbarHelper.show(strings.passwordMustBeDifferent)
                                     return@Button
                                 }
 
@@ -442,9 +442,9 @@ fun ManageAccountScreen(
                                             oldPasswordText = ""
                                             newPasswordText = ""
                                             repeatNewPasswordText = ""
-                                            SnackbarHelper.show("Hasło zostało pomyślnie zmienione.")
+                                            SnackbarHelper.show(strings.passwordChangedSuccess)
                                         } else {
-                                            SnackbarHelper.show(res.errorMessage ?: "Błąd zmiany hasła.")
+                                            SnackbarHelper.show(res.errorMessage ?: strings.passwordChangeError)
                                         }
                                     }
                                 }
@@ -457,7 +457,7 @@ fun ManageAccountScreen(
                             shape = CircleShape
                         ) {
                             Text(
-                                text = if (isChangingPassword) "Weryfikacja..." else "Zapisz nowe hasło",
+                                text = if (isChangingPassword) (if (isEnglish) "Verifying..." else "Weryfikacja...") else strings.saveNewPasswordBtn,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp
                             )
@@ -630,7 +630,7 @@ fun ManageAccountScreen(
                                             showDeleteAccountDialog = false
                                             onAccountDeleted()
                                         } else {
-                                            SnackbarHelper.show(res.errorMessage ?: "Błąd usuwania konta.")
+                                            SnackbarHelper.show(res.errorMessage ?: strings.accountDeleteError)
                                         }
                                     }
                                 }
