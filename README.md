@@ -130,7 +130,7 @@ Wszystkie ekrany zostały zaprojektowane zgodnie z wytycznymi Material Design 3 
 
 <p align="center">
   <img src="voltup_screens/z_ramka/ciemny/11_Katalog_Nagrod_ciemny_ramka.png" width="31%" alt="Katalog Nagród" />
-  <img src="voltup_screens/z_ramka/ciemny/12_Nagrody_Moje_Kody_Aktywne_ciemny_ramka.png" width="31%" alt="Moje Kody i Vouchery" />
+  <img src="voltup_screens/z_ramka/ciemny/13_Nagrody_Archiwum_I_Uzyte_ciemny_ramka.png" width="31%" alt="Moje Kody i Vouchery" />
   <img src="voltup_screens/z_ramka/ciemny/14_Profil_Uzytkownika_ciemny_ramka.png" width="31%" alt="Profil Użytkownika" />
 </p>
 <p align="center">
