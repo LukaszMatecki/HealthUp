@@ -113,12 +113,10 @@ jobs:
             PATH="$JAVA_HOME/bin:$PATH"
 
           APP_PATH=$(find build/device/Build/Products -name "*.app" -type d | head -n 1)
-          echo "Found app at: $APP_PATH"
+          echo "Found device app at: $APP_PATH"
           mkdir -p build/ipa/Payload
           cp -r "$APP_PATH" build/ipa/Payload/
-          cd build/ipa
-          zip -qr VoltUp-iOS-Device.ipa Payload
-          cd ../..
+          (cd build/ipa && zip -qr "$GITHUB_WORKSPACE/VoltUp-iOS-Device.ipa" Payload)
 
       - name: Build iOS App for Simulator
         run: |
@@ -137,15 +135,17 @@ jobs:
 
           SIM_APP_PATH=$(find build/simulator/Build/Products -name "*.app" -type d | head -n 1)
           echo "Found simulator app at: $SIM_APP_PATH"
-          cd "$(dirname "$SIM_APP_PATH")"
-          zip -qr ../../../../VoltUp-iOS-Simulator.app.zip "$(basename "$SIM_APP_PATH")"
-          cd ../../../..
+          APP_DIR=$(dirname "$SIM_APP_PATH")
+          APP_NAME=$(basename "$SIM_APP_PATH")
+          (cd "$APP_DIR" && zip -qr "$GITHUB_WORKSPACE/VoltUp-iOS-Simulator.app.zip" "$APP_NAME")
 
       - name: Organize iOS Artifacts
         run: |
           mkdir -p build/release-assets
-          cp build/ipa/VoltUp-iOS-Device.ipa build/release-assets/VoltUp-iOS-Device.ipa
-          cp VoltUp-iOS-Simulator.app.zip build/release-assets/VoltUp-iOS-Simulator.app.zip
+          cp "$GITHUB_WORKSPACE/VoltUp-iOS-Device.ipa" build/release-assets/VoltUp-iOS-Device.ipa
+          cp "$GITHUB_WORKSPACE/VoltUp-iOS-Simulator.app.zip" build/release-assets/VoltUp-iOS-Simulator.app.zip
+          echo "Organized release assets:"
+          ls -la build/release-assets/
 
       - name: Upload iOS Artifacts
         uses: actions/upload-artifact@v4
