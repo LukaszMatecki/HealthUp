@@ -187,9 +187,6 @@ VoltUp/
 │       ├── ciemny/
 │       └── jasny/
 │
-├── voltup_recordings/
-│   └── VoltUp_Walkthrough_Pixel9Pro_ciemny.mp4
-│
 └── shared/
     └── src/
         ├── commonMain/kotlin/com/lumatech/voltup/
