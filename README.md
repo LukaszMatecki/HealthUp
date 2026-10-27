@@ -27,17 +27,47 @@
 
 ## Spis Treści
 
-1. [Architektura KMP i współdzielenie kodu](#architektura-kmp-i-współdzielenie-kodu)
-2. [Przepływ danych](#przepływ-danych)
-3. [Główne moduły aplikacji](#główne-moduły-aplikacji)
-4. [Prezentacja wizualna (zrzuty ekranu)](#prezentacja-wizualna)
-5. [Struktura projektu](#struktura-projektu)
-6. [Wykorzystane technologie i biblioteki](#wykorzystane-technologie-i-biblioteki)
-7. [Uruchomienie projektu i testy](#uruchomienie-projektu-i-testy)
-8. [Pobieranie aplikacji i wydania (GitHub Releases)](#pobieranie-aplikacji-i-wydania)
-9. [Usługi chmurowe Firebase](#usługi-chmurowe-firebase)
-10. [Licencja](#licencja)
-11. [Executive Summary (English)](#table-of-contents)
+1. [Idea i misja: Łódź HealthUp](#idea-i-misja-projektu)
+2. [Architektura KMP i współdzielenie kodu](#architektura-kmp-i-współdzielenie-kodu)
+3. [Przepływ danych](#przepływ-danych)
+4. [Główne moduły aplikacji](#główne-moduły-aplikacji)
+5. [Prezentacja wizualna (zrzuty ekranu)](#prezentacja-wizualna)
+6. [Struktura projektu](#struktura-projektu)
+7. [Wykorzystane technologie i biblioteki](#wykorzystane-technologie-i-biblioteki)
+8. [Uruchomienie projektu i testy](#uruchomienie-projektu-i-testy)
+9. [Pobieranie aplikacji i wydania (GitHub Releases)](#pobieranie-aplikacji-i-wydania)
+10. [Usługi chmurowe Firebase](#usługi-chmurowe-firebase)
+11. [Licencja](#licencja)
+12. [Executive Summary (English)](#table-of-contents)
+
+---
+
+<a id="idea-i-misja-projektu"></a>
+
+## Idea i misja: Łódź HealthUp – Miejski system zdrowia i ruchu
+
+> **„Zdrowie jest naszym celem, a energia z ćwiczeń jest mechaniką służącą do jego pomiaru.”**  
+> Łódź oferuje wiele zielonych przestrzeni do rekreacji, jednak brakuje systemowego podejścia do budowania trwałych, zdrowych nawyków.
+
+### Na czym polega nasz pomysł i jaki problem rozwiązuje?
+Głównym problemem jest słabsza kondycja zdrowotna mieszkańców, brak trwałej motywacji do regularnych ćwiczeń oraz niewystarczająca ilość codziennego ruchu. Przez to ogromny potencjał ponad 120 miejskich siłowni zewnętrznych w łódzkich parkach pozostaje w dużej mierze niewykorzystany.
+
+Naszym rozwiązaniem jest **HealthUp** – miejski system motywacji, który łączy siłownie plenerowe z dedykowaną aplikacją mobilną. Wygenerowana podczas treningu energia służy do precyzyjnego pomiaru wysiłku i postępów (Proof-of-Effort), stając się napędem do dbania o własną formę i zdrowie.
+
+### Jak to działa w praktyce?
+System opiera się na budowaniu regularności poprzez przyjazną grywalizację:
+1. **Znajdź stację w swojej okolicy:** Otwórz intuicyjną mapę i zeskanuj kod QR na urządzeniu w parku.  
+2. **Ćwicz i obserwuj sesję na żywo:** Sprawdzaj spalone kalorie, czas i tempo w czytelnym interfejsie aplikacji.  
+3. **Zbieraj punkty HealthPoints:** Zyskuj punkty za aktywność i śledź historię swoich osobistych postępów.  
+4. **Zdobywaj motywujące nagrody:** Wymieniaj punkty na bezpłatne bilety MPK Łódź, wejściówki do Aquaparku Fala, EC1 oraz benefity od lokalnych partnerów.  
+5. **Angażuj się we wspólne cele:** Odkrywaj odznaki, awansuj w rankingu i bierz udział w wyzwaniach miejskiej społeczności.  
+
+### Dla kogo jest ten projekt i dlaczego warto go zrealizować?
+Projekt został stworzony dla mało aktywnych mieszkańców Łodzi w każdym wieku: od osób początkujących po tych, którzy pragną bezpiecznie powrócić do regularnego ruchu na świeżym powietrzu.
+
+Głównym celem jest zachęcenie łodzian do częstszej aktywności fizycznej, poprawa ich mobilności i wydolności oraz tchnięcie nowego życia w miejskie siłownie plenerowe.
+
+> **Doładuj swoje zdrowie, doładuj Łódź!**
 
 ---
 
