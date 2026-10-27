@@ -92,7 +92,7 @@ Trzydzieści osiągnięć z wieloma poziomami zaawansowania, odnawialne wyzwania
 ## Logo aplikacji
 
 <p align="center">
-  <img src="voltup_app_icon.png" width="128" height="128" alt="Logo aplikacji HealthUp" />
+  <img src="healthup_app_icon.png" width="128" height="128" alt="Logo aplikacji HealthUp" />
 </p>
 <p align="center">
   <em>Oficjalna ikona aplikacji HealthUp</em>
