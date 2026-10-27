@@ -14,7 +14,7 @@
   </a>
 </p>
 
-# HealthUp: Miejski Ekosystem Zdrowia i Mikronagród
+# HealthUp: Miejski system Zdrowia i ruchu
 
 <a id="wersja-polska"></a>
 
@@ -325,7 +325,7 @@ Projekt HealthUp jest udostępniany na warunkach licencji **MIT**. Szczegóły z
 <a id="table-of-contents"></a>
 <a id="english-version"></a>
 
-# HealthUp: Urban Health Gamification & Micro-Rewards (Health Shift)
+# HealthUp: Urban Health and Movement System
 
 HealthUp is a cross-platform mobile solution built with **Kotlin Multiplatform** and **Compose Multiplatform**. It bridges urban outdoor workout infrastructure with preventive cardio health, gamification, and municipal micro-rewards across the Lodz metropolitan area.
 
