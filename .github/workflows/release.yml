@@ -53,7 +53,11 @@ jobs:
         run: |
           mkdir -p build/release-assets
           cp androidApp/build/outputs/apk/debug/androidApp-debug.apk build/release-assets/HealthUp-Android-debug.apk
-          cp androidApp/build/outputs/apk/release/androidApp-release-unsigned.apk build/release-assets/HealthUp-Android-release-unsigned.apk
+          if [ -f androidApp/build/outputs/apk/release/androidApp-release.apk ]; then
+            cp androidApp/build/outputs/apk/release/androidApp-release.apk build/release-assets/HealthUp-Android-release.apk
+          elif [ -f androidApp/build/outputs/apk/release/androidApp-release-unsigned.apk ]; then
+            cp androidApp/build/outputs/apk/release/androidApp-release-unsigned.apk build/release-assets/HealthUp-Android-release-unsigned.apk
+          fi
           cp androidApp/build/outputs/bundle/release/androidApp-release.aab build/release-assets/HealthUp-Android-release.aab
 
       - name: Upload Android Artifacts

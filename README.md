@@ -279,7 +279,7 @@ Każde wydanie zawiera kompletny zestaw gotowych pakietów instalacyjnych:
 | Nazwa pliku | Platforma | Format | Przeznaczenie |
 | :--- | :--- | :--- | :--- |
 | **`HealthUp-Android-debug.apk`** | Android | APK | **Zalecany do testów:** Gotowy do natychmiastowej instalacji na smartfonie Android (podpisany kluczem debugującym). |
-| **`HealthUp-Android-release-unsigned.apk`** | Android | APK | Zoptymalizowany pakiet Release pod kątem wydajności i minimalnego rozmiaru. |
+| **`HealthUp-Android-release.apk`** | Android | APK | Zoptymalizowany i podpisany pakiet produkcyjny Release, gotowy do natychmiastowej instalacji. |
 | **`HealthUp-Android-release.aab`** | Android | AAB | Oficjalny format Android App Bundle gotowy do publikacji w Google Play Console. |
 | **`HealthUp-iOS-Device.ipa`** | iOS | IPA | Paczka instalacyjna dla fizycznych urządzeń iPhone (instalacja przez AltStore, Sideloadly lub Apple Configurator). |
 | **`HealthUp-iOS-Simulator.app.zip`** | iOS Simulator | ZIP / .app | Paczka dla symulatorów Xcode (instalacja metodą drag-and-drop na okno symulatora). |
@@ -400,7 +400,7 @@ Binary packages for Android and iOS are automatically compiled and published wit
 | Asset | Platform | Type | Note |
 | :--- | :--- | :--- | :--- |
 | **`HealthUp-Android-debug.apk`** | Android | APK | **Recommended for quick testing:** Pre-signed with debug key, installs directly on devices. |
-| **`HealthUp-Android-release-unsigned.apk`** | Android | APK | Production release binary optimized for performance. |
+| **`HealthUp-Android-release.apk`** | Android | APK | Production release binary, optimized and pre-signed for immediate installation. |
 | **`HealthUp-Android-release.aab`** | Android | AAB | Official Android App Bundle ready for Google Play Store upload. |
 | **`HealthUp-iOS-Device.ipa`** | iOS | IPA | Packaged application for physical iOS devices (AltStore / Sideloadly / TestFlight). |
 | **`HealthUp-iOS-Simulator.app.zip`** | iOS Simulator | ZIP / .app | Packaged application for Xcode Simulator drag-and-drop installation. |

@@ -277,6 +277,8 @@ class VoltUpScreenshotRunner:
         print_info("Aplikacja nie jest zainstalowana. Poszukiwanie pliku APK...")
         candidate_apks = [
             self.root_dir / "androidApp" / "build" / "outputs" / "apk" / "debug" / "androidApp-debug.apk",
+            self.root_dir / "HealthUp_Builds" / "HealthUp-Android-debug.apk",
+            self.root_dir / "HealthUp_Builds" / "HealthUp-Android-release.apk",
             self.root_dir / "VoltUp_Builds" / "VoltUp-debug.apk",
             self.root_dir / "VoltUp_Builds" / "VoltUp-release-unsigned.apk",
         ]
