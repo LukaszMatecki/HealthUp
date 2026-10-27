@@ -189,12 +189,12 @@ private fun FaqTabContent() {
                     GuideStepRow(
                         "3",
                         if (isEnglish) "Move gently at your own pace" else "Ćwicz we własnym tempie",
-                        if (isEnglish) "15–20 minutes of mild exercise improves heart health and mobility. The built-in generator measures your calories and minutes." else "Spokojny 15-minutowy ruch dotlenia organizm i poprawia krążenie. Kinetostacja zlicza Twój wysiłek, spalone kalorie i czas."
+                        if (isEnglish) "Around 15 to 20 minutes of mild exercise improves heart health and mobility. The built-in generator measures your calories and minutes." else "Spokojne 15 minut ruchu dotlenia organizm i poprawia krążenie. Kinetostacja zlicza Twój wysiłek, spalone kalorie i czas."
                     )
                     GuideStepRow(
                         "4",
                         if (isEnglish) "Claim MPK transit tickets & perks" else "Odbieraj darmowe bilety MPK",
-                        if (isEnglish) "Exchange earned HealthPoints for free MPK-Łódź public transit tickets, discounts to Fala aquapark, and local cafes." else "Wymieniaj zdobyte HealthPoints na bezpłatne bilety MPK-Łódź, wejściówki do Aquaparku Fala, EC1 i zniżki w lokalnych kawiarniach."
+                        if (isEnglish) "Exchange earned HealthPoints for free MPK Łódź public transit tickets, discounts to Fala aquapark, and local cafes." else "Wymieniaj zdobyte HealthPoints na bezpłatne bilety MPK Łódź, wejściówki do Aquaparku Fala, EC1 i zniżki w lokalnych kawiarniach."
                     )
                 }
             }
@@ -214,27 +214,27 @@ private fun FaqTabContent() {
         val faqItems = if (isEnglish) listOf(
             FaqItemData(
                 question = "App Idea",
-                answer = "HealthUp was created in Łódź to encourage residents — particularly seniors and people aged 50+ — to adopt regular, safe outdoor physical activity. Over 60% of Łódź citizens do not meet the minimum WHO physical activity recommendations, and outdoor gyms often sit empty due to lack of motivation.\n\nHealthUp gives movement a tangible purpose: kinetic outdoor gym machines measure your minutes and calories, awarding HealthPoints. You can redeem these points for free MPK-Łódź transit tickets and city discounts. While machines generate small amounts of electricity to light the station, the true mission is cardiovascular health, vitality, and mobility for all generations."
+                answer = "HealthUp was created in Łódź to encourage residents, particularly seniors and people aged 50+, to adopt regular and safe outdoor physical activity. Over 60% of Łódź citizens do not meet the minimum WHO physical activity recommendations, and outdoor gyms often sit empty due to lack of motivation.\n\nHealthUp gives movement a tangible purpose: kinetic outdoor gym machines measure your minutes and calories, awarding HealthPoints. You can redeem these points for free MPK Łódź transit tickets and city discounts. While machines generate small amounts of electricity to light the station, the true mission is cardiovascular health, vitality, and mobility for all generations."
             ),
             FaqItemData(
                 question = "Workout Safety",
-                answer = "Yes, 100%! The kinetic equipment in Łódź parks (such as recumbent cycles with ergonomic back support and low-impact steppers) provides smooth, guided movement without heavy weights or joint strain. You exercise at a relaxed walking pace and can pause or rest at any moment."
+                answer = "Yes, 100%! The kinetic equipment in Łódź parks (such as recumbent cycles with ergonomic back support and gentle steppers) provides smooth, guided movement without heavy weights or joint strain. You exercise at a relaxed walking pace and can pause or rest at any moment."
             ),
             FaqItemData(
                 question = "Training Intensity",
-                answer = "Absolutely not! HealthUp rewards consistency and gentle aerobic movement in the heart-health zone, rather than athletic exhaustion. 15 to 20 minutes of relaxed pedaling per day is all you need to steadily accumulate points for transit tickets."
+                answer = "Absolutely not! HealthUp rewards consistency and gentle aerobic movement in the healthy heart zone, rather than athletic exhaustion. Around 15 to 20 minutes of relaxed pedaling per day is all you need to steadily accumulate points for transit tickets."
             ),
             FaqItemData(
                 question = "Energy & City Power",
-                answer = "Physics dictates that an exercising adult generates about 50–100 Watts of electrical power. One hour of effort produces ~0.06 kWh (worth a few cents), which cannot realistically power city districts. In HealthUp, this electricity illuminates the station and powers public USB ports, but its main role is a tamper-proof meter of effort. The real municipal value is citizen health and chronic disease prevention."
+                answer = "Physics dictates that an exercising adult generates about 50 to 100 Watts of electrical power. One hour of effort produces ~0.06 kWh (worth a few cents), which cannot realistically power city districts. In HealthUp, this electricity illuminates the station and powers public USB ports, while serving as a reliable meter of effort. The real municipal value is citizen health and chronic disease prevention."
             ),
             FaqItemData(
                 question = "Free MPK Tickets",
-                answer = "Navigate to 'Rewards' and select the MPK-Łódź 20-minute ticket. Tap 'Redeem' and it will be stored in 'My Coupons'. When boarding a bus or tram, tap 'Tap to activate' to reveal your official validation code and a 20-minute countdown timer to present during ticket inspection."
+                answer = "Navigate to 'Rewards' and select the MPK Łódź 20 minute ticket. Tap 'Redeem' and it will be stored in 'My Coupons'. When boarding a bus or tram, tap 'Tap to activate' to reveal your official validation code and a 20 minute countdown timer to present during ticket inspection."
             ),
             FaqItemData(
                 question = "Required Equipment",
-                answer = "No. Any basic smartphone works. You don't need smartwatches or chest straps — the kinetic station sensors automatically track your RPM, resistance, and duration directly."
+                answer = "No. Any basic smartphone works. You do not need smartwatches or chest straps, because the kinetic station sensors automatically track your RPM, resistance, and duration directly."
             ),
             FaqItemData(
                 question = "GPS Location",
@@ -242,7 +242,7 @@ private fun FaqTabContent() {
             ),
             FaqItemData(
                 question = "Points & Ranking",
-                answer = "Ranking points (XP) reflect your long-term engagement and community milestones in Łódź. HealthPoints are your spending balance in the app wallet, used to redeem transit tickets and merchant discounts."
+                answer = "Ranking points (XP) reflect your long term engagement and community milestones in Łódź. HealthPoints are your spending balance in the app wallet, used to redeem transit tickets and merchant discounts."
             ),
             FaqItemData(
                 question = "QR Code Issues",
@@ -251,7 +251,7 @@ private fun FaqTabContent() {
         ) else listOf(
             FaqItemData(
                 question = "Idea aplikacji",
-                answer = "HealthUp powstał w Łodzi, aby odwrócić negatywne trendy zdrowotne i zachęcić mieszkańców – w szczególności osoby w wieku 50+ oraz seniorów – do regularnego, bezpiecznego ruchu na świeżym powietrzu. Ponad 60% łodzian nie osiąga minimalnej normy aktywności fizycznej zalecanej przez WHO, a tradycyjne siłownie plenerowe w parkach często stoją puste z braku motywacji.\n\nHealthUp nadaje ruchowi cel: maszyny wyposażone w małe prądnice zliczają spalone kalorie i czas aktywności, zamieniając je na punkty HealthPoints. Te punkty wymieniasz na darmowe bilety MPK-Łódź, wejściówki do Aquaparku Fala, EC1 czy zniżki na zdrowy obiad. Wygenerowana energia to symboliczny dowód wysiłku i zasilenie stacji – prawdziwym sercem projektu jest Twoje serce, stawy i lepsze samopoczucie!"
+                answer = "HealthUp powstał w Łodzi, aby odwrócić negatywne trendy zdrowotne i zachęcić mieszkańców, w szczególności osoby w wieku 50+ oraz seniorów, do regularnego, bezpiecznego ruchu na świeżym powietrzu. Ponad 60% łodzian nie osiąga minimalnej normy aktywności fizycznej zalecanej przez WHO, a tradycyjne siłownie plenerowe w parkach często stoją puste z braku motywacji.\n\nHealthUp nadaje ruchowi cel: maszyny wyposażone w małe prądnice zliczają spalone kalorie i czas aktywności, zamieniając je na punkty HealthPoints. Te punkty wymieniasz na darmowe bilety MPK Łódź, wejściówki do Aquaparku Fala, EC1 czy zniżki na zdrowy obiad. Wygenerowana energia to symboliczny dowód wysiłku i zasilenie stacji, a prawdziwym sercem projektu jest Twoje zdrowie, stawy i lepsze samopoczucie!"
             ),
             FaqItemData(
                 question = "Bezpieczeństwo ćwiczeń",
@@ -259,19 +259,19 @@ private fun FaqTabContent() {
             ),
             FaqItemData(
                 question = "Intensywność treningu",
-                answer = "Absolutnie nie! HealthUp premiuje regularność i spokojną aktywność w strefie zdrowia serca, a nie bicie wyczynowych rekordów. Już 15–20 minut łagodnego pedałowania dziennie wystarczy, by systematycznie gromadzić punkty na bezpłatny bilet MPK."
+                answer = "Absolutnie nie! HealthUp premiuje regularność i spokojną aktywność w strefie zdrowia serca, a nie bicie wyczynowych rekordów. Już 15 do 20 minut łagodnego pedałowania dziennie wystarczy, by systematycznie gromadzić punkty na bezpłatny bilet MPK."
             ),
             FaqItemData(
                 question = "Energia a zasilanie miasta",
-                answer = "Z praw fizyki wynika, że człowiek podczas ćwiczeń generuje średnio 50–100 watów mocy. Godzina wysiłku to ok. 0,06 kWh (wartość kilkunastu groszy) – to nie wystarczy na zasilenie miasta. W HealthUp energia napędza lokalne oświetlenie maszyny, ekran LED i ładowarkę USB, ale jej kluczową rolą jest weryfikacja realnego wysiłku. Prawdziwą wartością dla Łodzi jest zdrowsze społeczeństwo i profilaktyka!"
+                answer = "Z praw fizyki wynika, że człowiek podczas ćwiczeń generuje średnio od 50 do 100 watów mocy. Godzina wysiłku to ok. 0,06 kWh (wartość kilkunastu groszy), co oczywiście nie wystarcza na zasilenie miasta. W HealthUp energia napędza lokalne oświetlenie maszyny, ekran LED i ładowarkę USB, ale jej kluczową rolą jest weryfikacja realnego wysiłku. Prawdziwą wartością dla Łodzi jest zdrowsze społeczeństwo i profilaktyka!"
             ),
             FaqItemData(
                 question = "Darmowe bilety MPK",
-                answer = "W zakładce 'Nagrody' wybierz bilet MPK-Łódź (np. bilet 20-minutowy) i kliknij 'Odbierz bilet'. Zostanie on zapisany w zakładce 'Moje kupony'. Przy wsiadaniu do tramwaju lub autobusu kliknij 'Aktywuj kupon' – wyświetli się kod i oficjalny zegar ważności do okazania kontrolerowi."
+                answer = "W zakładce 'Nagrody' wybierz bilet MPK Łódź (np. bilet 20 minutowy) i kliknij 'Odbierz bilet'. Zostanie on zapisany w zakładce 'Moje kupony'. Przy wsiadaniu do tramwaju lub autobusu kliknij 'Aktywuj kupon', aby wyświetlić kod oraz oficjalny zegar ważności do okazania kontrolerowi."
             ),
             FaqItemData(
                 question = "Wymagany sprzęt",
-                answer = "Nie. Wystarczy dowolny smartfon. Nie potrzebujesz opasek fitness ani smartwatchy – sensory wbudowane w maszynę na siłowni same łączą się z Twoim kontem i mierzą Twój ruch."
+                answer = "Nie. Wystarczy dowolny smartfon. Nie potrzebujesz opasek fitness ani smartwatchy, ponieważ sensory wbudowane w maszynę na siłowni same łączą się z Twoim kontem i mierzą Twój ruch."
             ),
             FaqItemData(
                 question = "Lokalizacja GPS",
@@ -279,7 +279,7 @@ private fun FaqTabContent() {
             ),
             FaqItemData(
                 question = "HealthPoints a ranking",
-                answer = "Punkty w rankingu (XP) odzwierciedlają Twój staż i osiągnięcia w społeczności Łodzi. HealthPoints to Twoja waluta w portfelu – to je wydajesz na bilety MPK i kupony miejskie."
+                answer = "Punkty w rankingu (XP) odzwierciedlają Twój staż i osiągnięcia w społeczności Łodzi. HealthPoints to Twoja waluta w portfelu, którą przeznaczasz na bilety MPK i kupony miejskie."
             ),
             FaqItemData(
                 question = "Problem z kodem QR",
