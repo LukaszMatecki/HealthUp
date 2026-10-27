@@ -134,13 +134,13 @@ fun WorkoutHistoryScreen(
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "+$totalVp VP",
+                        text = "+$totalVp HP",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = voltPointsColor
                     )
                     Text(
-                        text = "VoltPoints",
+                        text = "HealthPoints",
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -217,7 +217,7 @@ fun WorkoutHistoryScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Bolt,
+                                        imageVector = Icons.Default.Favorite,
                                         contentDescription = null,
                                         tint = primaryColor,
                                         modifier = Modifier.size(22.dp)
@@ -338,7 +338,7 @@ fun WorkoutHistoryScreen(
                                             modifier = Modifier.size(13.dp)
                                         )
                                         Text(
-                                            text = "+${workout.earnedPoints} VP",
+                                            text = "+${workout.earnedPoints} HP",
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = voltPointsColor

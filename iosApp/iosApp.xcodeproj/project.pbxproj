@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		9EDB599EA81B178F66F39730 /* VoltUp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VoltUp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9EDB599EA81B178F66F39730 /* HealthUp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HealthUp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -59,7 +59,7 @@
 		3FB0BDC4306BC975053442E3 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				9EDB599EA81B178F66F39730 /* VoltUp.app */,
+				9EDB599EA81B178F66F39730 /* HealthUp.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -87,7 +87,7 @@
 			packageProductDependencies = (
 			);
 			productName = iosApp;
-			productReference = 9EDB599EA81B178F66F39730 /* VoltUp.app */;
+			productReference = 9EDB599EA81B178F66F39730 /* HealthUp.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */

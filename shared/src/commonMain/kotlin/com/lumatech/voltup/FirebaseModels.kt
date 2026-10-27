@@ -1,5 +1,5 @@
 package com.lumatech.voltup
-data class VoltUpUser(
+data class HealthUpUser(
     val userId: String = "",
     val email: String = "",
     val userName: String = "",
@@ -13,12 +13,15 @@ data class VoltUpUser(
     val lastActiveDate: String = "",
     val createdAt: Long = 0L
 ) {
+    val healthPoints: Int get() = voltPoints
+
     fun toMap(): Map<String, Any> = mapOf(
         "user_id" to userId,
         "email" to email,
         "user_name" to userName,
         "avatar_id" to avatarId,
         "volt_points" to voltPoints,
+        "health_points" to voltPoints,
         "ranking_points" to rankingPoints,
         "total_energy_wh" to totalEnergyWh,
         "co2_saved_kg" to co2SavedKg,
@@ -29,13 +32,13 @@ data class VoltUpUser(
     )
 
     companion object {
-        fun fromMap(map: Map<String, Any?>): VoltUpUser {
-            val voltPts = (map["volt_points"] as? Number ?: map["points"] as? Number)?.toInt() ?: 0
+        fun fromMap(map: Map<String, Any?>): HealthUpUser {
+            val voltPts = (map["health_points"] as? Number ?: map["volt_points"] as? Number ?: map["points"] as? Number)?.toInt() ?: 0
             val rankPts = (map["ranking_points"] as? Number)?.toInt() ?: 0
-            return VoltUpUser(
+            return HealthUpUser(
                 userId = (map["user_id"] as? String ?: map["id"] as? String).orEmpty(),
                 email = (map["email"] as? String ?: map["mail"] as? String).orEmpty(),
-                userName = (map["user_name"] as? String ?: map["name"] as? String ?: map["nazwa"] as? String).orEmpty().ifBlank { "Użytkownik VoltUp" },
+                userName = (map["user_name"] as? String ?: map["name"] as? String ?: map["nazwa"] as? String).orEmpty().ifBlank { "Użytkownik HealthUp" },
                 avatarId = (map["avatar_id"] as? Number ?: map["avatar"] as? Number)?.toInt() ?: 1,
                 voltPoints = voltPts,
                 rankingPoints = rankPts,
@@ -49,6 +52,8 @@ data class VoltUpUser(
         }
     }
 }
+
+typealias VoltUpUser = HealthUpUser
 data class WorkoutSessionDto(
     val sessionId: String = "",
     val userId: String = "",

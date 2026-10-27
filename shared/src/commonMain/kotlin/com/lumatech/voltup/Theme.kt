@@ -13,8 +13,8 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import org.jetbrains.compose.resources.Font
-import voltup.shared.generated.resources.Res
-import voltup.shared.generated.resources.*
+import healthup.shared.generated.resources.Res
+import healthup.shared.generated.resources.*
 
 val ElectricVoltGreen = Color(0xFF00E676)
 val EnergyYellow = Color(0xFFFFD600)
@@ -39,13 +39,14 @@ val LightError = Color(0xFFDC2626)
 val LightErrorContainer = Color(0xFFFEE2E2)
 val LightOnErrorContainer = Color(0xFF991B1B)
 
-val VoltUpPrimaryGreen = Color(0xFF00C853)
+val HealthUpPrimaryGreen = Color(0xFF00C853)
+val VoltUpPrimaryGreen = HealthUpPrimaryGreen
 
-private val VoltUpDarkColorScheme = darkColorScheme(
-    primary = VoltUpPrimaryGreen,
+private val HealthUpDarkColorScheme = darkColorScheme(
+    primary = HealthUpPrimaryGreen,
     onPrimary = Color.White,
     primaryContainer = DarkSurfaceVariant,
-    onPrimaryContainer = VoltUpPrimaryGreen,
+    onPrimaryContainer = HealthUpPrimaryGreen,
     secondary = Color(0xFF38BDF8),
     onSecondary = Color.Black,
     background = DarkBackground,
@@ -62,7 +63,7 @@ private val VoltUpDarkColorScheme = darkColorScheme(
     onErrorContainer = DarkOnErrorContainer
 )
 
-private val VoltUpLightColorScheme = lightColorScheme(
+private val HealthUpLightColorScheme = lightColorScheme(
     primary = LightPrimary,
     onPrimary = Color.White,
     primaryContainer = Color(0xFFE8F5E9),
@@ -83,8 +84,11 @@ private val VoltUpLightColorScheme = lightColorScheme(
     onErrorContainer = LightOnErrorContainer
 )
 
+private val VoltUpDarkColorScheme = HealthUpDarkColorScheme
+private val VoltUpLightColorScheme = HealthUpLightColorScheme
+
 @Composable
-fun getVoltUpTypography(): Typography {
+fun getHealthUpTypography(): Typography {
     val outfit = FontFamily(
         Font(Res.font.Outfit_Thin, FontWeight.Thin),
         Font(Res.font.Outfit_ExtraLight, FontWeight.ExtraLight),
@@ -171,13 +175,16 @@ fun getVoltUpTypography(): Typography {
     )
 }
 
+@Composable
+fun getVoltUpTypography(): Typography = getHealthUpTypography()
+
 val LocalIsDarkTheme = androidx.compose.runtime.compositionLocalOf { false }
 
 @Composable
 fun isAppInDarkTheme(): Boolean = LocalIsDarkTheme.current
 
 @Composable
-fun VoltUpTheme(
+fun HealthUpTheme(
     themeMode: AppThemeMode = AppThemeMode.SYSTEM,
     content: @Composable () -> Unit
 ) {
@@ -188,8 +195,8 @@ fun VoltUpTheme(
         AppThemeMode.LIGHT -> false
     }
 
-    val colorScheme = if (isDark) VoltUpDarkColorScheme else VoltUpLightColorScheme
-    val typography = getVoltUpTypography()
+    val colorScheme = if (isDark) HealthUpDarkColorScheme else HealthUpLightColorScheme
+    val typography = getHealthUpTypography()
 
     androidx.compose.runtime.CompositionLocalProvider(
         LocalIsDarkTheme provides isDark
@@ -202,12 +209,63 @@ fun VoltUpTheme(
     }
 }
 
+@Composable
+fun VoltUpTheme(
+    themeMode: AppThemeMode = AppThemeMode.SYSTEM,
+    content: @Composable () -> Unit
+) = HealthUpTheme(themeMode = themeMode, content = content)
+
 @Preview
 @Composable
-fun VoltUpThemePreview() {
-    VoltUpTheme(AppThemeMode.DARK) {
+fun HealthUpThemePreview() {
+    HealthUpTheme(AppThemeMode.DARK) {
         Surface {
-            Text("VoltUp Preview", style = MaterialTheme.typography.headlineMedium)
+            Text("HealthUp Preview", style = MaterialTheme.typography.headlineMedium)
+        }
+    }
+}
+
+@Preview
+@Composable
+fun VoltUpThemePreview() = HealthUpThemePreview()
+
+fun formatHealthUpAnnotated(
+    text: String,
+    defaultWeight: FontWeight = FontWeight.Normal,
+    brandWeight: FontWeight = FontWeight.Bold,
+    upWeight: FontWeight = FontWeight.Light
+): androidx.compose.ui.text.AnnotatedString {
+    return buildAnnotatedString {
+        var currentIndex = 0
+        while (currentIndex < text.length) {
+            val healthUpIndex = text.indexOf("HealthUp", currentIndex)
+            val voltUpIndex = text.indexOf("VoltUp", currentIndex)
+            val matchIndex = when {
+                healthUpIndex != -1 && voltUpIndex != -1 -> minOf(healthUpIndex, voltUpIndex)
+                healthUpIndex != -1 -> healthUpIndex
+                else -> voltUpIndex
+            }
+
+            if (matchIndex == -1) {
+                withStyle(SpanStyle(fontWeight = defaultWeight)) {
+                    append(text.substring(currentIndex))
+                }
+                break
+            } else {
+                if (matchIndex > currentIndex) {
+                    withStyle(SpanStyle(fontWeight = defaultWeight)) {
+                        append(text.substring(currentIndex, matchIndex))
+                    }
+                }
+                val isHealth = matchIndex == healthUpIndex
+                withStyle(SpanStyle(fontWeight = brandWeight)) {
+                    append(if (isHealth) "Health" else "Volt")
+                }
+                withStyle(SpanStyle(fontWeight = upWeight)) {
+                    append("Up")
+                }
+                currentIndex = matchIndex + (if (isHealth) 8 else 6)
+            }
         }
     }
 }
@@ -217,30 +275,4 @@ fun formatVoltUpAnnotated(
     defaultWeight: FontWeight = FontWeight.Normal,
     voltWeight: FontWeight = FontWeight.Bold,
     upWeight: FontWeight = FontWeight.Light
-): androidx.compose.ui.text.AnnotatedString {
-    return buildAnnotatedString {
-        var currentIndex = 0
-        while (currentIndex < text.length) {
-            val voltUpIndex = text.indexOf("VoltUp", currentIndex)
-            if (voltUpIndex == -1) {
-                withStyle(SpanStyle(fontWeight = defaultWeight)) {
-                    append(text.substring(currentIndex))
-                }
-                break
-            } else {
-                if (voltUpIndex > currentIndex) {
-                    withStyle(SpanStyle(fontWeight = defaultWeight)) {
-                        append(text.substring(currentIndex, voltUpIndex))
-                    }
-                }
-                withStyle(SpanStyle(fontWeight = voltWeight)) {
-                    append("Volt")
-                }
-                withStyle(SpanStyle(fontWeight = upWeight)) {
-                    append("Up")
-                }
-                currentIndex = voltUpIndex + 6
-            }
-        }
-    }
-}
+): androidx.compose.ui.text.AnnotatedString = formatHealthUpAnnotated(text, defaultWeight, voltWeight, upWeight)

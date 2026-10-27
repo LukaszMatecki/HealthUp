@@ -24,7 +24,11 @@ import java.util.Date
 import java.util.Locale
 import java.util.UUID
 
-private const val TAG = "VoltUpFirebase"
+private const val TAG = "HealthUpFirebase"
+
+fun initHealthUpFirebase(context: android.content.Context) {
+    initVoltUpFirebase(context)
+}
 
 fun initVoltUpFirebase(context: android.content.Context) {
     try {
@@ -130,7 +134,7 @@ class AndroidFirebaseAuthService : VoltUpAuthService {
                             val fallback = VoltUpUser(
                                 userId = fbUser.uid,
                                 email = fbUser.email.orEmpty(),
-                                userName = fbUser.displayName?.ifBlank { "Użytkownik VoltUp" } ?: "Użytkownik VoltUp",
+                                userName = fbUser.displayName?.ifBlank { "Użytkownik HealthUp" } ?: "Użytkownik HealthUp",
                                 avatarId = 1,
                                 voltPoints = 0,
                                 totalEnergyWh = 0.0,
@@ -174,7 +178,7 @@ class AndroidFirebaseAuthService : VoltUpAuthService {
                 voltUpUser = VoltUpUser(
                     userId = fbUser.uid,
                     email = fbUser.email ?: cleanEmail,
-                    userName = fbUser.displayName?.ifBlank { "Użytkownik VoltUp" } ?: "Użytkownik VoltUp",
+                    userName = fbUser.displayName?.ifBlank { "Użytkownik HealthUp" } ?: "Użytkownik HealthUp",
                     avatarId = 1,
                     voltPoints = 0,
                     totalEnergyWh = 0.0,
@@ -1126,5 +1130,5 @@ class AndroidFirestoreService : VoltUpDatabaseService {
 private val androidAuthService by lazy { AndroidFirebaseAuthService() }
 private val androidDatabaseService by lazy { AndroidFirestoreService() }
 
-actual fun getAuthService(): VoltUpAuthService = androidAuthService
-actual fun getDatabaseService(): VoltUpDatabaseService = androidDatabaseService
+actual fun getAuthService(): HealthUpAuthService = androidAuthService
+actual fun getDatabaseService(): HealthUpDatabaseService = androidDatabaseService

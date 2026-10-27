@@ -211,10 +211,10 @@ fun App(
                     totalEnergyWh = 0.0,
                     weeklyEnergyWh = 0.0,
                     co2SavedKg = 0.0,
-                    userName = "Użytkownik VoltUp",
+                    userName = "Użytkownik HealthUp",
                     avatarId = 1,
                     level = 0,
-                    levelTitle = "Nowicjusz VoltUp",
+                    levelTitle = "Nowicjusz HealthUp",
                     streakDays = 1,
                     recentWorkouts = emptyList()
                 )
@@ -293,7 +293,7 @@ fun App(
             totalEnergyWh = 0.0,
             weeklyEnergyWh = 0.0,
             co2SavedKg = 0.0,
-            userName = "Użytkownik VoltUp",
+            userName = "Użytkownik HealthUp",
             avatarId = 1,
             level = 0,
             levelTitle = calculateLevelTitle(0),
@@ -353,7 +353,7 @@ fun App(
                 rankingPoints = freshUser.rankingPoints,
                 totalEnergyWh = freshUser.totalEnergyWh,
                 co2SavedKg = freshUser.co2SavedKg,
-                userName = freshUser.userName.ifBlank { "Użytkownik VoltUp" },
+                userName = freshUser.userName.ifBlank { "Użytkownik HealthUp" },
                 avatarId = freshUser.avatarId,
                 level = calculatedLevel,
                 levelTitle = calculateLevelTitle(calculatedLevel),
@@ -494,7 +494,7 @@ fun App(
                         val r = MockData.sampleRewards.firstOrNull { it.id == c.rewardId }
                             ?: Reward(
                                 id = c.rewardId,
-                                title = "Kupon VoltUp",
+                                title = "Kupon HealthUp",
                                 partner = "Partner Miejski",
                                 costPoints = c.costPoints,
                                 category = RewardCategory.ALL,
@@ -630,7 +630,7 @@ fun App(
     }
 
     CompositionLocalProvider(LocalAppLanguage provides appSettings.language) {
-        VoltUpTheme(themeMode = appSettings.themeMode) {
+        HealthUpTheme(themeMode = appSettings.themeMode) {
             Box(modifier = Modifier.fillMaxSize()) {
             Surface(
                 modifier = Modifier.fillMaxSize(),
@@ -688,7 +688,7 @@ fun App(
                                 onNavigateToForgotPassword = { currentScreen = Screen.ForgotPassword },
                                 onLoginSuccess = { user ->
                                     currentScreen = Screen.Main
-                                    SnackbarHelper.show(polishText = "Witaj ponownie w VoltUp, ${user.userName}!", englishText = "Welcome back to VoltUp, ${user.userName}!")
+                                    SnackbarHelper.show(polishText = "Witaj ponownie w HealthUp, ${user.userName}!", englishText = "Welcome back to HealthUp, ${user.userName}!")
                                 }
                             )
                         }
@@ -700,7 +700,7 @@ fun App(
                                 onRegisterSuccess = { user ->
                                     val onboardingCompleted = VoltUpStorage.getBoolean(VoltUpPreferenceKeys.KEY_ONBOARDING_COMPLETED, false)
                                     currentScreen = if (!onboardingCompleted) Screen.Onboarding else Screen.Main
-                                    SnackbarHelper.show(polishText = "Konto utworzone! Witaj w VoltUp, ${user.userName}!", englishText = "Account created! Welcome to VoltUp, ${user.userName}!")
+                                    SnackbarHelper.show(polishText = "Konto utworzone! Witaj w HealthUp, ${user.userName}!", englishText = "Account created! Welcome to HealthUp, ${user.userName}!")
                                 }
                             )
                         }
@@ -784,7 +784,7 @@ fun App(
                         is Screen.ManageAccount -> {
                             ManageAccountScreen(
                                 userStats = userStats,
-                                userEmail = if (previewScreenName != null) "jan.kowalski@voltup.pl" else currentAuthUser?.email.orEmpty(),
+                                userEmail = if (previewScreenName != null) "jan.kowalski@healthup.pl" else currentAuthUser?.email.orEmpty(),
                                 authService = authService,
                                 onNavigateBack = { currentScreen = Screen.Settings },
                                 onSignOut = {
@@ -1002,7 +1002,7 @@ fun App(
 
                             Scaffold(
                                 bottomBar = {
-                                    VoltUpBottomBar(
+                                    HealthUpBottomBar(
                                         currentTab = currentTab,
                                         onTabSelected = { currentTab = it },
                                         onQrClick = { currentScreen = Screen.QrScanner() }
@@ -1235,7 +1235,7 @@ fun App(
                                                             )
                                                         }
                                                     }
-                                                    SnackbarHelper.show(polishText = "+${challenge.rankingPointsReward} pkt rankingu, +${challenge.voltPointsReward} VP!", englishText = "+${challenge.rankingPointsReward} rank pts, +${challenge.voltPointsReward} VP!", icon = Icons.Default.EmojiEvents)
+                                                    SnackbarHelper.show(polishText = "+${challenge.rankingPointsReward} pkt rankingu, +${challenge.voltPointsReward} HP!", englishText = "+${challenge.rankingPointsReward} rank pts, +${challenge.voltPointsReward} HP!", icon = Icons.Default.EmojiEvents)
                                                 },
                                                 onUpdateUserProfile = { newName, newAvatarId ->
                                                     userStats = userStats.copy(
@@ -1287,7 +1287,7 @@ fun App(
                 }
             }
 
-            VoltUpSnackbarHost(modifier = Modifier.align(Alignment.TopCenter))
+            HealthUpSnackbarHost(modifier = Modifier.align(Alignment.TopCenter))
 
             if (isAutoLoggingIn && !isSplashVisible) {
                 Box(
@@ -1362,8 +1362,8 @@ fun App(
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
-                                    imageVector = Icons.Default.Bolt,
-                                    contentDescription = "VoltUp Logo",
+                                    imageVector = Icons.Default.Favorite,
+                                    contentDescription = "HealthUp Logo",
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(44.dp)
                                 )
@@ -1379,7 +1379,7 @@ fun App(
                                     color = MaterialTheme.colorScheme.onBackground
                                 )
                                 Text(
-                                    text = "Volt",
+                                    text = "Health",
                                     style = MaterialTheme.typography.headlineLarge,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onBackground
@@ -1408,7 +1408,7 @@ fun App(
 }
 
 @Composable
-fun VoltUpBottomBar(
+fun HealthUpBottomBar(
     currentTab: MainTab,
     onTabSelected: (MainTab) -> Unit,
     onQrClick: () -> Unit
@@ -1564,7 +1564,7 @@ fun DashboardScreen(
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    text = "Volt",
+                    text = "Health",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground

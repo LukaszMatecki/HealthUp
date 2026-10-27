@@ -12,7 +12,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        initVoltUpFirebase(this)
+        initHealthUpFirebase(this)
         val targetScreen = intent.getStringExtra("SCREEN")
         val targetTheme = intent.getStringExtra("THEME")
         setContent {

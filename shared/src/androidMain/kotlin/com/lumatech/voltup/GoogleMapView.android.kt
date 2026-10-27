@@ -628,7 +628,7 @@ private fun InteractiveSchematicMap(
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
-                            imageVector = Icons.Default.Bolt,
+                            imageVector = Icons.Default.Favorite,
                             contentDescription = null,
                             tint = Color.White,
                             modifier = Modifier.size(if (isSelected) 18.dp else 14.dp)

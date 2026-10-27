@@ -18,7 +18,7 @@ data class UserStats(
     val userName: String = "Jan Kowalski",
     val avatarId: Int = 1,
     val level: Int = 0,
-    val levelTitle: String = "Nowicjusz VoltUp",
+    val levelTitle: String = "Nowicjusz HealthUp",
     val streakDays: Int = 1,
     val recentWorkouts: List<WorkoutSessionRecord> = emptyList(),
     val accountCreatedAt: Long = 0L,
@@ -122,7 +122,7 @@ data class Reward(
     val costPoints: Int,
     val category: RewardCategory,
     val description: String,
-    val discountCode: String = "LODZ-VOLT-2025",
+    val discountCode: String = "LODZ-HEALTH-2025",
     val validityMinutes: Int = 0,
     val expiresDays: Int = 30,
 ) {
@@ -149,7 +149,7 @@ data class Reward(
     }
 
     fun getLocalizedDescription(isEnglish: Boolean): String = if (!isEnglish) description else when (id) {
-        "REW-RANK-100" -> "Leaderboard booster. Exchange 50 VoltPoints for an instant +100 ranking points on the leaderboard!"
+        "REW-RANK-100" -> "Leaderboard booster. Exchange 50 HealthPoints for an instant +100 ranking points on the leaderboard!"
         "REW-MPK-01" -> "Single-ride ticket for all tram and bus routes across zone 1 in Łódź."
         "REW-EC1-02" -> "50% discount on admission to the Science and Technology Centre in the revitalized historic power plant."
         "REW-ROD-03" -> "Free minutes for the Łódź Public Bike system across the entire city."
@@ -219,7 +219,7 @@ data class Challenge(
 
 enum class AppThemeMode(val displayName: String, val description: String) {
     SYSTEM("Systemowy", "Dostosowuje się automatycznie do ustawień urządzenia"),
-    DARK("Ciemny VoltUp", "Oszczędza baterię, wysoki kontrast i zielone akcenty"),
+    DARK("Ciemny HealthUp", "Oszczędza baterię, wysoki kontrast i zielone akcenty"),
     LIGHT("Jasny Eko", "Klasyczny jasny wygląd z kontrastowym tekstem");
 
     val title: String get() = displayName

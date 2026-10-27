@@ -914,7 +914,7 @@ fun RateAppDialog(onDismiss: () -> Unit) {
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Volt",
+                        text = "Health",
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp,
                         color = MaterialTheme.colorScheme.onSurface
@@ -1035,7 +1035,7 @@ fun AboutAppDialog(onDismiss: () -> Unit) {
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Bolt,
+                        imageVector = Icons.Default.Favorite,
                         contentDescription = null,
                         tint = Color(0xFF10B981),
                         modifier = Modifier.size(36.dp)
@@ -1045,7 +1045,7 @@ fun AboutAppDialog(onDismiss: () -> Unit) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "Volt",
+                            text = "Health",
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 24.sp,
                             color = MaterialTheme.colorScheme.onSurface

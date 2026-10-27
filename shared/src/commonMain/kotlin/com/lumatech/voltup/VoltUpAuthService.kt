@@ -4,12 +4,12 @@ import kotlinx.coroutines.flow.StateFlow
 
 data class AuthResult(
     val isSuccess: Boolean,
-    val user: VoltUpUser? = null,
+    val user: HealthUpUser? = null,
     val errorMessage: String? = null
 )
 
-interface VoltUpAuthService {
-    val currentUser: StateFlow<VoltUpUser?>
+interface HealthUpAuthService {
+    val currentUser: StateFlow<HealthUpUser?>
 
     suspend fun signIn(email: String, password: String): AuthResult
     suspend fun signUp(email: String, password: String, userName: String, avatarId: Int): AuthResult
@@ -20,4 +20,6 @@ interface VoltUpAuthService {
     suspend fun signOut()
 }
 
-expect fun getAuthService(): VoltUpAuthService
+typealias VoltUpAuthService = HealthUpAuthService
+
+expect fun getAuthService(): HealthUpAuthService

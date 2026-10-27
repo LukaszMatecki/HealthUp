@@ -263,7 +263,7 @@ private fun BadgesContent(badges: List<BadgeModel>) {
                             text = if (isEnglish)
                                 "Points earned from completed achievements count directly towards your position on the leaderboard!"
                             else
-                                "Punkty zdobyte za osiągnięcia zasilają Twój wynik w rankingu VoltUp!",
+                                "Punkty zdobyte za osiągnięcia zasilają Twój wynik w rankingu HealthUp!",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

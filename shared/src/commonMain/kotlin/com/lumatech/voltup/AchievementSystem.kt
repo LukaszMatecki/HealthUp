@@ -116,8 +116,8 @@ data class Achievement(
                 else -> Triple(5.0 + (lvl - 2) * 5.0, 250, if (isEnglish) "Maintain a ${5 + (lvl - 2) * 5}-day streak" else "Utrzymaj serię ${5 + (lvl - 2) * 5} dni")
             }
             MetricType.REDEEMED_REWARDS -> when (lvl) {
-                1 -> Triple(1.0, 50, if (isEnglish) "Redeem 1 voucher in the VoltUp store" else "Odbierz 1 kupon w sklepie VoltUp")
-                2 -> Triple(3.0, 150, if (isEnglish) "Redeem 3 vouchers in the VoltUp store" else "Odbierz 3 kupony w sklepie VoltUp")
+                1 -> Triple(1.0, 50, if (isEnglish) "Redeem 1 voucher in the HealthUp store" else "Odbierz 1 kupon w sklepie HealthUp")
+                2 -> Triple(3.0, 150, if (isEnglish) "Redeem 3 vouchers in the HealthUp store" else "Odbierz 3 kupony w sklepie HealthUp")
                 else -> Triple(3.0 + (lvl - 2) * 5.0, 300, if (isEnglish) "Redeem ${3 + (lvl - 2) * 5} vouchers" else "Odbierz ${3 + (lvl - 2) * 5} kuponów")
             }
             MetricType.TOTAL_CALORIES_KCAL -> when (lvl) {
@@ -203,7 +203,7 @@ data class Achievement(
             }
             MetricType.EXPLORE_HISTORY -> Triple(1.0, 50, if (isEnglish) "Check your past workout history in the profile tab" else "Sprawdź historię swoich treningów w profilu")
             MetricType.DARK_THEME_TOGGLE -> Triple(1.0, 50, if (isEnglish) "Switch the app theme to dark mode" else "Przełącz motyw aplikacji na ciemny")
-            MetricType.ABOUT_VIEWED -> Triple(1.0, 50, if (isEnglish) "Read information in the About VoltUp section" else "Przeczytaj informacje w sekcji O VoltUp")
+            MetricType.ABOUT_VIEWED -> Triple(1.0, 50, if (isEnglish) "Read information in the About HealthUp section" else "Przeczytaj informacje w sekcji O HealthUp")
             MetricType.PROFILE_CUSTOM -> Triple(1.0, 50, if (isEnglish) "Customize your avatar or username in your profile" else "Dostosuj swój awatar lub nazwę użytkownika w profilu")
             MetricType.ARCHIVE_VIEWED -> Triple(1.0, 50, if (isEnglish) "View redeemed vouchers in your ticket archive" else "Przejrzyj wykorzystane bilety w archiwum biletów")
             MetricType.QR_SCANNER -> Triple(1.0, 50, if (isEnglish) "Open QR code scanner to locate a station" else "Otwórz skaner kodów QR, aby namierzyć stację")
@@ -303,7 +303,7 @@ object DefaultAchievements {
         Achievement(
             id = "ACH_WORKOUTS",
             title = "Pierwszy Impuls",
-            icon = Icons.Default.Bolt,
+            icon = Icons.Default.Favorite,
             metricType = Achievement.MetricType.WORKOUTS_COUNT,
             level = 0,
             currentProgress = 0.0
@@ -319,7 +319,7 @@ object DefaultAchievements {
         Achievement(
             id = "ACH_ENERGY",
             title = "Generator",
-            icon = Icons.Default.Bolt,
+            icon = Icons.Default.Favorite,
             metricType = Achievement.MetricType.TOTAL_ENERGY_WH,
             level = 0,
             currentProgress = 0.0
@@ -407,7 +407,7 @@ object DefaultAchievements {
         Achievement(
             id = "ACH_FAST",
             title = "Ekspres Kinetyczny",
-            icon = Icons.Default.FlashOn,
+            icon = Icons.Default.Favorite,
             metricType = Achievement.MetricType.FAST_SESSIONS,
             level = 0,
             currentProgress = 0.0
@@ -572,7 +572,7 @@ fun calculateUserLevel(points: Int): Int {
 
 fun calculateLevelTitle(level: Int): String {
     return when (level) {
-        0 -> "Nowicjusz VoltUp"
+        0 -> "Nowicjusz HealthUp"
         1 -> "Eko-Adept Łódzki"
         2 -> "Początkujący Generator"
         3 -> "Aktywista Parkowy"
@@ -580,7 +580,7 @@ fun calculateLevelTitle(level: Int): String {
         5 -> "Lider Czystej Energii"
         6 -> "Strażnik Zielonej Łodzi"
         7 -> "Mistrz Kinetyki Miejskiej"
-        8 -> "Legenda Sieci VoltUp"
+        8 -> "Legenda Sieci HealthUp"
         else -> "Mistrz Sieci Miejskiej"
     }
 }

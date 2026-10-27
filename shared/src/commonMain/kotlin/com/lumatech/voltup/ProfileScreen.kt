@@ -120,7 +120,7 @@ fun ProfileScreen(
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
-                        text = "Volt",
+                        text = "Health",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
@@ -215,7 +215,7 @@ fun ProfileScreen(
                     ) {
                         val avatarIcon = when (stats.avatarId) {
                             1 -> Icons.AutoMirrored.Filled.DirectionsBike
-                            2 -> Icons.Default.Bolt
+                            2 -> Icons.Default.Favorite
                             3 -> Icons.Default.Eco
                             else -> Icons.Default.Person
                         }
@@ -547,7 +547,7 @@ fun ProfileScreen(
                         listOf(
                             0 to Icons.Default.Person,
                             1 to Icons.AutoMirrored.Filled.DirectionsBike,
-                            2 to Icons.Default.Bolt,
+                            2 to Icons.Default.Favorite,
                             3 to Icons.Default.Eco
                         ).forEach { (id, icon) ->
                             val isSel = editAvatar == id
@@ -837,7 +837,7 @@ fun WorkoutDetailsDialog(
                     WorkoutDetailRow(label = strings.workoutDetailsPlace, value = workout.stationLocation)
                     WorkoutDetailRow(label = strings.workoutDetailsDuration, value = "${workout.durationSeconds / 60} min ${workout.durationSeconds % 60} s")
                     WorkoutDetailRow(label = strings.workoutDetailsEnergy, value = "${workout.generatedWh.roundToInt()} Wh", valueColor = primaryColor)
-                    WorkoutDetailRow(label = strings.workoutDetailsPoints, value = "+${workout.earnedPoints} VP", valueColor = Color(0xFFFF9800))
+                    WorkoutDetailRow(label = strings.workoutDetailsPoints, value = "+${workout.earnedPoints} HP", valueColor = Color(0xFFFF9800))
                     WorkoutDetailRow(label = strings.workoutDetailsCalories, value = "${workout.caloriesKcal} kcal")
                     val co2Grams = (workout.co2SavedKg * 1000).roundToInt()
                     WorkoutDetailRow(label = strings.workoutDetailsCo2, value = "$co2Grams g CO₂", valueColor = Color(0xFF10B981))
@@ -1037,7 +1037,7 @@ fun ModernChallengeCard(
                                 modifier = Modifier.size(14.dp)
                             )
                             Text(
-                                text = "+${challenge.voltPointsReward} VP",
+                                text = "+${challenge.voltPointsReward} HP",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp,
                                 color = warningYellow
@@ -1137,7 +1137,7 @@ fun ModernChallengeCard(
                                     modifier = Modifier.size(13.dp)
                                 )
                                 Text(
-                                    text = "+${challenge.voltPointsReward} VP",
+                                    text = "+${challenge.voltPointsReward} HP",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = warningYellow

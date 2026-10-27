@@ -1241,7 +1241,7 @@ fun RewardsScreen(
                             color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
-                            text = "Volt",
+                            text = "Health",
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onBackground
@@ -1876,7 +1876,7 @@ fun RewardDetailScreen(reward: Reward, currentPoints: Int, isOwned: Boolean, onR
                 HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text(strings.costLabel, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("${reward.costPoints} VoltPoints", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = primaryColor)
+                    Text("${reward.costPoints} HealthPoints", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold, color = primaryColor)
                 }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text(strings.validityLabel, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

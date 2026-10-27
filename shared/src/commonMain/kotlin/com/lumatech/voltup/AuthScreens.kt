@@ -89,8 +89,8 @@ fun LoginScreen(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = Icons.Default.Bolt,
-                        contentDescription = "VoltUp Logo",
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = "HealthUp Logo",
                         tint = primaryColor,
                         modifier = Modifier.size(40.dp)
                     )
@@ -107,7 +107,7 @@ fun LoginScreen(
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    text = "Volt",
+                    text = "Health",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
@@ -413,7 +413,7 @@ fun RegisterScreen(
 
     val availableAvatars = listOf(
         1 to Icons.AutoMirrored.Filled.DirectionsBike,
-        2 to Icons.Default.Bolt,
+        2 to Icons.Default.Favorite,
         3 to Icons.Default.Eco,
         0 to Icons.Default.Person
     )

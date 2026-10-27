@@ -112,7 +112,7 @@ fun ManageAccountScreen(
                         ) {
                             val avatarIcon = when (userStats.avatarId) {
                                 1 -> Icons.AutoMirrored.Filled.DirectionsBike
-                                2 -> Icons.Default.Bolt
+                                2 -> Icons.Default.Favorite
                                 3 -> Icons.Default.Eco
                                 else -> Icons.Default.Person
                             }
@@ -158,8 +158,8 @@ fun ManageAccountScreen(
                                 color = primaryColor
                             )
                             AccountSummaryNumber(
-                                value = "${userStats.points} VP",
-                                label = "VoltPoints",
+                                value = "${userStats.points} HP",
+                                label = "HealthPoints",
                                 color = Color(0xFFFF9800)
                             )
                             AccountSummaryNumber(

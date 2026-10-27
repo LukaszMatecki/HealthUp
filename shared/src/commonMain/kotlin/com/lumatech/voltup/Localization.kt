@@ -6,18 +6,23 @@ import androidx.compose.runtime.compositionLocalOf
 val LocalAppLanguage = compositionLocalOf { AppLanguage.POLISH }
 
 @Composable
-fun getVoltUpStrings(language: AppLanguage = LocalAppLanguage.current): VoltUpStrings {
+fun getHealthUpStrings(language: AppLanguage = LocalAppLanguage.current): HealthUpStrings {
     return when (language) {
-        AppLanguage.POLISH -> VoltUpPolishStrings
-        AppLanguage.ENGLISH -> VoltUpEnglishStrings
+        AppLanguage.POLISH -> HealthUpPolishStrings
+        AppLanguage.ENGLISH -> HealthUpEnglishStrings
     }
 }
 
-val strings: VoltUpStrings
+val strings: HealthUpStrings
     @Composable
-    get() = getVoltUpStrings(LocalAppLanguage.current)
+    get() = getHealthUpStrings(LocalAppLanguage.current)
 
-interface VoltUpStrings {
+@Composable
+fun getVoltUpStrings(language: AppLanguage = LocalAppLanguage.current): HealthUpStrings = getHealthUpStrings(language)
+
+typealias VoltUpStrings = HealthUpStrings
+
+interface HealthUpStrings {
     val tabHome: String
     val tabMap: String
     val tabRewards: String
@@ -299,7 +304,8 @@ interface VoltUpStrings {
     val helpAndGuideSubtitle: String
     val appAuthorsTitle: String
     val appAuthorsSubtitle: String
-    val aboutVoltUpAppSubtitle: String
+    val aboutHealthUpAppSubtitle: String
+    val aboutVoltUpAppSubtitle: String get() = aboutHealthUpAppSubtitle
 
     val myAchievementsTitle: String
     val tabAchievements: String
@@ -422,7 +428,9 @@ interface VoltUpStrings {
     val rateRatingDefault: String
 }
 
-object VoltUpPolishStrings : VoltUpStrings {
+typealias VoltUpPolishStrings = HealthUpPolishStrings
+
+object HealthUpPolishStrings : HealthUpStrings {
     override val tabHome = "Główna"
     override val tabMap = "Mapa"
     override val tabRewards = "Nagrody"
@@ -472,7 +480,7 @@ object VoltUpPolishStrings : VoltUpStrings {
     override val appCityTag = "Łódź"
     override val welcomeBack = "Witaj ponownie!"
     override val totalEnergyWh = "Wygenerowano"
-    override val voltPoints = "VoltPoints"
+    override val voltPoints = "HealthPoints"
     override val co2SavedKg = "Oszczędzone CO₂"
     override val userLevel = "Poziom"
     override val quickActionsTitle = "SZYBKIE AKCJE"
@@ -551,7 +559,7 @@ object VoltUpPolishStrings : VoltUpStrings {
     override val rewardsScreenTitle = "Nagrody i Bilety"
     override val catalogTab = "Katalog nagród"
     override val myCouponsTab = "Moje kupony"
-    override val pointsBalance = "Twoje VoltPoints"
+    override val pointsBalance = "Twoje HealthPoints"
     override val categoryAll = "Wszystkie"
     override val categoryTransport = "Transport MPK"
     override val categoryFood = "Gastronomia"
@@ -606,7 +614,7 @@ object VoltUpPolishStrings : VoltUpStrings {
     override val authorsMenu = "O twórcach projektu"
     override val signOutMenu = "Wyloguj się"
     override val signOutConfirmTitle = "Wylogować się?"
-    override val signOutConfirmDesc = "Czy na pewno chcesz zakończyć sesję i wylogować się z konta VoltUp?"
+    override val signOutConfirmDesc = "Czy na pewno chcesz zakończyć sesję i wylogować się z konta HealthUp?"
     override val signOutBtn = "Wyloguj się"
 
     override val settingsScreenTitle = "Ustawienia"
@@ -633,7 +641,7 @@ object VoltUpPolishStrings : VoltUpStrings {
     override val clearHistoryTitle = "Wyczyść historię sesji"
     override val clearHistorySubtitle = "Usuń lokalne zapisy treningów"
     override val clearHistoryConfirmTitle = "Wyczyścić historię?"
-    override val clearHistoryConfirmDesc = "Zapisana historia odbytych sesji zostanie trwale usunięta. Twoje VoltPoints pozostaną bezpieczne."
+    override val clearHistoryConfirmDesc = "Zapisana historia odbytych sesji zostanie trwale usunięta. Twoje HealthPoints pozostaną bezpieczne."
     override val deleteDataBtn = "Usuń dane"
     override val resetDefaultsTitle = "Przywróć domyślne"
     override val resetDefaultsSubtitle = "Zresetuj motyw i powiadomienia"
@@ -642,18 +650,18 @@ object VoltUpPolishStrings : VoltUpStrings {
     override val resetDefaultsBtn = "Przywróć"
     override val changePasswordMenuTitle = "Zmień hasło"
     override val changePasswordMenuSubtitle = "Zaktualizuj hasło do swojego konta"
-    override val rateAppMenuTitle = "Oceń VoltUp"
+    override val rateAppMenuTitle = "Oceń HealthUp"
     override val rateAppMenuSubtitle = "Podziel się opinią w Google Play"
-    override val rateAppDialogTitle = "Oceń VoltUp"
+    override val rateAppDialogTitle = "Oceń HealthUp"
     override val rateAppDialogDesc = "Twoja opinia pomaga nam rozwijać bezpieczne stacje aktywności w parkach Łodzi!"
     override val submitRatingBtn = "Wyślij ocenę"
     override val maybeLaterBtn = "Może później"
-    override val aboutAppMenuTitle = "O aplikacji VoltUp"
+    override val aboutAppMenuTitle = "O aplikacji HealthUp"
     override val aboutAppMenuSubtitle = "Wersja 1.00 • Łódź 2026"
-    override val aboutAppDialogTitle = "VoltUp"
-    override val aboutAppDialogDesc = "VoltUp to program aktywizacji mieszkańców Łodzi. Zachęcamy do regularnego, bezpiecznego ruchu na świeżym powietrzu – trenuj w parkach, dbaj o serce i wymieniaj minuty aktywności na darmowe bilety MPK i zniżki!"
+    override val aboutAppDialogTitle = "HealthUp"
+    override val aboutAppDialogDesc = "HealthUp to program aktywizacji mieszkańców Łodzi. Zachęcamy do regularnego, bezpiecznego ruchu na świeżym powietrzu – trenuj w parkach, dbaj o serce i wymieniaj minuty aktywności na darmowe bilety MPK i zniżki!"
     override val versionLabel = "Wersja 1.0.0"
-    override val copyrightNotice = "© 2026 VoltUp Team. Wszelkie prawa zastrzeżone."
+    override val copyrightNotice = "© 2026 HealthUp Team. Wszelkie prawa zastrzeżone."
     override val awesomeBtn = "Super"
 
     override val manageAccountTitle = "Zarządzanie kontem"
@@ -663,7 +671,7 @@ object VoltUpPolishStrings : VoltUpStrings {
     override val deleteAccountTitle = "Usuń konto trwale"
     override val deleteAccountSubtitle = "Trwałe skasowanie konta i danych"
     override val deleteAccountConfirmTitle = "Usunąć konto?"
-    override val deleteAccountConfirmDesc = "Ta operacja jest nieodwracalna. Twój profil, punkty VoltPoints oraz historia treningów zostaną trwale skasowane."
+    override val deleteAccountConfirmDesc = "Ta operacja jest nieodwracalna. Twój profil, punkty HealthPoints oraz historia treningów zostaną trwale skasowane."
     override val deleteAccountPermanentlyBtn = "Usuń trwale konto"
 
     override val changePasswordDialogTitle = "Zmień hasło"
@@ -699,12 +707,13 @@ object VoltUpPolishStrings : VoltUpStrings {
     override val resetDefaultsSubtitleShort = "Resetuje motyw i preferencje"
     override val aboutAppSection = "O APLIKACJI"
     override val rateOurAppTitle = "Oceń naszą aplikację"
-    override val rateOurAppSubtitle = "Podziel się opinią o VoltUp"
+    override val rateOurAppSubtitle = "Podziel się opinią o HealthUp"
     override val helpAndGuideTitle = "Pomoc i instrukcja"
     override val helpAndGuideSubtitle = "Jak korzystać ze stacji i zdobywać nagrody"
     override val appAuthorsTitle = "Autorzy Aplikacji"
-    override val appAuthorsSubtitle = "Twórcy projektu VoltUp"
-    override val aboutVoltUpAppSubtitle = "Wersja, licencje i informacje"
+    override val appAuthorsSubtitle = "Twórcy projektu HealthUp"
+    override val aboutHealthUpAppSubtitle = "Wersja, licencje i informacje"
+    override val aboutVoltUpAppSubtitle get() = aboutHealthUpAppSubtitle
 
     override val myAchievementsTitle = "Moje Osiągnięcia"
     override val tabAchievements = "Osiągnięcia"
@@ -719,7 +728,7 @@ object VoltUpPolishStrings : VoltUpStrings {
     override val rankOutsideTop: (Int) -> String = { "Twoja pozycja poza TOP $it:" }
     override val placeRank: (Int) -> String = { "Miejsce $it" }
 
-    override val onboardingWelcomeTitle = "Witaj w VoltUp!"
+    override val onboardingWelcomeTitle = "Witaj w HealthUp!"
     override val onboardingWelcomeSubtitle = "Ruch i zdrowie w Łodzi"
     override val onboardingWelcomeDesc = "Krótki spacer lub 15 minut na maszynie w parku poprawia kondycję serca i samopoczucie. Ćwicz bezpiecznie na świeżym powietrzu!"
     override val onboardingNotificationsTitle = "Powiadomienia i cele"
@@ -727,7 +736,7 @@ object VoltUpPolishStrings : VoltUpStrings {
     override val onboardingNotificationsDesc = "Otrzymuj delikatne przypomnienia o spacerach, śledź codzienne postępy i bierz udział w wyzwaniach parkowych Łodzi."
     override val onboardingRewardsTitle = "Odbieraj realne nagrody"
     override val onboardingRewardsSubtitle = "Aktywność, która się opłaca"
-    override val onboardingRewardsDesc = "Zbieraj VoltPoints za każdą minutę ruchu i wymieniaj je na darmowe bilety MPK-Łódź, wejściówki do Falii czy zniżki!"
+    override val onboardingRewardsDesc = "Zbieraj HealthPoints za każdą minutę ruchu i wymieniaj je na darmowe bilety MPK-Łódź, wejściówki do Falii czy zniżki!"
     override val onboardingNextBtn = "Dalej"
     override val onboardingGetStartedBtn = "Zaczynamy!"
     override val onboardingSkipBtn = "Pomiń"
@@ -737,8 +746,8 @@ object VoltUpPolishStrings : VoltUpStrings {
     override val helpTabFaq = "Instrukcja & FAQ"
     override val helpTabSupport = "Dział Pomocy & Kontakt"
     override val authorsScreenTitle = "Autorzy Aplikacji"
-    override val authorsTeamTitle = "Ekipa Twórców VoltUp"
-    override val authorsTeamDesc = "Projekt VoltUp powstał z pasji do nowoczesnych technologii, aktywności fizycznej oraz zrównoważonego rozwoju miasta Łódź."
+    override val authorsTeamTitle = "Ekipa Twórców HealthUp"
+    override val authorsTeamDesc = "Projekt HealthUp powstał z pasji do nowoczesnych technologii, aktywności fizycznej oraz zrównoważonego rozwoju miasta Łódź."
 
     override val instantValidity = "Natychmiastowo"
     override val daysValidity: (Int) -> String = { "$it dni" }
@@ -767,7 +776,7 @@ object VoltUpPolishStrings : VoltUpStrings {
     override val workoutDetailsStation = "Stacja"
     override val workoutDetailsDuration = "Czas trwania"
     override val workoutDetailsEnergy = "Energia wygenerowana"
-    override val workoutDetailsPoints = "Zdobyte VoltPoints"
+    override val workoutDetailsPoints = "Zdobyte HealthPoints"
     override val workoutDetailsCalories = "Spalone kalorie"
     override val workoutDetailsCo2 = "Zredukowany CO₂"
     override val workoutDetailsDate = "Data i godzina"
@@ -775,7 +784,7 @@ object VoltUpPolishStrings : VoltUpStrings {
     override val enableNotificationsBtn = "Włącz powiadomienia"
     override val notificationsEnabledStatus = "Powiadomienia włączone"
     override val notificationPermissionDialogTitle = "Zezwolić na powiadomienia?"
-    override val notificationPermissionDialogDesc = "Aplikacja VoltUp będzie wysyłać powiadomienia o postępach treningowych, celach dzielnicowych i zniżkach na bilety."
+    override val notificationPermissionDialogDesc = "Aplikacja HealthUp będzie wysyłać powiadomienia o postępach treningowych, celach dzielnicowych i zniżkach na bilety."
     override val allowBtn = "Zezwól"
     override val notNowBtn = "Nie teraz"
 
@@ -787,7 +796,7 @@ object VoltUpPolishStrings : VoltUpStrings {
     override val cityKineticEnergy = "Zdrowie i Aktywność Łodzi"
     override val challengeProgressLabel = "Postęp wyzwania:"
     override val completionRewardsLabel = "Nagrody za ukończenie:"
-    override val claimRewardsBtn: (Int, Int) -> String = { rankPts, vp -> "Odbierz nagrody (+$rankPts pkt | +$vp VP)" }
+    override val claimRewardsBtn: (Int, Int) -> String = { rankPts, hp -> "Odbierz nagrody (+$rankPts pkt | +$hp HP)" }
     override val claimingStatus = "Odbieranie..."
     override val rewardsClaimedStatus = "Nagrody odebrane"
     override val expandDetails = "Rozwiń"
@@ -795,13 +804,13 @@ object VoltUpPolishStrings : VoltUpStrings {
     override val levelPointsSuffix = "pkt poziomu"
 
     override val profileUpdated = "Profil zaktualizowany."
-    override val welcomeBackUser: (String) -> String = { "Witaj ponownie w VoltUp, $it!" }
-    override val accountCreatedUser: (String) -> String = { "Konto utworzone! Witaj w VoltUp, $it!" }
+    override val welcomeBackUser: (String) -> String = { "Witaj ponownie w HealthUp, $it!" }
+    override val accountCreatedUser: (String) -> String = { "Konto utworzone! Witaj w HealthUp, $it!" }
     override val defaultSettingsRestored = "Przywrócono ustawienia domyślne."
     override val signedOutMessage = "Wylogowano z konta."
     override val accountDeletedMessage = "Twoje konto zostało usunięte."
     override val sessionFinishedMessage = "Sesja zakończona!"
-    override val challengeRewardEarned: (Int, Int) -> String = { rank, vp -> "+$rank pkt rankingu, +$vp VP!" }
+    override val challengeRewardEarned: (Int, Int) -> String = { rank, hp -> "+$rank pkt rankingu, +$hp HP!" }
     override val historyClearedMessage = "Historia sesji została wyczyszczona."
     override val passwordChangedSuccess = "Hasło zostało pomyślnie zmienione."
     override val rateAppThankYou = "Dziękujemy za opinię w Google Play!"
@@ -827,7 +836,9 @@ object VoltUpPolishStrings : VoltUpStrings {
     override val rateRatingDefault = "Pracujemy nad tym, aby stacje działały jeszcze lepiej!"
 }
 
-object VoltUpEnglishStrings : VoltUpStrings {
+typealias VoltUpEnglishStrings = HealthUpEnglishStrings
+
+object HealthUpEnglishStrings : HealthUpStrings {
     override val tabHome = "Home"
     override val tabMap = "Map"
     override val tabRewards = "Rewards"
@@ -877,7 +888,7 @@ object VoltUpEnglishStrings : VoltUpStrings {
     override val appCityTag = "Łódź"
     override val welcomeBack = "Welcome back!"
     override val totalEnergyWh = "Generated"
-    override val voltPoints = "VoltPoints"
+    override val voltPoints = "HealthPoints"
     override val co2SavedKg = "CO₂ Saved"
     override val userLevel = "Level"
     override val quickActionsTitle = "QUICK ACTIONS"
@@ -956,7 +967,7 @@ object VoltUpEnglishStrings : VoltUpStrings {
     override val rewardsScreenTitle = "Rewards & Tickets"
     override val catalogTab = "Rewards catalog"
     override val myCouponsTab = "My coupons"
-    override val pointsBalance = "Your VoltPoints"
+    override val pointsBalance = "Your HealthPoints"
     override val categoryAll = "All"
     override val categoryTransport = "MPK Transport"
     override val categoryFood = "Food & Drink"
@@ -1011,7 +1022,7 @@ object VoltUpEnglishStrings : VoltUpStrings {
     override val authorsMenu = "Project authors"
     override val signOutMenu = "Log out"
     override val signOutConfirmTitle = "Log out?"
-    override val signOutConfirmDesc = "Are you sure you want to end your session and log out of VoltUp?"
+    override val signOutConfirmDesc = "Are you sure you want to end your session and log out of HealthUp?"
     override val signOutBtn = "Log out"
 
     override val settingsScreenTitle = "Settings"
@@ -1038,7 +1049,7 @@ object VoltUpEnglishStrings : VoltUpStrings {
     override val clearHistoryTitle = "Clear workout history"
     override val clearHistorySubtitle = "Remove local session logs"
     override val clearHistoryConfirmTitle = "Clear history?"
-    override val clearHistoryConfirmDesc = "Your saved session history will be permanently deleted. Your VoltPoints will remain safe."
+    override val clearHistoryConfirmDesc = "Your saved session history will be permanently deleted. Your HealthPoints will remain safe."
     override val deleteDataBtn = "Delete data"
     override val resetDefaultsTitle = "Reset to defaults"
     override val resetDefaultsSubtitle = "Reset theme and notification options"
@@ -1047,18 +1058,18 @@ object VoltUpEnglishStrings : VoltUpStrings {
     override val resetDefaultsBtn = "Reset"
     override val changePasswordMenuTitle = "Change password"
     override val changePasswordMenuSubtitle = "Update your account password"
-    override val rateAppMenuTitle = "Rate VoltUp"
+    override val rateAppMenuTitle = "Rate HealthUp"
     override val rateAppMenuSubtitle = "Share your review on Google Play"
-    override val rateAppDialogTitle = "Rate VoltUp"
+    override val rateAppDialogTitle = "Rate HealthUp"
     override val rateAppDialogDesc = "Your feedback helps us develop the urban kinetic station network in Łódź!"
     override val submitRatingBtn = "Submit rating"
     override val maybeLaterBtn = "Maybe later"
-    override val aboutAppMenuTitle = "About VoltUp"
+    override val aboutAppMenuTitle = "About HealthUp"
     override val aboutAppMenuSubtitle = "Version 1.00 • Łódź 2026"
-    override val aboutAppDialogTitle = "VoltUp"
-    override val aboutAppDialogDesc = "VoltUp is an urban health program designed for Łódź residents. We inspire regular, safe outdoor exercise — move in city parks, improve cardiovascular wellness, and exchange active minutes for free MPK transit tickets and city perks!"
+    override val aboutAppDialogTitle = "HealthUp"
+    override val aboutAppDialogDesc = "HealthUp is an urban health program designed for Łódź residents. We inspire regular, safe outdoor exercise — move in city parks, improve cardiovascular wellness, and exchange active minutes for free MPK transit tickets and city perks!"
     override val versionLabel = "Version 1.0.0"
-    override val copyrightNotice = "© 2026 VoltUp Team. All rights reserved."
+    override val copyrightNotice = "© 2026 HealthUp Team. All rights reserved."
     override val awesomeBtn = "Awesome"
 
     override val manageAccountTitle = "Manage Account"
@@ -1068,7 +1079,7 @@ object VoltUpEnglishStrings : VoltUpStrings {
     override val deleteAccountTitle = "Delete account permanently"
     override val deleteAccountSubtitle = "Permanently remove account and data"
     override val deleteAccountConfirmTitle = "Delete account?"
-    override val deleteAccountConfirmDesc = "This operation is irreversible. Your profile, VoltPoints, and workout history will be permanently deleted."
+    override val deleteAccountConfirmDesc = "This operation is irreversible. Your profile, HealthPoints, and workout history will be permanently deleted."
     override val deleteAccountPermanentlyBtn = "Delete account permanently"
 
     override val changePasswordDialogTitle = "Change Password"
@@ -1104,12 +1115,13 @@ object VoltUpEnglishStrings : VoltUpStrings {
     override val resetDefaultsSubtitleShort = "Resets theme and preferences"
     override val aboutAppSection = "ABOUT THE APP"
     override val rateOurAppTitle = "Rate our app"
-    override val rateOurAppSubtitle = "Share your review about VoltUp"
+    override val rateOurAppSubtitle = "Share your review about HealthUp"
     override val helpAndGuideTitle = "Help & guide"
     override val helpAndGuideSubtitle = "How to use stations and earn rewards"
     override val appAuthorsTitle = "App Authors"
-    override val appAuthorsSubtitle = "Creators of VoltUp"
-    override val aboutVoltUpAppSubtitle = "Version, licenses, and info"
+    override val appAuthorsSubtitle = "Creators of HealthUp"
+    override val aboutHealthUpAppSubtitle = "Version, licenses, and info"
+    override val aboutVoltUpAppSubtitle get() = aboutHealthUpAppSubtitle
 
     override val myAchievementsTitle = "My Achievements"
     override val tabAchievements = "Achievements"
@@ -1124,7 +1136,7 @@ object VoltUpEnglishStrings : VoltUpStrings {
     override val rankOutsideTop: (Int) -> String = { "Your rank outside TOP $it:" }
     override val placeRank: (Int) -> String = { "Rank $it" }
 
-    override val onboardingWelcomeTitle = "Welcome to VoltUp!"
+    override val onboardingWelcomeTitle = "Welcome to HealthUp!"
     override val onboardingWelcomeSubtitle = "Health & Movement in Łódź"
     override val onboardingWelcomeDesc = "A brisk walk or 15 minutes on park equipment strengthens your heart and lifts your mood. Exercise safely in the fresh air!"
     override val onboardingNotificationsTitle = "Notifications & Goals"
@@ -1132,7 +1144,7 @@ object VoltUpEnglishStrings : VoltUpStrings {
     override val onboardingNotificationsDesc = "Get gentle activity reminders, track your weekly habits, and participate in friendly community park challenges."
     override val onboardingRewardsTitle = "Earn Real Rewards"
     override val onboardingRewardsSubtitle = "Movement That Truly Pays Off"
-    override val onboardingRewardsDesc = "Earn VoltPoints for every active minute and exchange them for free MPK-Łódź transit tickets, pool passes, and local perks!"
+    override val onboardingRewardsDesc = "Earn HealthPoints for every active minute and exchange them for free MPK-Łódź transit tickets, pool passes, and local perks!"
     override val onboardingNextBtn = "Next"
     override val onboardingGetStartedBtn = "Get Started!"
     override val onboardingSkipBtn = "Skip"
@@ -1142,8 +1154,8 @@ object VoltUpEnglishStrings : VoltUpStrings {
     override val helpTabFaq = "Guide & FAQ"
     override val helpTabSupport = "Support & Contact"
     override val authorsScreenTitle = "App Authors"
-    override val authorsTeamTitle = "The VoltUp Team"
-    override val authorsTeamDesc = "VoltUp was created from a passion for modern technology, physical activity, and sustainable urban development in Łódź."
+    override val authorsTeamTitle = "The HealthUp Team"
+    override val authorsTeamDesc = "HealthUp was created from a passion for modern technology, physical activity, and sustainable urban development in Łódź."
 
     override val instantValidity = "Instant"
     override val daysValidity: (Int) -> String = { "$it days" }
@@ -1172,7 +1184,7 @@ object VoltUpEnglishStrings : VoltUpStrings {
     override val workoutDetailsStation = "Station"
     override val workoutDetailsDuration = "Duration"
     override val workoutDetailsEnergy = "Generated Energy"
-    override val workoutDetailsPoints = "VoltPoints Earned"
+    override val workoutDetailsPoints = "HealthPoints Earned"
     override val workoutDetailsCalories = "Calories Burned"
     override val workoutDetailsCo2 = "CO₂ Reduced"
     override val workoutDetailsDate = "Date & Time"
@@ -1180,7 +1192,7 @@ object VoltUpEnglishStrings : VoltUpStrings {
     override val enableNotificationsBtn = "Enable notifications"
     override val notificationsEnabledStatus = "Notifications enabled"
     override val notificationPermissionDialogTitle = "Allow notifications?"
-    override val notificationPermissionDialogDesc = "VoltUp will send notifications about workout milestones, city challenges, and transit ticket discounts."
+    override val notificationPermissionDialogDesc = "HealthUp will send notifications about workout milestones, city challenges, and transit ticket discounts."
     override val allowBtn = "Allow"
     override val notNowBtn = "Not now"
 
@@ -1192,7 +1204,7 @@ object VoltUpEnglishStrings : VoltUpStrings {
     override val cityKineticEnergy = "Health & Outdoor Movement in Łódź"
     override val challengeProgressLabel = "Challenge progress:"
     override val completionRewardsLabel = "Completion rewards:"
-    override val claimRewardsBtn: (Int, Int) -> String = { rankPts, vp -> "Claim rewards (+$rankPts pts | +$vp VP)" }
+    override val claimRewardsBtn: (Int, Int) -> String = { rankPts, hp -> "Claim rewards (+$rankPts pts | +$hp HP)" }
     override val claimingStatus = "Claiming..."
     override val rewardsClaimedStatus = "Rewards claimed"
     override val expandDetails = "Expand"
@@ -1200,13 +1212,13 @@ object VoltUpEnglishStrings : VoltUpStrings {
     override val levelPointsSuffix = "level pts"
 
     override val profileUpdated = "Profile updated."
-    override val welcomeBackUser: (String) -> String = { "Welcome back to VoltUp, $it!" }
-    override val accountCreatedUser: (String) -> String = { "Account created! Welcome to VoltUp, $it!" }
+    override val welcomeBackUser: (String) -> String = { "Welcome back to HealthUp, $it!" }
+    override val accountCreatedUser: (String) -> String = { "Account created! Welcome to HealthUp, $it!" }
     override val defaultSettingsRestored = "Default settings restored."
     override val signedOutMessage = "Logged out successfully."
     override val accountDeletedMessage = "Your account has been deleted."
     override val sessionFinishedMessage = "Workout completed!"
-    override val challengeRewardEarned: (Int, Int) -> String = { rank, vp -> "+$rank rank pts, +$vp VP!" }
+    override val challengeRewardEarned: (Int, Int) -> String = { rank, hp -> "+$rank rank pts, +$hp HP!" }
     override val historyClearedMessage = "Workout history cleared."
     override val passwordChangedSuccess = "Password changed successfully."
     override val rateAppThankYou = "Thank you for your rating on Google Play!"

@@ -26,7 +26,7 @@ actual fun getDayOfWeekIndex(timestampMs: Long): Int {
     return if (dayIdx < 0) (dayIdx + 7) % 7 else dayIdx
 }
 
-actual object VoltUpStorage {
+actual object HealthUpStorage {
     actual fun getString(key: String, defaultValue: String): String =
         NSUserDefaults.standardUserDefaults.stringForKey(key) ?: defaultValue
 
@@ -47,5 +47,7 @@ actual object VoltUpStorage {
         NSUserDefaults.standardUserDefaults.setBool(value, forKey = key)
     }
 }
+
+
 
 actual fun getUserCurrentLocation(): Pair<Double, Double>? = null

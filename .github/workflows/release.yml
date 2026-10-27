@@ -11,7 +11,7 @@ on:
         required: true
         default: 'v1.0.0'
       release_name:
-        description: 'Tytuł wydania (opcjonalnie, np. VoltUp v1.0.0)'
+        description: 'Tytuł wydania (opcjonalnie, np. HealthUp v1.0.0)'
         required: false
         default: ''
       draft:
@@ -52,9 +52,9 @@ jobs:
       - name: Organize Android Artifacts
         run: |
           mkdir -p build/release-assets
-          cp androidApp/build/outputs/apk/debug/androidApp-debug.apk build/release-assets/VoltUp-Android-debug.apk
-          cp androidApp/build/outputs/apk/release/androidApp-release-unsigned.apk build/release-assets/VoltUp-Android-release-unsigned.apk
-          cp androidApp/build/outputs/bundle/release/androidApp-release.aab build/release-assets/VoltUp-Android-release.aab
+          cp androidApp/build/outputs/apk/debug/androidApp-debug.apk build/release-assets/HealthUp-Android-debug.apk
+          cp androidApp/build/outputs/apk/release/androidApp-release-unsigned.apk build/release-assets/HealthUp-Android-release-unsigned.apk
+          cp androidApp/build/outputs/bundle/release/androidApp-release.aab build/release-assets/HealthUp-Android-release.aab
 
       - name: Upload Android Artifacts
         uses: actions/upload-artifact@v4
@@ -116,7 +116,7 @@ jobs:
           echo "Found device app at: $APP_PATH"
           mkdir -p build/ipa/Payload
           cp -r "$APP_PATH" build/ipa/Payload/
-          (cd build/ipa && zip -qr "$GITHUB_WORKSPACE/VoltUp-iOS-Device.ipa" Payload)
+          (cd build/ipa && zip -qr "$GITHUB_WORKSPACE/HealthUp-iOS-Device.ipa" Payload)
 
       - name: Build iOS App for Simulator
         run: |
@@ -137,13 +137,13 @@ jobs:
           echo "Found simulator app at: $SIM_APP_PATH"
           APP_DIR=$(dirname "$SIM_APP_PATH")
           APP_NAME=$(basename "$SIM_APP_PATH")
-          (cd "$APP_DIR" && zip -qr "$GITHUB_WORKSPACE/VoltUp-iOS-Simulator.app.zip" "$APP_NAME")
+          (cd "$APP_DIR" && zip -qr "$GITHUB_WORKSPACE/HealthUp-iOS-Simulator.app.zip" "$APP_NAME")
 
       - name: Organize iOS Artifacts
         run: |
           mkdir -p build/release-assets
-          cp "$GITHUB_WORKSPACE/VoltUp-iOS-Device.ipa" build/release-assets/VoltUp-iOS-Device.ipa
-          cp "$GITHUB_WORKSPACE/VoltUp-iOS-Simulator.app.zip" build/release-assets/VoltUp-iOS-Simulator.app.zip
+          cp "$GITHUB_WORKSPACE/HealthUp-iOS-Device.ipa" build/release-assets/HealthUp-iOS-Device.ipa
+          cp "$GITHUB_WORKSPACE/HealthUp-iOS-Simulator.app.zip" build/release-assets/HealthUp-iOS-Simulator.app.zip
           echo "Organized release assets:"
           ls -la build/release-assets/
 
@@ -197,7 +197,7 @@ jobs:
           if [ -n "${{ inputs.release_name }}" ]; then
             RELEASE_NAME="${{ inputs.release_name }}"
           else
-            RELEASE_NAME="VoltUp ${TAG_NAME}"
+            RELEASE_NAME="HealthUp ${TAG_NAME}"
           fi
 
           echo "tag=${TAG_NAME}" >> $GITHUB_OUTPUT

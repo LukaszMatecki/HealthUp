@@ -7,7 +7,7 @@ import FirebaseCore
 #if canImport(FirebaseAppCheck)
 import FirebaseAppCheck
 
-class VoltUpAppCheckProviderFactory: NSObject, AppCheckProviderFactory {
+class HealthUpAppCheckProviderFactory: NSObject, AppCheckProviderFactory {
     func createProvider(with app: FirebaseApp) -> AppCheckProvider? {
         #if DEBUG
         return AppCheckDebugProviderFactory().createProvider(with: app)
@@ -28,7 +28,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
     ) -> Bool {
         #if canImport(FirebaseCore) && canImport(FirebaseAppCheck)
-        let providerFactory = VoltUpAppCheckProviderFactory()
+        let providerFactory = HealthUpAppCheckProviderFactory()
         AppCheck.setAppCheckProviderFactory(providerFactory)
         FirebaseApp.configure()
         #endif

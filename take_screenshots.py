@@ -1,6 +1,6 @@
 #!python3.12
 """
-VoltUp - Zautomatyzowany generator zrzutów ekranu (Pixel 9 Pro / Bez ramki i Z ramką)
+HealthUp - Zautomatyzowany generator zrzutów ekranu (Pixel 9 Pro / Bez ramki i Z ramką)
 =====================================================================================
 Ten skrypt automatycznie:
  1. Wykrywa lub uruchamia emulator telefonu Pixel 9 Pro (AVD: Pixel_9_Pro_API_36 / Pixel_9_Pro_XL).
@@ -268,7 +268,7 @@ class VoltUpScreenshotRunner:
             pass
 
     def ensure_app_installed(self):
-        print_step("📦", "Weryfikacja instalacji aplikacji VoltUp...")
+        print_step("📦", "Weryfikacja instalacji aplikacji HealthUp...")
         installed = self.run_adb("shell", "pm", "list", "packages", self.package_name, check=False)
         if self.package_name in installed:
             print_success(f"Pakiet {self.package_name} jest już zainstalowany.")
@@ -294,7 +294,7 @@ class VoltUpScreenshotRunner:
 
         print_info(f"Instalowanie {apk_to_install.name} na emulatorze...")
         self.run_adb("install", "-r", "-d", str(apk_to_install))
-        print_success("Aplikacja VoltUp pomyślnie zainstalowana!")
+        print_success("Aplikacja HealthUp pomyślnie zainstalowana!")
 
     def setup_demo_mode(self, enable: bool = True):
         """Włącza czysty pasek stanu (godzina 09:41, bateria 100%, pełny zasięg 5G/Wi-Fi)."""
@@ -541,7 +541,7 @@ class VoltUpScreenshotRunner:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Automatyczny generator zrzutów ekranu VoltUp na emulatorze Pixel 9 Pro")
+    parser = argparse.ArgumentParser(description="Automatyczny generator zrzutów ekranu HealthUp na emulatorze Pixel 9 Pro")
     parser.add_argument("--avd", type=str, default="Pixel_9_Pro_API_36", help="Nazwa emulatora AVD (domyślnie: Pixel_9_Pro_API_36)")
     parser.add_argument("--theme", type=str, default="all", choices=["ciemny", "jasny", "all", "dark", "light"], help="Motyw graficzny (domyślnie: all - zarówno ciemny jak i jasny)")
     parser.add_argument("--output", type=str, default="voltup_screens", help="Katalog wyjściowy dla zrzutów ekranu (domyślnie: voltup_screens)")

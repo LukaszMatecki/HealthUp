@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "856434D5B39DE1D2D41968DD"
-               BuildableName = "VoltUp.app"
+               BuildableName = "HealthUp.app"
                BlueprintName = "iosApp"
                ReferencedContainer = "container:iosApp.xcodeproj">
             </BuildableReference>
@@ -45,7 +45,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "856434D5B39DE1D2D41968DD"
-            BuildableName = "VoltUp.app"
+            BuildableName = "HealthUp.app"
             BlueprintName = "iosApp"
             ReferencedContainer = "container:iosApp.xcodeproj">
          </BuildableReference>
@@ -62,7 +62,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "856434D5B39DE1D2D41968DD"
-            BuildableName = "VoltUp.app"
+            BuildableName = "HealthUp.app"
             BlueprintName = "iosApp"
             ReferencedContainer = "container:iosApp.xcodeproj">
          </BuildableReference>

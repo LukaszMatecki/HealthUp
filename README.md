@@ -14,11 +14,11 @@
   </a>
 </p>
 
-# VoltUp: Miejski Ekosystem Zdrowia i Mikronagród
+# HealthUp: Miejski Ekosystem Zdrowia i Mikronagród
 
 <a id="wersja-polska"></a>
 
-**VoltUp** to ekosystem wspierający profilaktykę zdrowotną, rozwój zdrowych nawyków i system mikronagród miejskich w Łodzi, tworzony w technologiach **Kotlin Multiplatform** i **Compose Multiplatform**. Projekt wykorzystuje potencjał ponad 120 istniejących siłowni plenerowych w łódzkich parkach, zachęcając mieszkańców do regularnej aktywności fizycznej. Łączy budowanie trwałych nawyków ruchowych, zgodnych z zaleceniami WHO, z systemem natychmiastowych korzyści, obejmującym m.in. darmowe bilety MPK Łódź oraz zniżki na basen Fala i atrakcje EC1. Dzięki temu VoltUp łączy troskę o zdrowie z lokalną infrastrukturą i realnymi korzyściami dla mieszkańców.
+**HealthUp** to ekosystem wspierający profilaktykę zdrowotną, rozwój zdrowych nawyków i system mikronagród miejskich w Łodzi, tworzony w technologiach **Kotlin Multiplatform** i **Compose Multiplatform**. Projekt wykorzystuje potencjał ponad 120 istniejących siłowni plenerowych w łódzkich parkach, zachęcając mieszkańców do regularnej aktywności fizycznej. Łączy budowanie trwałych nawyków ruchowych, zgodnych z zaleceniami WHO, z systemem natychmiastowych korzyści, obejmującym m.in. darmowe bilety MPK Łódź oraz zniżki na basen Fala i atrakcje EC1. Dzięki temu HealthUp łączy troskę o zdrowie z lokalną infrastrukturą i realnymi korzyściami dla mieszkańców.
 
 
 ---
@@ -58,7 +58,7 @@ Projekt został zbudowany z wykorzystaniem architektury **Kotlin Multiplatform (
 
 ```mermaid
 flowchart LR
-    A["Stacja QR"] -->|Moc| B["Aplikacja VoltUp"]
+    A["Stacja QR"] -->|Moc| B["Aplikacja HealthUp"]
     B -->|Telemetria| C["Kalkulator"]
     C -->|Punkty VP| D["Katalog Nagród"]
     C -->|Ranking| E["Poziomy"]
@@ -66,7 +66,7 @@ flowchart LR
 
 * **Autoryzacja stacji:** Zeskanowanie kodu QR urządzenia za pomocą kamery weryfikuje fizyczną obecność na stacji.
 * **Rejestracja sesji:** Aplikacja mierzy moc chwilową, zlicza wytworzoną energię i estymuje redukcję emisji CO2.
-* **Grywalizacja i nagrody:** Zakończona sesja zwiększa punkty w rankingu i zasila portfel użytkownika o zdobyte VoltPoints, które można wymienić na kody rabatowe i zniżki.
+* **Grywalizacja i nagrody:** Zakończona sesja zwiększa punkty w rankingu i zasila portfel użytkownika o zdobyte HealthPoints, które można wymienić na kody rabatowe i zniżki.
 
 ---
 
@@ -92,10 +92,10 @@ Trzydzieści osiągnięć z wieloma poziomami zaawansowania, odnawialne wyzwania
 ## Logo aplikacji
 
 <p align="center">
-  <img src="voltup_app_icon.png" width="128" height="128" alt="Logo aplikacji VoltUp" />
+  <img src="voltup_app_icon.png" width="128" height="128" alt="Logo aplikacji HealthUp" />
 </p>
 <p align="center">
-  <em>Oficjalna ikona aplikacji VoltUp</em>
+  <em>Oficjalna ikona aplikacji HealthUp</em>
 </p>
 
 ---
@@ -272,17 +272,17 @@ Uruchomienie zestawu testów współdzielonych:
 
 ## Pobieranie aplikacji i wydania (GitHub Releases)
 
-Wszystkie oficjalne wydania binarne aplikacji VoltUp są automatycznie budowane i publikowane w sekcji [GitHub Releases](https://github.com/LukaszMatecki/VoltUp/releases).
+Wszystkie oficjalne wydania binarne aplikacji HealthUp są automatycznie budowane i publikowane w sekcji [GitHub Releases](https://github.com/LukaszMatecki/VoltUp/releases).
 
 Każde wydanie zawiera kompletny zestaw gotowych pakietów instalacyjnych:
 
 | Nazwa pliku | Platforma | Format | Przeznaczenie |
 | :--- | :--- | :--- | :--- |
-| **`VoltUp-Android-debug.apk`** | Android | APK | **Zalecany do testów:** Gotowy do natychmiastowej instalacji na smartfonie Android (podpisany kluczem debugującym). |
-| **`VoltUp-Android-release-unsigned.apk`** | Android | APK | Zoptymalizowany pakiet Release pod kątem wydajności i minimalnego rozmiaru. |
-| **`VoltUp-Android-release.aab`** | Android | AAB | Oficjalny format Android App Bundle gotowy do publikacji w Google Play Console. |
-| **`VoltUp-iOS-Device.ipa`** | iOS | IPA | Paczka instalacyjna dla fizycznych urządzeń iPhone (instalacja przez AltStore, Sideloadly lub Apple Configurator). |
-| **`VoltUp-iOS-Simulator.app.zip`** | iOS Simulator | ZIP / .app | Paczka dla symulatorów Xcode (instalacja metodą drag-and-drop na okno symulatora). |
+| **`HealthUp-Android-debug.apk`** | Android | APK | **Zalecany do testów:** Gotowy do natychmiastowej instalacji na smartfonie Android (podpisany kluczem debugującym). |
+| **`HealthUp-Android-release-unsigned.apk`** | Android | APK | Zoptymalizowany pakiet Release pod kątem wydajności i minimalnego rozmiaru. |
+| **`HealthUp-Android-release.aab`** | Android | AAB | Oficjalny format Android App Bundle gotowy do publikacji w Google Play Console. |
+| **`HealthUp-iOS-Device.ipa`** | iOS | IPA | Paczka instalacyjna dla fizycznych urządzeń iPhone (instalacja przez AltStore, Sideloadly lub Apple Configurator). |
+| **`HealthUp-iOS-Simulator.app.zip`** | iOS Simulator | ZIP / .app | Paczka dla symulatorów Xcode (instalacja metodą drag-and-drop na okno symulatora). |
 
 ### Jak publikować nowe wydania?
 Repozytorium posiada w pełni zautomatyzowany potok CI/CD oparty na GitHub Actions ([`.github/workflows/release.yml`](.github/workflows/release.yml)):
@@ -306,7 +306,7 @@ Repozytorium posiada w pełni zautomatyzowany potok CI/CD oparty na GitHub Actio
 
 ### Kolekcje w Cloud Firestore
 * `devices`: lista stacji kinetycznych w Łodzi (współrzędne GPS, nazwa, stan techniczny, moc nominalna).
-* `users`: profile użytkowników, punkty rankingowe, saldo VoltPoints, stopień doświadczenia i serie treningowe.
+* `users`: profile użytkowników, punkty rankingowe, saldo HealthPoints, stopień doświadczenia i serie treningowe.
 * `workouts`: archiwum zakończonych treningów (czas trwania, średnia moc, watogodziny, ekwiwalent CO2).
 * `user_achievements`: stany postępu oraz odblokowane odznaki powiązane z identyfikatorem użytkownika.
 
@@ -317,7 +317,7 @@ Klucz Google Maps API jest zdefiniowany w konfiguracji manifestu oraz modułu ma
 
 ## Licencja
 
-Projekt VoltUp jest udostępniany na warunkach licencji **MIT**. Szczegóły znajdują się w pliku [LICENSE](LICENSE).
+Projekt HealthUp jest udostępniany na warunkach licencji **MIT**. Szczegóły znajdują się w pliku [LICENSE](LICENSE).
 
 ---
 ---
@@ -325,9 +325,9 @@ Projekt VoltUp jest udostępniany na warunkach licencji **MIT**. Szczegóły zna
 <a id="table-of-contents"></a>
 <a id="english-version"></a>
 
-# VoltUp: Urban Health Gamification & Micro-Rewards (Health Shift)
+# HealthUp: Urban Health Gamification & Micro-Rewards (Health Shift)
 
-VoltUp is a cross-platform mobile solution built with **Kotlin Multiplatform** and **Compose Multiplatform**. It bridges urban outdoor workout infrastructure with preventive cardio health, gamification, and municipal micro-rewards across the Lodz metropolitan area.
+HealthUp is a cross-platform mobile solution built with **Kotlin Multiplatform** and **Compose Multiplatform**. It bridges urban outdoor workout infrastructure with preventive cardio health, gamification, and municipal micro-rewards across the Lodz metropolitan area.
 
 The system empowers citizens to activate underutilized outdoor fitness stations, track calories and cardio intensity via hardware-backed Proof-of-Effort, charge their mobile devices on-site, and redeem earned reward points for public transit tickets (MPK Łódź) and cultural attractions.
 
@@ -349,7 +349,7 @@ The system empowers citizens to activate underutilized outdoor fitness stations,
 * **100% Shared UI and Business Logic:** Built with Compose Multiplatform, delivering an identical native look and feel on Android and iOS from a single common codebase (`/shared/src/commonMain`).
 * **Platform Integrations via expect/actual:** Hardware-specific capabilities such as Jetpack CameraX optical scanning, Google Maps SDK, and location providers are seamlessly plugged into the shared presentation layer.
 * **Real-Time Kinetic Telemetry Engine:** Live tracking of instantaneous power (Watts), cumulative electrical energy (Wh), and carbon offset estimation.
-* **Gamification and Micro-Economy:** Thirty progressive achievements, weekly challenges, and a VoltPoints wallet redeemable for partner discount vouchers.
+* **Gamification and Micro-Economy:** Thirty progressive achievements, weekly challenges, and a HealthPoints wallet redeemable for partner discount vouchers.
 * **Cloud Architecture:** Powered by Google Firebase (Firebase Authentication, Cloud Firestore NoSQL).
 
 ---
@@ -399,11 +399,11 @@ Binary packages for Android and iOS are automatically compiled and published wit
 
 | Asset | Platform | Type | Note |
 | :--- | :--- | :--- | :--- |
-| **`VoltUp-Android-debug.apk`** | Android | APK | **Recommended for quick testing:** Pre-signed with debug key, installs directly on devices. |
-| **`VoltUp-Android-release-unsigned.apk`** | Android | APK | Production release binary optimized for performance. |
-| **`VoltUp-Android-release.aab`** | Android | AAB | Official Android App Bundle ready for Google Play Store upload. |
-| **`VoltUp-iOS-Device.ipa`** | iOS | IPA | Packaged application for physical iOS devices (AltStore / Sideloadly / TestFlight). |
-| **`VoltUp-iOS-Simulator.app.zip`** | iOS Simulator | ZIP / .app | Packaged application for Xcode Simulator drag-and-drop installation. |
+| **`HealthUp-Android-debug.apk`** | Android | APK | **Recommended for quick testing:** Pre-signed with debug key, installs directly on devices. |
+| **`HealthUp-Android-release-unsigned.apk`** | Android | APK | Production release binary optimized for performance. |
+| **`HealthUp-Android-release.aab`** | Android | AAB | Official Android App Bundle ready for Google Play Store upload. |
+| **`HealthUp-iOS-Device.ipa`** | iOS | IPA | Packaged application for physical iOS devices (AltStore / Sideloadly / TestFlight). |
+| **`HealthUp-iOS-Simulator.app.zip`** | iOS Simulator | ZIP / .app | Packaged application for Xcode Simulator drag-and-drop installation. |
 
 ### Publishing New Releases
 1. **Via Git Tag:**
@@ -417,4 +417,4 @@ Binary packages for Android and iOS are automatically compiled and published wit
 
 ## License
 
-VoltUp is distributed under the open-source **MIT License**. See the [LICENSE](LICENSE) file for complete details.
+HealthUp is distributed under the open-source **MIT License**. See the [LICENSE](LICENSE) file for complete details.

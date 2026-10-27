@@ -4,9 +4,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-class IosMockAuthService : VoltUpAuthService {
-    private val _currentUser = MutableStateFlow<VoltUpUser?>(null)
-    override val currentUser: StateFlow<VoltUpUser?> = _currentUser.asStateFlow()
+class IosMockAuthService : HealthUpAuthService {
+    private val _currentUser = MutableStateFlow<HealthUpUser?>(null)
+    override val currentUser: StateFlow<HealthUpUser?> = _currentUser.asStateFlow()
 
     override suspend fun signIn(email: String, password: String): AuthResult {
         val user = VoltUpUser(
@@ -74,8 +74,8 @@ class IosMockAuthService : VoltUpAuthService {
     }
 }
 
-class IosMockDatabaseService : VoltUpDatabaseService {
-    private var mockUser: VoltUpUser? = null
+class IosMockDatabaseService : HealthUpDatabaseService {
+    private var mockUser: HealthUpUser? = null
     private val sessions = mutableListOf<WorkoutSessionDto>()
     private val achievements = mutableListOf<UserAchievementDto>()
     private val challenges = mutableListOf<UserChallengeDto>()
@@ -220,5 +220,5 @@ class IosMockDatabaseService : VoltUpDatabaseService {
 private val iosAuthService by lazy { IosMockAuthService() }
 private val iosDatabaseService by lazy { IosMockDatabaseService() }
 
-actual fun getAuthService(): VoltUpAuthService = iosAuthService
-actual fun getDatabaseService(): VoltUpDatabaseService = iosDatabaseService
+actual fun getAuthService(): HealthUpAuthService = iosAuthService
+actual fun getDatabaseService(): HealthUpDatabaseService = iosDatabaseService

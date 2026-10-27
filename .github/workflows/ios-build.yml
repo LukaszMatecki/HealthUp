@@ -62,7 +62,7 @@ jobs:
           echo "Found app at: $APP_PATH"
           mkdir -p build/ipa/Payload
           cp -r "$APP_PATH" build/ipa/Payload/
-          (cd build/ipa && zip -qr "$GITHUB_WORKSPACE/VoltUp-iOS-Device.ipa" Payload)
+          (cd build/ipa && zip -qr "$GITHUB_WORKSPACE/HealthUp-iOS-Device.ipa" Payload)
 
       - name: Build iOS App for Simulator
         run: |
@@ -84,18 +84,18 @@ jobs:
           echo "Found simulator app at: $SIM_APP_PATH"
           APP_DIR=$(dirname "$SIM_APP_PATH")
           APP_NAME=$(basename "$SIM_APP_PATH")
-          (cd "$APP_DIR" && zip -qr "$GITHUB_WORKSPACE/VoltUp-iOS-Simulator.app.zip" "$APP_NAME")
+          (cd "$APP_DIR" && zip -qr "$GITHUB_WORKSPACE/HealthUp-iOS-Simulator.app.zip" "$APP_NAME")
 
       - name: Upload iOS Device IPA
         uses: actions/upload-artifact@v4
         with:
-          name: VoltUp-iOS-Device-IPA
-          path: VoltUp-iOS-Device.ipa
+          name: HealthUp-iOS-Device-IPA
+          path: HealthUp-iOS-Device.ipa
           retention-days: 14
 
       - name: Upload iOS Simulator App
         uses: actions/upload-artifact@v4
         with:
-          name: VoltUp-iOS-Simulator-App
-          path: VoltUp-iOS-Simulator.app.zip
+          name: HealthUp-iOS-Simulator-App
+          path: HealthUp-iOS-Simulator.app.zip
           retention-days: 14

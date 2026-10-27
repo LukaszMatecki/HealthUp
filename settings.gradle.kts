@@ -1,4 +1,4 @@
-rootProject.name = "VoltUp"
+rootProject.name = "HealthUp"
 
 pluginManagement {
     repositories {

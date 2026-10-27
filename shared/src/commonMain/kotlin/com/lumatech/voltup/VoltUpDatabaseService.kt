@@ -1,9 +1,9 @@
 package com.lumatech.voltup
 
-interface VoltUpDatabaseService {
-    suspend fun saveUser(user: VoltUpUser): Boolean
-    suspend fun getUser(userId: String): VoltUpUser?
-    suspend fun getUserByEmail(email: String): VoltUpUser?
+interface HealthUpDatabaseService {
+    suspend fun saveUser(user: HealthUpUser): Boolean
+    suspend fun getUser(userId: String): HealthUpUser?
+    suspend fun getUserByEmail(email: String): HealthUpUser?
     suspend fun updateUserStats(
         userId: String,
         pointsDelta: Int,
@@ -41,4 +41,6 @@ interface VoltUpDatabaseService {
     fun clearCache()
 }
 
-expect fun getDatabaseService(): VoltUpDatabaseService
+typealias VoltUpDatabaseService = HealthUpDatabaseService
+
+expect fun getDatabaseService(): HealthUpDatabaseService

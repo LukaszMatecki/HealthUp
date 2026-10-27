@@ -139,10 +139,10 @@ object MockData {
         Reward(
             id = "REW-RANK-100",
             title = "+100 Punktów do Rankingu",
-            partner = "VoltUp Ranking",
+            partner = "HealthUp Ranking",
             costPoints = 50,
             category = RewardCategory.ALL,
-            description = "Bilecik rankingowy. Wymień 50 zgromadzonych VoltPoints na natychmiastowe +100 punktów w tabeli liderów!",
+            description = "Bilecik rankingowy. Wymień 50 zgromadzonych HealthPoints na natychmiastowe +100 punktów w tabeli liderów!",
             discountCode = "RANK-BOOST-100",
             expiresDays = 365
         ),
@@ -194,7 +194,7 @@ object MockData {
             costPoints = 6000,
             category = RewardCategory.CULTURE,
             description = "Zniżka na 2-godzinny bilet wstępu do strefy basenowej, zjeżdżalni i saunarium.",
-            discountCode = "FALA-VOLT-30",
+            discountCode = "FALA-HEALTH-30",
             expiresDays = 60
         ),
         Reward(
@@ -320,7 +320,7 @@ object MockData {
         NotificationItem(
             id = "N-3",
             title = "🏆 Awans w Rankingu Zdrowia!",
-            message = "Twój wkład w ruch i profilaktykę plasuje Cię w ścisłej czołówce aktywnych łodzian VoltUp!",
+            message = "Twój wkład w ruch i profilaktykę plasuje Cię w ścisłej czołówce aktywnych łodzian HealthUp!",
             timeAgo = "Wczoraj",
             isRead = true,
             icon = Icons.Default.EmojiEvents
@@ -328,7 +328,7 @@ object MockData {
         NotificationItem(
             id = "N-4",
             title = "🎟️ Odbierz Bilet MPK za Wysiłek",
-            message = "Wymień zgromadzone VoltPoints na darmowy bilet 20-minutowy MPK Łódź w katalogu nagród.",
+            message = "Wymień zgromadzone HealthPoints na darmowy bilet 20-minutowy MPK Łódź w katalogu nagród.",
             timeAgo = "3 dni temu",
             isRead = true,
             icon = Icons.Default.DirectionsBus
