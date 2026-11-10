@@ -23,7 +23,7 @@ kotlin {
     }
     
     android {
-       namespace = "com.lumatech.voltup.shared"
+       namespace = "com.lumatech.healthup.shared"
        compileSdk = libs.versions.android.compileSdk.get().toInt()
        minSdk = libs.versions.android.minSdk.get().toInt()
     

@@ -1,0 +1,263 @@
+package com.lumatech.healthup
+
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
+enum class SnackbarType {
+    SUCCESS,
+    INFO,
+    WARNING,
+    ERROR
+}
+
+data class SnackbarMessage(
+    val id: Long,
+    val text: String,
+    val type: SnackbarType = SnackbarType.SUCCESS,
+    val icon: ImageVector? = null,
+)
+
+object SnackbarHelper {
+    private val queue = mutableStateListOf<SnackbarMessage>()
+    private val _currentMessage = mutableStateOf<SnackbarMessage?>(null)
+    val currentMessage: State<SnackbarMessage?> = _currentMessage
+
+    val message: State<SnackbarMessage?> = _currentMessage
+
+    private var messageIdCounter = 0L
+
+    fun isEnglish(): Boolean {
+        return HealthUpStorage.getString(HealthUpPreferenceKeys.KEY_SAVED_LANGUAGE, "") == AppLanguage.ENGLISH.name
+    }
+
+    private val polishToEnglishMap = mapOf(
+        "Profil zaktualizowany." to "Profile updated.",
+        "Ustawienia przywrócone." to "Default settings restored.",
+        "Przywrócono ustawienia domyślne." to "Default settings restored.",
+        "Wylogowano z konta." to "Logged out successfully.",
+        "Twoje konto zostało usunięte." to "Your account has been deleted.",
+        "Sesja zakończona!" to "Workout completed!",
+        "Historia sesji została wyczyszczona." to "Workout history cleared.",
+        "Hasło zostało pomyślnie zmienione." to "Password changed successfully.",
+        "Dziękujemy za opinię w Google Play!" to "Thank you for your rating on Google Play!",
+        "Imię nie może być puste." to "Name cannot be empty.",
+        "Wprowadź dotychczasowe hasło." to "Enter current password.",
+        "Nowe hasło musi mieć co najmniej 6 znaków." to "New password must be at least 6 characters.",
+        "Nowe hasła nie są identyczne." to "New passwords do not match.",
+        "Nowe hasło musi być inne niż dotychczasowe." to "New password must be different from current password.",
+        "Nowe hasło musi być inne niż stare." to "New password must be different from current password.",
+        "Błąd zmiany hasła." to "Failed to change password.",
+        "Błąd usuwania konta." to "Failed to delete account.",
+        "Podaj adres e-mail oraz hasło." to "Please enter your email and password.",
+        "Podaj poprawny format adresu e-mail." to "Please enter a valid email address.",
+        "Wpisz poprawny adres e-mail." to "Please enter a valid email address.",
+        "Wprowadź poprawny adres e-mail." to "Please enter a valid email address.",
+        "Błąd logowania. Spróbuj ponownie." to "Login failed. Please try again.",
+        "Wpisz swoje imię lub pseudonim." to "Please enter your name or nickname.",
+        "Imię lub pseudonim może mieć maksymalnie 30 znaków." to "Name or nickname can have at most 30 characters.",
+        "Błąd rejestracji. Spróbuj ponownie." to "Registration failed. Please try again.",
+        "Wysłano ponownie! Sprawdź skrzynkę i SPAM." to "Sent again! Check your inbox and SPAM.",
+        "Nie udało się ponowić wysyłki." to "Failed to resend. Please try again.",
+        "Nie udało się wysłać linku. Sprawdź e-mail." to "Failed to send reset link. Check your email.",
+        "Archiwum zostało wyczyszczone." to "Archive cleared.",
+        "Kupon dodany do zakładki Moje Kody." to "Coupon added to My Coupons tab."
+    )
+
+    fun show(
+        polishText: String,
+        englishText: String,
+        type: SnackbarType = SnackbarType.SUCCESS,
+        icon: ImageVector? = null
+    ) {
+        show(if (isEnglish()) englishText else polishText, type, icon)
+    }
+
+    fun show(
+        text: String,
+        type: SnackbarType = SnackbarType.SUCCESS,
+        icon: ImageVector? = null
+    ) {
+        val resolvedText = if (isEnglish()) {
+            polishToEnglishMap[text] ?: run {
+                if (text.startsWith("Witaj ponownie w HealthUp, ") || text.startsWith("Witaj ponownie w VoltUp, ")) {
+                    text.replace("Witaj ponownie w HealthUp, ", "Welcome back to HealthUp, ").replace("Witaj ponownie w VoltUp, ", "Welcome back to HealthUp, ")
+                } else if (text.startsWith("Konto utworzone! Witaj w HealthUp, ") || text.startsWith("Konto utworzone! Witaj w VoltUp, ")) {
+                    text.replace("Konto utworzone! Witaj w HealthUp, ", "Account created! Welcome to HealthUp, ").replace("Konto utworzone! Witaj w VoltUp, ", "Account created! Welcome to HealthUp, ")
+                } else if (text.contains("pkt rankingu") && (text.contains("HP!") || text.contains("VP!"))) {
+                    text.replace("pkt rankingu", "rank pts").replace("VP!", "HP!")
+                } else {
+                    text
+                }
+            }
+        } else text
+
+        val msg = SnackbarMessage(++messageIdCounter, resolvedText, type, icon)
+        if (_currentMessage.value == null) {
+            _currentMessage.value = msg
+        } else {
+            queue.add(msg)
+        }
+    }
+
+    internal fun onAnimationCompleted() {
+        if (queue.isNotEmpty()) {
+            _currentMessage.value = queue.removeAt(0)
+        } else {
+            _currentMessage.value = null
+        }
+    }
+
+    fun dismiss() {
+        onAnimationCompleted()
+    }
+}
+
+@Composable
+fun HealthUpSnackbarHost(
+    modifier: Modifier = Modifier,
+) {
+    val currentMsg = SnackbarHelper.currentMessage.value
+
+    val expansion = remember { Animatable(0f) }
+    val offsetY = remember { Animatable(-70f) }
+    val alpha = remember { Animatable(0f) }
+
+    LaunchedEffect(currentMsg?.id) {
+        if (currentMsg == null) return@LaunchedEffect
+
+        expansion.snapTo(0f)
+        offsetY.snapTo(-70f)
+        alpha.snapTo(0f)
+
+        coroutineScope {
+            launch {
+                alpha.animateTo(1f, animationSpec = tween(320, easing = LinearEasing))
+            }
+            launch {
+                offsetY.animateTo(0f, animationSpec = tween(360, easing = FastOutSlowInEasing))
+            }
+        }
+
+        delay(40.milliseconds)
+        expansion.animateTo(1f, animationSpec = tween(380, easing = FastOutSlowInEasing))
+
+        delay(2400.milliseconds)
+
+        expansion.animateTo(0f, animationSpec = tween(340, easing = FastOutSlowInEasing))
+
+        coroutineScope {
+            launch {
+                alpha.animateTo(0f, animationSpec = tween(280, easing = LinearEasing))
+            }
+            launch {
+                offsetY.animateTo(-70f, animationSpec = tween(300, easing = FastOutLinearInEasing))
+            }
+        }
+
+        SnackbarHelper.onAnimationCompleted()
+    }
+
+    if (currentMsg != null) {
+        val accentColor = when (currentMsg.type) {
+            SnackbarType.SUCCESS -> LightPrimary
+            SnackbarType.INFO -> LightPrimary
+            SnackbarType.WARNING -> EnergyYellow
+            SnackbarType.ERROR -> MaterialTheme.colorScheme.error
+        }
+
+        val displayIcon = currentMsg.icon ?: when (currentMsg.type) {
+            SnackbarType.SUCCESS -> Icons.Default.Check
+            SnackbarType.INFO -> Icons.Default.Info
+            SnackbarType.WARNING -> Icons.Default.Warning
+            SnackbarType.ERROR -> Icons.Default.Error
+        }
+
+        val baseCircleSize = 48.dp
+        val maxPillWidth = 310.dp
+        val animatedWidth = baseCircleSize + ((maxPillWidth - baseCircleSize) * expansion.value)
+        val dynamicEndPadding = 7.dp + (7.dp * expansion.value)
+
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(top = 10.dp),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            Surface(
+                modifier = Modifier
+                    .offset(y = offsetY.value.dp)
+                    .graphicsLayer(alpha = alpha.value)
+                    .width(animatedWidth)
+                    .height(baseCircleSize)
+                    .clip(CircleShape),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shadowElevation = 0.dp,
+                border = null
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(start = 7.dp, end = dynamicEndPadding),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(accentColor.copy(alpha = 0.14f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = displayIcon,
+                            contentDescription = null,
+                            tint = accentColor,
+                            modifier = Modifier.size(19.dp)
+                        )
+                    }
+
+                    if (expansion.value > 0.18f) {
+                        val textAlpha = ((expansion.value - 0.18f) / 0.82f).coerceIn(0f, 1f)
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = currentMsg.text,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            fontSize = 13.sp,
+                            modifier = Modifier
+                                .weight(1f)
+                                .graphicsLayer(alpha = textAlpha)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

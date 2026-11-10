@@ -18,6 +18,10 @@
 
 <a id="wersja-polska"></a>
 
+> **Projekt realizowany na [Hackathon Future Smart City 2026](https://challengerocket.com/hackathon-future-smart-city-26)** (ścieżka **Health Shift**).
+>
+> **Future Smart City** to ogólnopolski hackathon dla uczniów i studentów organizowany w Łodzi w ramach inicjatywy *Łódź Innovation Heroes* przez Uniwersytet Łódzki oraz Fundację Uniwersytetu Łódzkiego. Interdyscyplinarne zespoły tworzą podczas niego pomysły i prototypy dla miast przyszłości w trzech ścieżkach: *Power Shift* (energia i transport), *Health Shift* (zdrowie, aktywność i jakość życia mieszkańców) oraz *Circular Shift* (gospodarka obiegu zamkniętego). Więcej szczegółów o wydarzeniu znajduje się na stronie [ChallengeRocket – Hackathon Future Smart City 2026](https://challengerocket.com/hackathon-future-smart-city-26).
+
 **HealthUp** to ekosystem wspierający profilaktykę zdrowotną, rozwój zdrowych nawyków i system mikronagród miejskich w Łodzi, tworzony w technologiach **Kotlin Multiplatform** i **Compose Multiplatform**. Projekt wykorzystuje potencjał ponad 120 istniejących siłowni plenerowych w łódzkich parkach, zachęcając mieszkańców do regularnej aktywności fizycznej. Łączy budowanie trwałych nawyków ruchowych, zgodnych z zaleceniami WHO, z systemem natychmiastowych korzyści, obejmującym m.in. darmowe bilety MPK Łódź oraz zniżki na basen Fala i atrakcje EC1. Dzięki temu HealthUp łączy troskę o zdrowie z lokalną infrastrukturą i realnymi korzyściami dla mieszkańców.
 
 
@@ -137,9 +141,9 @@ Wszystkie ekrany zostały zaprojektowane zgodnie z wytycznymi Material Design 3 
 ### Pulpit główny, ranking miejski i mapa stacji (Tryb ciemny)
 
 <p align="center">
-  <img src="voltup_screens/z_ramka/ciemny/08_Pulpit_Glowny_ciemny_ramka.png" width="31%" alt="Pulpit Główny" />
-  <img src="voltup_screens/z_ramka/ciemny/09_Pulpit_Ranking_I_Wyzwania_ciemny_ramka.png" width="31%" alt="Ranking i Wyzwania" />
-  <img src="voltup_screens/z_ramka/ciemny/10_Mapa_Stacji_ciemny_ramka.png" width="31%" alt="Mapa Stacji" />
+  <img src="healthup_screens/z_ramka/ciemny/08_Pulpit_Glowny_ciemny_ramka.png" width="31%" alt="Pulpit Główny" />
+  <img src="healthup_screens/z_ramka/ciemny/09_Pulpit_Ranking_I_Wyzwania_ciemny_ramka.png" width="31%" alt="Ranking i Wyzwania" />
+  <img src="healthup_screens/z_ramka/ciemny/10_Mapa_Stacji_ciemny_ramka.png" width="31%" alt="Mapa Stacji" />
 </p>
 <p align="center">
   <em>Pulpit główny z bilansem energii &bull; Miejska tabela liderów i wyzwania tygodniowe &bull; Interaktywna mapa łódzkich siłowni plenerowych</em>
@@ -148,9 +152,9 @@ Wszystkie ekrany zostały zaprojektowane zgodnie z wytycznymi Material Design 3 
 ### Trening kinetyczny na żywo, skaner i osiągnięcia
 
 <p align="center">
-  <img src="voltup_screens/z_ramka/ciemny/18_Aktywny_Trening_Live_ciemny_ramka.png" width="31%" alt="Aktywny Trening Live" />
-  <img src="voltup_screens/z_ramka/ciemny/19_Skaner_QR_ciemny_ramka.png" width="31%" alt="Skaner QR" />
-  <img src="voltup_screens/z_ramka/ciemny/16_Osiagniecia_I_Odznaki_ciemny_ramka.png" width="31%" alt="Osiągnięcia i Odznaki" />
+  <img src="healthup_screens/z_ramka/ciemny/18_Aktywny_Trening_Live_ciemny_ramka.png" width="31%" alt="Aktywny Trening Live" />
+  <img src="healthup_screens/z_ramka/ciemny/19_Skaner_QR_ciemny_ramka.png" width="31%" alt="Skaner QR" />
+  <img src="healthup_screens/z_ramka/ciemny/16_Osiagniecia_I_Odznaki_ciemny_ramka.png" width="31%" alt="Osiągnięcia i Odznaki" />
 </p>
 <p align="center">
   <em>Dynamiczny kokpit treningu z mocą w watach i prędkościomierzem &bull; Skaner optyczny QR stacji &bull; System 30 odznak miejskich i progres</em>
@@ -159,9 +163,9 @@ Wszystkie ekrany zostały zaprojektowane zgodnie z wytycznymi Material Design 3 
 ### Katalog mikronagród, aktywne vouchery i profil
 
 <p align="center">
-  <img src="voltup_screens/z_ramka/ciemny/11_Katalog_Nagrod_ciemny_ramka.png" width="31%" alt="Katalog Nagród" />
-  <img src="voltup_screens/z_ramka/ciemny/13_Nagrody_Archiwum_I_Uzyte_ciemny_ramka.png" width="31%" alt="Moje Kody i Vouchery" />
-  <img src="voltup_screens/z_ramka/ciemny/14_Profil_Uzytkownika_ciemny_ramka.png" width="31%" alt="Profil Użytkownika" />
+  <img src="healthup_screens/z_ramka/ciemny/11_Katalog_Nagrod_ciemny_ramka.png" width="31%" alt="Katalog Nagród" />
+  <img src="healthup_screens/z_ramka/ciemny/13_Nagrody_Archiwum_I_Uzyte_ciemny_ramka.png" width="31%" alt="Moje Kody i Vouchery" />
+  <img src="healthup_screens/z_ramka/ciemny/14_Profil_Uzytkownika_ciemny_ramka.png" width="31%" alt="Profil Użytkownika" />
 </p>
 <p align="center">
   <em>Katalog nagród (MPK Łódź, Fala, EC1) &bull; Moje Kody i aktywne bilety z kodami kreskowymi &bull; Profil użytkownika i ranga Miejski Odkrywca</em>
@@ -170,9 +174,9 @@ Wszystkie ekrany zostały zaprojektowane zgodnie z wytycznymi Material Design 3 
 ### Historia treningów, przewodnik FAQ i ustawienia
 
 <p align="center">
-  <img src="voltup_screens/z_ramka/ciemny/15_Historia_Treningow_ciemny_ramka.png" width="31%" alt="Historia Treningów" />
-  <img src="voltup_screens/z_ramka/ciemny/20_Przewodnik_I_FAQ_ciemny_ramka.png" width="31%" alt="Przewodnik i FAQ" />
-  <img src="voltup_screens/z_ramka/ciemny/21_Ustawienia_Aplikacji_ciemny_ramka.png" width="31%" alt="Ustawienia Aplikacji" />
+  <img src="healthup_screens/z_ramka/ciemny/15_Historia_Treningow_ciemny_ramka.png" width="31%" alt="Historia Treningów" />
+  <img src="healthup_screens/z_ramka/ciemny/20_Przewodnik_I_FAQ_ciemny_ramka.png" width="31%" alt="Przewodnik i FAQ" />
+  <img src="healthup_screens/z_ramka/ciemny/21_Ustawienia_Aplikacji_ciemny_ramka.png" width="31%" alt="Ustawienia Aplikacji" />
 </p>
 <p align="center">
   <em>Historia sesji kinetycznych &bull; Baza wiedzy FAQ i zasady generowania prądu &bull; Ustawienia motywu i języka</em>
@@ -181,22 +185,22 @@ Wszystkie ekrany zostały zaprojektowane zgodnie z wytycznymi Material Design 3 
 ### Onboarding i uwierzytelnianie (Tryb jasny)
 
 <p align="center">
-  <img src="voltup_screens/z_ramka/jasny/02_Onboarding_Krok1_jasny_ramka.png" width="31%" alt="Onboarding Powitanie" />
-  <img src="voltup_screens/z_ramka/jasny/05_Logowanie_jasny_ramka.png" width="31%" alt="Ekran Logowania" />
-  <img src="voltup_screens/z_ramka/jasny/06_Rejestracja_jasny_ramka.png" width="31%" alt="Ekran Rejestracji" />
+  <img src="healthup_screens/z_ramka/jasny/02_Onboarding_Krok1_jasny_ramka.png" width="31%" alt="Onboarding Powitanie" />
+  <img src="healthup_screens/z_ramka/jasny/05_Logowanie_jasny_ramka.png" width="31%" alt="Ekran Logowania" />
+  <img src="healthup_screens/z_ramka/jasny/06_Rejestracja_jasny_ramka.png" width="31%" alt="Ekran Rejestracji" />
 </p>
 <p align="center">
   <em>Wprowadzenie do aplikacji &bull; Formularz logowania &bull; Rejestracja nowego mieszkańca</em>
 </p>
 
-> Kompletny zestaw 88 zrzutów ekranu w ultrawysokiej rozdzielczości (Google Pixel 9 Pro z paskiem gestów, w wersjach bez ramki oraz z oficjalną ramką w motywach ciemnym i jasnym) znajduje się w katalogu `voltup_screens/`.
+> Kompletny zestaw 88 zrzutów ekranu w ultrawysokiej rozdzielczości (Google Pixel 9 Pro z paskiem gestów, w wersjach bez ramki oraz z oficjalną ramką w motywach ciemnym i jasnym) znajduje się w katalogu `healthup_screens/`.
 
 ---
 
 ## Struktura projektu
 
 ```text
-VoltUp/
+HealthUp/
 ├── androidApp/
 │   ├── src/main/
 │   │   ├── AndroidManifest.xml
@@ -209,7 +213,7 @@ VoltUp/
 │   │   └── ContentView.swift
 │   └── iosApp.xcodeproj/
 │
-├── voltup_screens/
+├── healthup_screens/
 │   ├── bez_ramki/
 │   │   ├── ciemny/
 │   │   └── jasny/
@@ -219,12 +223,12 @@ VoltUp/
 │
 └── shared/
     └── src/
-        ├── commonMain/kotlin/com/lumatech/voltup/
+        ├── commonMain/kotlin/com/lumatech/healthup/
         │   ├── App.kt
         │   ├── Models.kt
         │   ├── FirebaseModels.kt
-        │   ├── VoltUpAuthService.kt
-        │   ├── VoltUpDatabaseService.kt
+        │   ├── HealthUpAuthService.kt
+        │   ├── HealthUpDatabaseService.kt
         │   ├── AchievementSystem.kt
         │   ├── StationsMapScreen.kt
         │   ├── WorkoutScreen.kt
@@ -236,12 +240,12 @@ VoltUp/
         │   ├── Localization.kt
         │   └── Theme.kt
         │
-        ├── androidMain/kotlin/com/lumatech/voltup/
+        ├── androidMain/kotlin/com/lumatech/healthup/
         │   ├── GoogleMapView.android.kt
         │   ├── CameraPreview.android.kt
         │   └── FirebaseServices.android.kt
         │
-        └── iosMain/kotlin/com/lumatech/voltup/
+        └── iosMain/kotlin/com/lumatech/healthup/
             ├── MainViewController.kt
             ├── GoogleMapView.ios.kt
             └── FirebaseServices.ios.kt
@@ -302,7 +306,7 @@ Uruchomienie zestawu testów współdzielonych:
 
 ## Pobieranie aplikacji i wydania (GitHub Releases)
 
-Wszystkie oficjalne wydania binarne aplikacji HealthUp są automatycznie budowane i publikowane w sekcji [GitHub Releases](https://github.com/LukaszMatecki/VoltUp/releases).
+Wszystkie oficjalne wydania binarne aplikacji HealthUp są automatycznie budowane i publikowane w sekcji [GitHub Releases](https://github.com/LukaszMatecki/HealthUp/releases).
 
 Każde wydanie zawiera kompletny zestaw gotowych pakietów instalacyjnych:
 
@@ -357,6 +361,10 @@ Projekt HealthUp jest udostępniany na warunkach licencji **MIT**. Szczegóły z
 
 # HealthUp: Urban Health and Movement System
 
+> **Built for [Hackathon Future Smart City 2026](https://challengerocket.com/hackathon-future-smart-city-26)** (**Health Shift** track).
+>
+> **Future Smart City** is a nationwide Polish hackathon for high school and university students organized in Łódź as part of the *Łódź Innovation Heroes* initiative by the University of Łódź and the University of Łódź Foundation. Interdisciplinary teams design smart-city solutions across three tracks: *Power Shift* (sustainable energy and transit), *Health Shift* (health, active habits, and residents' wellbeing), and *Circular Shift* (circular economy). Learn more on [ChallengeRocket – Hackathon Future Smart City 2026](https://challengerocket.com/hackathon-future-smart-city-26).
+
 HealthUp is a cross-platform mobile solution built with **Kotlin Multiplatform** and **Compose Multiplatform**. It bridges urban outdoor workout infrastructure with preventive cardio health, gamification, and municipal micro-rewards across the Lodz metropolitan area.
 
 The system empowers citizens to activate underutilized outdoor fitness stations, track calories and cardio intensity via hardware-backed Proof-of-Effort, charge their mobile devices on-site, and redeem earned reward points for public transit tickets (MPK Łódź) and cultural attractions.
@@ -387,7 +395,7 @@ The system empowers citizens to activate underutilized outdoor fitness stations,
 ## Visual Presentation and UI Showcase
 
 > To explore the complete visual showcase of the application in both Dark and Light themes, please refer to the [Prezentacja wizualna (zrzuty ekranu)](#prezentacja-wizualna) section above.
-All high-resolution screenshots are organized in the `voltup_screens/` directory.
+All high-resolution screenshots are organized in the `healthup_screens/` directory.
 
 ---
 
@@ -425,7 +433,7 @@ Open the `/iosApp` project in Xcode 15+ and run on an iOS simulator or physical 
 
 ## Releases & Downloads
 
-Binary packages for Android and iOS are automatically compiled and published with every release under [GitHub Releases](https://github.com/LukaszMatecki/VoltUp/releases).
+Binary packages for Android and iOS are automatically compiled and published with every release under [GitHub Releases](https://github.com/LukaszMatecki/HealthUp/releases).
 
 | Asset | Platform | Type | Note |
 | :--- | :--- | :--- | :--- |

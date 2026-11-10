@@ -20,11 +20,11 @@ dependencies {
 }
 
 android {
-    namespace = "com.lumatech.voltup"
+    namespace = "com.lumatech.healthup"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "com.lumatech.voltup"
+        applicationId = "com.lumatech.healthup"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 2
