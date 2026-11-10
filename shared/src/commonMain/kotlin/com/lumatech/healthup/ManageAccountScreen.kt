@@ -260,7 +260,9 @@ fun ManageAccountScreen(
                             subtitle = if (isEnglish) "Update your login password" else "Zaktualizuj swoje hasło do logowania",
                             iconTint = primaryColor,
                             onClick = {
+                                oldPasswordText = ""
                                 newPasswordText = ""
+                                repeatNewPasswordText = ""
                                 showChangePasswordDialog = true
                             }
                         )
@@ -464,7 +466,12 @@ fun ManageAccountScreen(
                         }
 
                         Button(
-                            onClick = { showChangePasswordDialog = false },
+                            onClick = {
+                                showChangePasswordDialog = false
+                                oldPasswordText = ""
+                                newPasswordText = ""
+                                repeatNewPasswordText = ""
+                            },
                             enabled = !isChangingPassword,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -475,7 +482,7 @@ fun ManageAccountScreen(
                                 contentColor = MaterialTheme.colorScheme.onSurface
                             )
                         ) {
-                            Text("Anuluj", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text(strings.cancel, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
                     }
                 }

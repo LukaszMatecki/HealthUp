@@ -200,6 +200,7 @@ actual fun GoogleMapView(
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(selectedStation?.id) {
+        if (!hasApiKey) return@LaunchedEffect
         val st = selectedStation ?: return@LaunchedEffect
         try {
             cameraPositionState.animate(

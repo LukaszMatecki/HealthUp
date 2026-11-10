@@ -13,6 +13,7 @@ import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -141,6 +142,8 @@ fun initHealthUpFirebase(context: android.content.Context) {
 
 class AndroidFirebaseAuthService : HealthUpAuthService {
     private val authScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    @Volatile
+    private var authListenerJob: Job? = null
     private val _currentUser = MutableStateFlow<HealthUpUser?>(null)
     override val currentUser: StateFlow<HealthUpUser?> = _currentUser.asStateFlow()
 
@@ -157,9 +160,11 @@ class AndroidFirebaseAuthService : HealthUpAuthService {
             try {
                 auth.addAuthStateListener { firebaseAuth ->
                     val fbUser = firebaseAuth.currentUser
+                    authListenerJob?.cancel()
                     if (fbUser != null) {
-                        authScope.launch {
+                        authListenerJob = authScope.launch {
                             val dbUser = dbService.getUser(fbUser.uid)
+                            if (auth.currentUser?.uid != fbUser.uid) return@launch
                             if (dbUser != null) {
                                 _currentUser.value = dbUser
                             } else {
@@ -177,7 +182,9 @@ class AndroidFirebaseAuthService : HealthUpAuthService {
                                     createdAt = System.currentTimeMillis()
                                 )
                                 dbService.saveUser(fallback)
-                                _currentUser.value = fallback
+                                if (auth.currentUser?.uid == fbUser.uid) {
+                                    _currentUser.value = fallback
+                                }
                             }
                         }
                     } else {
@@ -236,6 +243,7 @@ class AndroidFirebaseAuthService : HealthUpAuthService {
                 dbService.saveUser(healthUpUser)
             }
 
+            authListenerJob?.cancel()
             _currentUser.value = healthUpUser
             AuthResult(isSuccess = true, user = healthUpUser)
         } catch (e: Exception) {
@@ -298,6 +306,7 @@ class AndroidFirebaseAuthService : HealthUpAuthService {
 
             initializeDefaultChallenges(fbUser.uid, dbService)
 
+            authListenerJob?.cancel()
             _currentUser.value = newUser
             AuthResult(isSuccess = true, user = newUser)
         } catch (e: Exception) {
@@ -397,6 +406,7 @@ class AndroidFirebaseAuthService : HealthUpAuthService {
             // 2. Następnie usuwamy konto z Firebase Authentication
             user.delete().await()
 
+            authListenerJob?.cancel()
             _currentUser.value = null
             dbService.clearCache()
             AuthResult(isSuccess = true)
@@ -414,6 +424,7 @@ class AndroidFirebaseAuthService : HealthUpAuthService {
     }
 
     override suspend fun signOut() {
+        authListenerJob?.cancel()
         if (isFirebaseReady()) {
             try {
                 auth.signOut()
