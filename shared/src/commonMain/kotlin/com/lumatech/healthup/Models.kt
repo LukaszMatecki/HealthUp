@@ -46,7 +46,7 @@ data class KineticStation(
     val currentEnergyRateW: Int = 0,
     val distance: String = "500 m",
     val activeUsersCount: Int = 2,
-    val qrCodeId: String = "LDZ-VOLT-QR-001",
+    val qrCodeId: String = "LDZ-HEALTH-QR-001",
     val isFavorite: Boolean = false,
     val district: String = "Polesie",
     val latitude: Double = 51.7592,

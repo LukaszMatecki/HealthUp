@@ -33,7 +33,7 @@ data class HealthUpUser(
 
     companion object {
         fun fromMap(map: Map<String, Any?>): HealthUpUser {
-            val voltPts = (map["health_points"] as? Number ?: map["volt_points"] as? Number ?: map["points"] as? Number)?.toInt() ?: 0
+            val voltPts = (map["volt_points"] as? Number ?: map["health_points"] as? Number ?: map["points"] as? Number)?.toInt() ?: 0
             val rankPts = (map["ranking_points"] as? Number)?.toInt() ?: 0
             return HealthUpUser(
                 userId = (map["user_id"] as? String ?: map["id"] as? String).orEmpty(),

@@ -1218,13 +1218,13 @@ fun App(
                                                 achievements = achievements,
                                                 onClaimChallenge = { challenge ->
                                                     val newRankingPoints = userStats.rankingPoints + challenge.rankingPointsReward
-                                                    val newVoltPoints = userStats.points + challenge.voltPointsReward
+                                                    val newHealthPoints = userStats.points + challenge.voltPointsReward
                                                     val newLevel = calculateUserLevel(newRankingPoints)
                                                     val newTitle = calculateLevelTitle(newLevel)
 
                                                     userStats = userStats.copy(
-                                                        points = newVoltPoints,
-                                                        voltPoints = newVoltPoints,
+                                                        points = newHealthPoints,
+                                                        voltPoints = newHealthPoints,
                                                         rankingPoints = newRankingPoints,
                                                         level = newLevel,
                                                         levelTitle = newTitle

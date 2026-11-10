@@ -94,7 +94,7 @@ Projekt został zbudowany z wykorzystaniem architektury **Kotlin Multiplatform (
 flowchart LR
     A["Stacja QR"] -->|Moc| B["Aplikacja HealthUp"]
     B -->|Telemetria| C["Kalkulator"]
-    C -->|Punkty VP| D["Katalog Nagród"]
+    C -->|HealthPoints| D["Katalog Nagród"]
     C -->|Ranking| E["Poziomy"]
 ```
 
@@ -351,7 +351,7 @@ Repozytorium posiada w pełni zautomatyzowany potok CI/CD oparty na GitHub Actio
 
 ### Konfiguracja Google Maps API i kluczy lokalnych
 Klucze API oraz konfiguracja Firebase nie są przechowywane w repozytorium. Przed lokalną kompilacją skopiuj pliki szablonowe (`.example`) i uzupełnij je własnymi danymi (pliki docelowe są ignorowane przez `.gitignore`):
-* `secrets.properties` → `secrets.properties` (`MAPS_API_KEY` oraz opcjonalna konfiguracja podpisywania release `KEYSTORE_FILE`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`)
+* `secrets.properties.example` → `secrets.properties` (`MAPS_API_KEY` oraz opcjonalna konfiguracja podpisywania release `KEYSTORE_FILE`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`)
 * `androidApp/google-services.json.example` → `androidApp/google-services.json` oraz `androidApp/src/main/assets/google-services.json`
 * `iosApp/iosApp/GoogleService-Info.plist.example` → `iosApp/iosApp/GoogleService-Info.plist`
 
@@ -424,7 +424,7 @@ All high-resolution screenshots are organized in the `healthup_screens/` directo
 
 ### Local Secrets & Firebase Configuration
 Before building locally, copy the provided template files (target files are gitignored):
-* `secrets.properties` → `secrets.properties` (`MAPS_API_KEY` and optional release signing credentials)
+* `secrets.properties.example` → `secrets.properties` (`MAPS_API_KEY` and optional release signing credentials)
 * `androidApp/google-services.json.example` → `androidApp/google-services.json` and `androidApp/src/main/assets/google-services.json`
 * `iosApp/iosApp/GoogleService-Info.plist.example` → `iosApp/iosApp/GoogleService-Info.plist`
 

@@ -31,7 +31,7 @@ fun WorkoutHistoryScreen(
     val strings = strings
     val primaryColor = MaterialTheme.colorScheme.primary
     val isDark = isAppInDarkTheme()
-    val voltPointsColor = Color(0xFFFF9800)
+    val healthPointsColor = Color(0xFFFF9800)
     var selectedWorkout by remember { mutableStateOf<WorkoutSessionRecord?>(null) }
 
     Column(
@@ -72,7 +72,7 @@ fun WorkoutHistoryScreen(
         }
 
         val totalWh = remember(workouts) { workouts.sumOf { it.generatedWh } }
-        val totalVp = remember(workouts) { workouts.sumOf { it.earnedPoints } }
+        val totalHp = remember(workouts) { workouts.sumOf { it.earnedPoints } }
         val totalMinutes = remember(workouts) { workouts.sumOf { it.durationSeconds } / 60 }
 
         Surface(
@@ -134,10 +134,10 @@ fun WorkoutHistoryScreen(
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "+$totalVp HP",
+                        text = "+$totalHp HP",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = voltPointsColor
+                        color = healthPointsColor
                     )
                     Text(
                         text = "HealthPoints",
@@ -324,7 +324,7 @@ fun WorkoutHistoryScreen(
 
                                 Surface(
                                     shape = RoundedCornerShape(12.dp),
-                                    color = voltPointsColor.copy(alpha = 0.15f)
+                                    color = healthPointsColor.copy(alpha = 0.15f)
                                 ) {
                                     Row(
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -334,14 +334,14 @@ fun WorkoutHistoryScreen(
                                         Icon(
                                             imageVector = Icons.Default.Stars,
                                             contentDescription = null,
-                                            tint = voltPointsColor,
+                                            tint = healthPointsColor,
                                             modifier = Modifier.size(13.dp)
                                         )
                                         Text(
                                             text = "+${workout.earnedPoints} HP",
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = voltPointsColor
+                                            color = healthPointsColor
                                         )
                                     }
                                 }

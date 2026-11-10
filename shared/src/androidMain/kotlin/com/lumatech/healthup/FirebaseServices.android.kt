@@ -626,6 +626,7 @@ class AndroidFirestoreService : HealthUpDatabaseService {
             val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
             val updateMap = mutableMapOf<String, Any>(
                 "volt_points" to FieldValue.increment(pointsDelta.toLong()),
+                "health_points" to FieldValue.increment(pointsDelta.toLong()),
                 "total_energy_wh" to FieldValue.increment(whDelta),
                 "co2_saved_kg" to FieldValue.increment(co2Delta),
                 "user_level" to newLevel,

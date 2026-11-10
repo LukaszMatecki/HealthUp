@@ -221,13 +221,7 @@ fun formatHealthUpAnnotated(
     return buildAnnotatedString {
         var currentIndex = 0
         while (currentIndex < text.length) {
-            val healthUpIndex = text.indexOf("HealthUp", currentIndex)
-            val voltUpIndex = text.indexOf("VoltUp", currentIndex)
-            val matchIndex = when {
-                healthUpIndex != -1 && voltUpIndex != -1 -> minOf(healthUpIndex, voltUpIndex)
-                healthUpIndex != -1 -> healthUpIndex
-                else -> voltUpIndex
-            }
+            val matchIndex = text.indexOf("HealthUp", currentIndex)
 
             if (matchIndex == -1) {
                 withStyle(SpanStyle(fontWeight = defaultWeight)) {
@@ -240,14 +234,13 @@ fun formatHealthUpAnnotated(
                         append(text.substring(currentIndex, matchIndex))
                     }
                 }
-                val isHealth = matchIndex == healthUpIndex
                 withStyle(SpanStyle(fontWeight = brandWeight)) {
-                    append(if (isHealth) "Health" else "Volt")
+                    append("Health")
                 }
                 withStyle(SpanStyle(fontWeight = upWeight)) {
                     append("Up")
                 }
-                currentIndex = matchIndex + (if (isHealth) 8 else 6)
+                currentIndex = matchIndex + 8
             }
         }
     }

@@ -102,12 +102,12 @@ object SnackbarHelper {
     ) {
         val resolvedText = if (isEnglish()) {
             polishToEnglishMap[text] ?: run {
-                if (text.startsWith("Witaj ponownie w HealthUp, ") || text.startsWith("Witaj ponownie w VoltUp, ")) {
-                    text.replace("Witaj ponownie w HealthUp, ", "Welcome back to HealthUp, ").replace("Witaj ponownie w VoltUp, ", "Welcome back to HealthUp, ")
-                } else if (text.startsWith("Konto utworzone! Witaj w HealthUp, ") || text.startsWith("Konto utworzone! Witaj w VoltUp, ")) {
-                    text.replace("Konto utworzone! Witaj w HealthUp, ", "Account created! Welcome to HealthUp, ").replace("Konto utworzone! Witaj w VoltUp, ", "Account created! Welcome to HealthUp, ")
-                } else if (text.contains("pkt rankingu") && (text.contains("HP!") || text.contains("VP!"))) {
-                    text.replace("pkt rankingu", "rank pts").replace("VP!", "HP!")
+                if (text.startsWith("Witaj ponownie w HealthUp, ")) {
+                    text.replace("Witaj ponownie w HealthUp, ", "Welcome back to HealthUp, ")
+                } else if (text.startsWith("Konto utworzone! Witaj w HealthUp, ")) {
+                    text.replace("Konto utworzone! Witaj w HealthUp, ", "Account created! Welcome to HealthUp, ")
+                } else if (text.contains("pkt rankingu") && text.contains("HP!")) {
+                    text.replace("pkt rankingu", "rank pts")
                 } else {
                     text
                 }
