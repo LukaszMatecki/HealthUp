@@ -47,13 +47,12 @@ fun LoginScreen(
     onLoginSuccess: (HealthUpUser) -> Unit
 ) {
     val strings = strings
-    val initialEmail = remember { HealthUpStorage.getString(HealthUpPreferenceKeys.KEY_SAVED_EMAIL, "") }
     val initialRememberMe = remember { HealthUpStorage.getBoolean(HealthUpPreferenceKeys.KEY_REMEMBER_ME, false) }
-    val initialPassword = remember {
-        if (initialRememberMe) HealthUpStorage.getString(HealthUpPreferenceKeys.KEY_SAVED_PASSWORD, "") else ""
+    val initialEmail = remember {
+        if (initialRememberMe) HealthUpStorage.getString(HealthUpPreferenceKeys.KEY_SAVED_EMAIL, "") else ""
     }
     var email by remember { mutableStateOf(initialEmail) }
-    var password by remember { mutableStateOf(initialPassword) }
+    var password by remember { mutableStateOf("") }
     var rememberMe by remember { mutableStateOf(initialRememberMe) }
     var isPasswordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
@@ -321,13 +320,14 @@ fun LoginScreen(
                                 val result = authService.signIn(cleanEmail, cleanPassword)
                                 isLoading = false
                                 if (result.isSuccess && result.user != null) {
-                                    HealthUpStorage.setString(HealthUpPreferenceKeys.KEY_SAVED_EMAIL, cleanEmail)
                                     HealthUpStorage.setBoolean(HealthUpPreferenceKeys.KEY_REMEMBER_ME, rememberMe)
                                     if (rememberMe) {
-                                        HealthUpStorage.setString(HealthUpPreferenceKeys.KEY_SAVED_PASSWORD, cleanPassword)
+                                        HealthUpStorage.setString(HealthUpPreferenceKeys.KEY_SAVED_EMAIL, cleanEmail)
                                     } else {
-                                        HealthUpStorage.setString(HealthUpPreferenceKeys.KEY_SAVED_PASSWORD, "")
+                                        HealthUpStorage.remove(HealthUpPreferenceKeys.KEY_SAVED_EMAIL)
                                     }
+                                    @Suppress("DEPRECATION")
+                                    HealthUpStorage.remove(HealthUpPreferenceKeys.KEY_SAVED_PASSWORD)
                                     onLoginSuccess(result.user)
                                 } else {
                                     errorMessage = result.errorMessage ?: strings.loginFailedRetry
@@ -721,7 +721,8 @@ fun RegisterScreen(
                                 if (result.isSuccess && result.user != null) {
                                     HealthUpStorage.setString(HealthUpPreferenceKeys.KEY_SAVED_EMAIL, cleanEmail)
                                     HealthUpStorage.setBoolean(HealthUpPreferenceKeys.KEY_REMEMBER_ME, true)
-                                    HealthUpStorage.setString(HealthUpPreferenceKeys.KEY_SAVED_PASSWORD, cleanPass)
+                                    @Suppress("DEPRECATION")
+                                    HealthUpStorage.remove(HealthUpPreferenceKeys.KEY_SAVED_PASSWORD)
                                     onRegisterSuccess(result.user)
                                 } else {
                                     errorMessage = result.errorMessage ?: strings.registrationFailedRetry

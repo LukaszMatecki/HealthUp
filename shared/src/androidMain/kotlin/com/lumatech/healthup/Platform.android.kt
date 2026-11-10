@@ -51,6 +51,11 @@ actual object HealthUpStorage {
     actual fun setBoolean(key: String, value: Boolean) {
         prefs?.edit()?.putBoolean(key, value)?.apply()
     }
+
+    actual fun remove(key: String) {
+        prefs?.edit()?.remove(key)?.apply()
+        legacyPrefs?.edit()?.remove(key)?.apply()
+    }
 }
 
 

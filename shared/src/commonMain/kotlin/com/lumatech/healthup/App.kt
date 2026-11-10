@@ -151,14 +151,12 @@ fun App(
             AppThemeMode.entries.find { it.name == themeName } ?: AppThemeMode.SYSTEM
         }
     }
-    val savedEmail = remember { HealthUpStorage.getString(HealthUpPreferenceKeys.KEY_SAVED_EMAIL, "") }
-    val savedPassword = remember { HealthUpStorage.getString(HealthUpPreferenceKeys.KEY_SAVED_PASSWORD, "") }
     val rememberMe = remember { HealthUpStorage.getBoolean(HealthUpPreferenceKeys.KEY_REMEMBER_ME, false) }
 
     var appSettings by remember(initialTheme) { mutableStateOf(AppSettings(themeMode = initialTheme, language = initialLanguage)) }
     var isSplashVisible by remember { mutableStateOf(previewScreenName == null) }
-    val hasValidAutoLogin = rememberMe && (currentAuthUser != null || (savedEmail.isNotBlank() && savedPassword.isNotBlank()))
-    var isAutoLoggingIn by remember { mutableStateOf(if (previewScreenName != null) false else hasValidAutoLogin) }
+    val hasPersistedSession = remember { rememberMe && (currentAuthUser != null || authService.hasActiveSession()) }
+    var isAutoLoggingIn by remember { mutableStateOf(if (previewScreenName != null) false else hasPersistedSession) }
 
     val initialScreen = remember(previewScreenName) {
         when (previewScreenName?.uppercase()) {
@@ -174,7 +172,7 @@ fun App(
             "MANAGE_ACCOUNT" -> Screen.ManageAccount
             "HELP" -> Screen.HelpGuide
             "QR" -> Screen.QrScanner()
-            else -> if (hasValidAutoLogin) Screen.Main else Screen.Login
+            else -> if (hasPersistedSession) Screen.Main else Screen.Login
         }
     }
     var currentScreen by remember(initialScreen) { mutableStateOf<Screen>(initialScreen) }
@@ -256,32 +254,38 @@ fun App(
             isAutoLoggingIn = false
             return@LaunchedEffect
         }
+        @Suppress("DEPRECATION")
+        HealthUpStorage.remove(HealthUpPreferenceKeys.KEY_SAVED_PASSWORD)
+
         if (!rememberMe) {
-            if (currentAuthUser != null) {
+            if (authService.currentUser.value != null || authService.hasActiveSession()) {
                 authService.signOut()
             }
             isAutoLoggingIn = false
             currentScreen = Screen.Login
-        } else {
-            if (currentAuthUser == null && savedEmail.isNotBlank() && savedPassword.isNotBlank()) {
+        } else if (authService.currentUser.value == null) {
+            if (authService.hasActiveSession()) {
                 isAutoLoggingIn = true
-                val result = authService.signIn(savedEmail, savedPassword)
-                if (result.isSuccess && result.user != null) {
-                    currentScreen = Screen.Main
-                } else {
-                    isAutoLoggingIn = false
-                    currentScreen = Screen.Login
-                }
+            } else {
+                isAutoLoggingIn = false
+                currentScreen = Screen.Login
             }
         }
         delay(1200.milliseconds)
         isSplashVisible = false
-        if (rememberMe && currentAuthUser != null) {
-            delay(700.milliseconds)
-            isAutoLoggingIn = false
-        } else {
-            isAutoLoggingIn = false
+        if (rememberMe) {
+            var waitedMs = 0
+            while (authService.currentUser.value == null && authService.hasActiveSession() && waitedMs < 3800) {
+                delay(100.milliseconds)
+                waitedMs += 100
+            }
+            if (authService.currentUser.value != null) {
+                delay(700.milliseconds)
+            } else {
+                currentScreen = Screen.Login
+            }
         }
+        isAutoLoggingIn = false
     }
 
     fun resetAppStateToDefaults() {
@@ -324,10 +328,13 @@ fun App(
         if (previewScreenName != null) return@LaunchedEffect
         val user = currentAuthUser
         if (user == null) {
-            resetAppStateToDefaults()
-            isAutoLoggingIn = false
-            if (currentScreen != Screen.Login && currentScreen != Screen.Register && currentScreen != Screen.ForgotPassword && currentScreen != Screen.Onboarding) {
-                currentScreen = Screen.Login
+            val waitingForPersistedSession = rememberMe && authService.hasActiveSession() && isAutoLoggingIn
+            if (!waitingForPersistedSession) {
+                resetAppStateToDefaults()
+                isAutoLoggingIn = false
+                if (currentScreen != Screen.Login && currentScreen != Screen.Register && currentScreen != Screen.ForgotPassword && currentScreen != Screen.Onboarding) {
+                    currentScreen = Screen.Login
+                }
             }
         } else {
             achievements = getCachedAchievementsForUser(user.userId)
@@ -757,7 +764,8 @@ fun App(
                                 onSignOut = {
                                     coroutineScope.launch {
                                         HealthUpStorage.setBoolean(HealthUpPreferenceKeys.KEY_REMEMBER_ME, false)
-                                        HealthUpStorage.setString(HealthUpPreferenceKeys.KEY_SAVED_PASSWORD, "")
+                                        @Suppress("DEPRECATION")
+                                        HealthUpStorage.remove(HealthUpPreferenceKeys.KEY_SAVED_PASSWORD)
                                         authService.signOut()
                                         currentScreen = Screen.Login
                                         SnackbarHelper.show(polishText = "Wylogowano z konta.", englishText = "Logged out successfully.")
@@ -790,7 +798,8 @@ fun App(
                                 onSignOut = {
                                     coroutineScope.launch {
                                         HealthUpStorage.setBoolean(HealthUpPreferenceKeys.KEY_REMEMBER_ME, false)
-                                        HealthUpStorage.setString(HealthUpPreferenceKeys.KEY_SAVED_PASSWORD, "")
+                                        @Suppress("DEPRECATION")
+                                        HealthUpStorage.remove(HealthUpPreferenceKeys.KEY_SAVED_PASSWORD)
                                         authService.signOut()
                                         resetAppStateToDefaults()
                                         currentScreen = Screen.Login
@@ -799,8 +808,9 @@ fun App(
                                 },
                                 onAccountDeleted = {
                                     HealthUpStorage.setBoolean(HealthUpPreferenceKeys.KEY_REMEMBER_ME, false)
-                                    HealthUpStorage.setString(HealthUpPreferenceKeys.KEY_SAVED_PASSWORD, "")
-                                    HealthUpStorage.setString(HealthUpPreferenceKeys.KEY_SAVED_EMAIL, "")
+                                    @Suppress("DEPRECATION")
+                                    HealthUpStorage.remove(HealthUpPreferenceKeys.KEY_SAVED_PASSWORD)
+                                    HealthUpStorage.remove(HealthUpPreferenceKeys.KEY_SAVED_EMAIL)
                                     resetAppStateToDefaults()
                                     currentScreen = Screen.Login
                                     SnackbarHelper.show(polishText = "Twoje konto zostało usunięte.", englishText = "Your account has been deleted.")
@@ -1264,7 +1274,8 @@ fun App(
                                                 onSignOut = {
                                                     coroutineScope.launch {
                                                         HealthUpStorage.setBoolean(HealthUpPreferenceKeys.KEY_REMEMBER_ME, false)
-                                                        HealthUpStorage.setString(HealthUpPreferenceKeys.KEY_SAVED_PASSWORD, "")
+                                                        @Suppress("DEPRECATION")
+                                                        HealthUpStorage.remove(HealthUpPreferenceKeys.KEY_SAVED_PASSWORD)
                                                         authService.signOut()
                                                         resetAppStateToDefaults()
                                                         currentScreen = Screen.Login

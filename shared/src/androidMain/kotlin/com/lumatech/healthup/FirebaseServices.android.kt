@@ -26,63 +26,101 @@ import java.util.UUID
 
 private const val TAG = "HealthUpFirebase"
 
+private var isDebugBuild: Boolean = false
+
+private fun isFirebaseReady(context: android.content.Context? = healthUpAppContext): Boolean {
+    return context != null && try {
+        com.google.firebase.FirebaseApp.getApps(context).isNotEmpty()
+    } catch (_: Exception) {
+        false
+    }
+}
+
+private fun logDebugError(message: String, throwable: Throwable? = null) {
+    if (isDebugBuild) {
+        if (throwable != null) Log.e(TAG, "$message: ${throwable.message}", throwable)
+        else Log.e(TAG, message)
+    } else {
+        Log.e(TAG, message)
+    }
+}
+
+private fun logDebugWarning(message: String, throwable: Throwable? = null) {
+    if (isDebugBuild) {
+        if (throwable != null) Log.w(TAG, "$message: ${throwable.message}")
+        else Log.w(TAG, message)
+    }
+}
+
 fun initHealthUpFirebase(context: android.content.Context) {
     try {
-        healthUpAppContext = context.applicationContext
-        var apiKey = "AIzaSyC1sit0tMF-_QBowwG3yt505xoRnItx4Uo"
-        var applicationId = "1:344024062833:android:voltupapp"
-        var projectId = "voltup-21c34"
-        var storageBucket = "voltup-21c34.firebasestorage.app"
+        val appCtx = context.applicationContext
+        healthUpAppContext = appCtx
+        isDebugBuild = (appCtx.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
+
+        var apiKey = ""
+        var applicationId = ""
+        var projectId = ""
+        var storageBucket = ""
 
         try {
-            val jsonString = context.assets.open("google-services.json").bufferedReader().use { it.readText() }
+            val jsonString = appCtx.assets.open("google-services.json").bufferedReader().use { it.readText() }
             val root = org.json.JSONObject(jsonString)
             val projectInfo = root.optJSONObject("project_info")
             if (projectInfo != null) {
-                projectId = projectInfo.optString("project_id", projectId)
-                storageBucket = projectInfo.optString("storage_bucket", storageBucket)
+                projectId = projectInfo.optString("project_id", "")
+                storageBucket = projectInfo.optString("storage_bucket", "")
             }
             val clients = root.optJSONArray("client")
             if (clients != null && clients.length() > 0) {
                 val client = clients.getJSONObject(0)
                 val clientInfo = client.optJSONObject("client_info")
                 if (clientInfo != null) {
-                    applicationId = clientInfo.optString("mobilesdk_app_id", applicationId)
+                    applicationId = clientInfo.optString("mobilesdk_app_id", "")
                 }
                 val apiKeys = client.optJSONArray("api_key")
                 if (apiKeys != null && apiKeys.length() > 0) {
-                    apiKey = apiKeys.getJSONObject(0).optString("current_key", apiKey)
+                    apiKey = apiKeys.getJSONObject(0).optString("current_key", "")
                 }
             }
-        } catch (_: Exception) {}
+        } catch (_: Exception) {
+            Log.w(TAG, "Brak pliku assets/google-services.json — Firebase pozostaje nieaktywny.")
+        }
 
-        val existingApps = com.google.firebase.FirebaseApp.getApps(context)
+        val hasValidConfig = apiKey.isNotBlank() &&
+            applicationId.isNotBlank() &&
+            projectId.isNotBlank() &&
+            !apiKey.startsWith("YOUR_", ignoreCase = true) &&
+            !projectId.startsWith("YOUR_", ignoreCase = true)
+
+        if (!hasValidConfig) {
+            Log.w(TAG, "Konfiguracja Firebase nie jest ustawiona — pominięto inicjalizację Firebase.")
+            return
+        }
+
+        val optionsBuilder = com.google.firebase.FirebaseOptions.Builder()
+            .setApplicationId(applicationId)
+            .setApiKey(apiKey)
+            .setProjectId(projectId)
+        if (storageBucket.isNotBlank()) {
+            optionsBuilder.setStorageBucket(storageBucket)
+        }
+        val options = optionsBuilder.build()
+
+        val existingApps = com.google.firebase.FirebaseApp.getApps(appCtx)
         if (existingApps.isNotEmpty()) {
             val currentApp = com.google.firebase.FirebaseApp.getInstance()
             if (currentApp.options.apiKey != apiKey || currentApp.options.projectId != projectId) {
                 currentApp.delete()
-                val options = com.google.firebase.FirebaseOptions.Builder()
-                    .setApplicationId(applicationId)
-                    .setApiKey(apiKey)
-                    .setProjectId(projectId)
-                    .setStorageBucket(storageBucket)
-                    .build()
-                com.google.firebase.FirebaseApp.initializeApp(context, options)
+                com.google.firebase.FirebaseApp.initializeApp(appCtx, options)
             }
         } else {
-            val options = com.google.firebase.FirebaseOptions.Builder()
-                .setApplicationId(applicationId)
-                .setApiKey(apiKey)
-                .setProjectId(projectId)
-                .setStorageBucket(storageBucket)
-                .build()
-            com.google.firebase.FirebaseApp.initializeApp(context, options)
+            com.google.firebase.FirebaseApp.initializeApp(appCtx, options)
         }
 
         try {
             val appCheck = FirebaseAppCheck.getInstance()
-            val isDebug = (context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
-            if (isDebug) {
+            if (isDebugBuild) {
                 appCheck.installAppCheckProviderFactory(
                     DebugAppCheckProviderFactory.getInstance()
                 )
@@ -94,13 +132,10 @@ fun initHealthUpFirebase(context: android.content.Context) {
                 Log.d(TAG, "Firebase App Check zainicjalizowany z PlayIntegrityAppCheckProviderFactory")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Błąd inicjalizacji Firebase App Check: ${e.message}", e)
+            logDebugError("Błąd inicjalizacji Firebase App Check", e)
         }
     } catch (e: Exception) {
-        Log.e(TAG, "Błąd inicjalizacji Firebase: ${e.message}", e)
-        try {
-            com.google.firebase.FirebaseApp.initializeApp(context)
-        } catch (_: Exception) {}
+        logDebugError("Błąd inicjalizacji Firebase", e)
     }
 }
 
@@ -118,38 +153,49 @@ class AndroidFirebaseAuthService : HealthUpAuthService {
     }
 
     init {
-        try {
-            auth.addAuthStateListener { firebaseAuth ->
-                val fbUser = firebaseAuth.currentUser
-                if (fbUser != null) {
-                    authScope.launch {
-                        val dbUser = dbService.getUser(fbUser.uid)
-                        if (dbUser != null) {
-                            _currentUser.value = dbUser
-                        } else {
-                            val fallback = HealthUpUser(
-                                userId = fbUser.uid,
-                                email = fbUser.email.orEmpty(),
-                                userName = fbUser.displayName?.ifBlank { "Użytkownik HealthUp" } ?: "Użytkownik HealthUp",
-                                avatarId = 1,
-                                voltPoints = 0,
-                                totalEnergyWh = 0.0,
-                                co2SavedKg = 0.0,
-                                userLevel = 0,
-                                streakDays = 1,
-                                lastActiveDate = getTodayString(),
-                                createdAt = System.currentTimeMillis()
-                            )
-                            dbService.saveUser(fallback)
-                            _currentUser.value = fallback
+        if (isFirebaseReady()) {
+            try {
+                auth.addAuthStateListener { firebaseAuth ->
+                    val fbUser = firebaseAuth.currentUser
+                    if (fbUser != null) {
+                        authScope.launch {
+                            val dbUser = dbService.getUser(fbUser.uid)
+                            if (dbUser != null) {
+                                _currentUser.value = dbUser
+                            } else {
+                                val fallback = HealthUpUser(
+                                    userId = fbUser.uid,
+                                    email = fbUser.email.orEmpty(),
+                                    userName = fbUser.displayName?.ifBlank { "Użytkownik HealthUp" } ?: "Użytkownik HealthUp",
+                                    avatarId = 1,
+                                    voltPoints = 0,
+                                    totalEnergyWh = 0.0,
+                                    co2SavedKg = 0.0,
+                                    userLevel = 0,
+                                    streakDays = 1,
+                                    lastActiveDate = getTodayString(),
+                                    createdAt = System.currentTimeMillis()
+                                )
+                                dbService.saveUser(fallback)
+                                _currentUser.value = fallback
+                            }
                         }
+                    } else {
+                        _currentUser.value = null
                     }
-                } else {
-                    _currentUser.value = null
                 }
+            } catch (e: Exception) {
+                logDebugError("Błąd inicjalizacji nasłuchiwania Auth", e)
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Błąd inicjalizacji nasłuchiwania Auth: ${e.message}", e)
+        }
+    }
+
+    override fun hasActiveSession(): Boolean {
+        if (!isFirebaseReady()) return false
+        return try {
+            auth.currentUser != null
+        } catch (_: Exception) {
+            false
         }
     }
 
@@ -163,6 +209,9 @@ class AndroidFirebaseAuthService : HealthUpAuthService {
         val cleanPass = password.trim()
         if (cleanEmail.isBlank() || cleanPass.isBlank()) {
             return AuthResult(false, null, if (isEnglish()) "Please fill in all fields." else "Wypełnij wszystkie pola.")
+        }
+        if (!isFirebaseReady()) {
+            return AuthResult(false, null, if (isEnglish()) "Authentication service is unavailable." else "Usługa uwierzytelniania jest niedostępna.")
         }
 
         return try {
@@ -190,8 +239,7 @@ class AndroidFirebaseAuthService : HealthUpAuthService {
             _currentUser.value = healthUpUser
             AuthResult(isSuccess = true, user = healthUpUser)
         } catch (e: Exception) {
-            val msg = e.message.orEmpty()
-            Log.e(TAG, "Błąd logowania: $msg", e)
+            logDebugError("Błąd logowania", e)
 
             if (e is FirebaseAuthException) {
                 AuthResult(isSuccess = false, errorMessage = mapFirebaseError(e))
@@ -211,6 +259,9 @@ class AndroidFirebaseAuthService : HealthUpAuthService {
         }
         if (cleanPass.length < 6) {
             return AuthResult(false, null, if (isEnglish()) "Password must be at least 6 characters." else "Hasło musi mieć co najmniej 6 znaków.")
+        }
+        if (!isFirebaseReady()) {
+            return AuthResult(false, null, if (isEnglish()) "Authentication service is unavailable." else "Usługa uwierzytelniania jest niedostępna.")
         }
 
         return try {
@@ -250,8 +301,7 @@ class AndroidFirebaseAuthService : HealthUpAuthService {
             _currentUser.value = newUser
             AuthResult(isSuccess = true, user = newUser)
         } catch (e: Exception) {
-            val msg = e.message.orEmpty()
-            Log.e(TAG, "Błąd rejestracji: $msg", e)
+            logDebugError("Błąd rejestracji", e)
 
             if (e is FirebaseAuthException) {
                 AuthResult(isSuccess = false, errorMessage = mapFirebaseError(e))
@@ -262,27 +312,32 @@ class AndroidFirebaseAuthService : HealthUpAuthService {
     }
 
     override suspend fun sendPasswordReset(email: String): AuthResult {
+        if (!isFirebaseReady()) {
+            return AuthResult(false, null, if (isEnglish()) "Authentication service is unavailable." else "Usługa uwierzytelniania jest niedostępna.")
+        }
         return try {
             val cleanEmail = email.trim()
             if (cleanEmail.isBlank()) {
                 return AuthResult(false, null, if (isEnglish()) "Please enter an email address." else "Wprowadź adres e-mail.")
             }
             try {
-                val savedLang = HealthUpStorage.getString(HealthUpPreferenceKeys.KEY_SAVED_LANGUAGE, "pl")
                 auth.setLanguageCode(if (isEnglish()) "en" else "pl")
             } catch (_: Exception) {}
             auth.sendPasswordResetEmail(cleanEmail).await()
             AuthResult(isSuccess = true)
         } catch (e: FirebaseAuthException) {
-            Log.e(TAG, "Błąd resetu hasła: ${e.errorCode}")
+            logDebugError("Błąd resetu hasła (${e.errorCode})", e)
             AuthResult(isSuccess = false, errorMessage = mapFirebaseError(e))
         } catch (e: Exception) {
-            Log.e(TAG, "Błąd ogólny resetu hasła: ${e.message}")
+            logDebugError("Błąd ogólny resetu hasła", e)
             AuthResult(isSuccess = false, errorMessage = mapGenericError(e))
         }
     }
 
     override suspend fun changePassword(oldPassword: String, newPassword: String): AuthResult {
+        if (!isFirebaseReady()) {
+            return AuthResult(false, null, if (isEnglish()) "Authentication service is unavailable." else "Usługa uwierzytelniania jest niedostępna.")
+        }
         return try {
             val cleanOld = oldPassword.trim()
             val cleanNew = newPassword.trim()
@@ -299,17 +354,17 @@ class AndroidFirebaseAuthService : HealthUpAuthService {
                 val credential = EmailAuthProvider.getCredential(email, cleanOld)
                 user.reauthenticate(credential).await()
             } catch (e: Exception) {
-                Log.w(TAG, "Błędne dotychczasowe hasło: ${e.message}")
+                if (isDebugBuild) Log.w(TAG, "Błędne dotychczasowe hasło: ${e.message}")
                 return AuthResult(false, null, if (isEnglish()) "Current password is incorrect." else "Aktualne hasło jest nieprawidłowe.")
             }
 
             user.updatePassword(cleanNew).await()
             AuthResult(isSuccess = true)
         } catch (e: FirebaseAuthException) {
-            Log.e(TAG, "Błąd zmiany hasła: ${e.errorCode}")
+            logDebugError("Błąd zmiany hasła (${e.errorCode})", e)
             AuthResult(isSuccess = false, errorMessage = mapFirebaseError(e))
         } catch (e: Exception) {
-            Log.e(TAG, "Błąd ogólny zmiany hasła: ${e.message}")
+            logDebugError("Błąd ogólny zmiany hasła", e)
             AuthResult(isSuccess = false, errorMessage = mapGenericError(e))
         }
     }
@@ -326,14 +381,17 @@ class AndroidFirebaseAuthService : HealthUpAuthService {
     }
 
     override suspend fun deleteAccount(): AuthResult {
+        if (!isFirebaseReady()) {
+            return AuthResult(false, null, if (isEnglish()) "Authentication service is unavailable." else "Usługa uwierzytelniania jest niedostępna.")
+        }
         return try {
             val user = auth.currentUser ?: return AuthResult(false, null, if (isEnglish()) "No active user session." else "Brak aktywnej sesji użytkownika.")
             val uid = user.uid
 
             // 1. Najpierw usuwamy dane użytkownika z Firestore, póki sesja jest aktywna i posiada uprawnienia
             val dbDeleted = dbService.deleteUser(uid)
-            if (!dbDeleted) {
-                Log.w(TAG, "Ostrzeżenie: Nie wszystkie dane Firestore zostały usunięte dla $uid")
+            if (!dbDeleted && isDebugBuild) {
+                Log.w(TAG, "Ostrzeżenie: Nie wszystkie dane Firestore zostały usunięte.")
             }
 
             // 2. Następnie usuwamy konto z Firebase Authentication
@@ -343,23 +401,25 @@ class AndroidFirebaseAuthService : HealthUpAuthService {
             dbService.clearCache()
             AuthResult(isSuccess = true)
         } catch (e: FirebaseAuthException) {
-            Log.e(TAG, "Błąd usuwania konta: ${e.errorCode}")
+            logDebugError("Błąd usuwania konta (${e.errorCode})", e)
             if (e.errorCode == "ERROR_REQUIRES_RECENT_LOGIN" || e.message?.contains("requires-recent-login", ignoreCase = true) == true) {
                 AuthResult(isSuccess = false, errorMessage = if (isEnglish()) "This action requires recent authentication. Please sign in again before deleting your account." else "Operacja wymaga ponownego zalogowania ze względów bezpieczeństwa. Wyloguj się i zaloguj ponownie przed usunięciem konta.")
             } else {
                 AuthResult(isSuccess = false, errorMessage = mapFirebaseError(e))
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Błąd usuwania konta: ${e.message}")
+            logDebugError("Błąd usuwania konta", e)
             AuthResult(isSuccess = false, errorMessage = mapGenericError(e))
         }
     }
 
     override suspend fun signOut() {
-        try {
-            auth.signOut()
-        } catch (e: Exception) {
-            Log.e(TAG, "Błąd signOut: ${e.message}")
+        if (isFirebaseReady()) {
+            try {
+                auth.signOut()
+            } catch (e: Exception) {
+                logDebugError("Błąd signOut", e)
+            }
         }
         _currentUser.value = null
         dbService.clearCache()
@@ -372,10 +432,10 @@ class AndroidFirebaseAuthService : HealthUpAuthService {
             return if (en) "Invalid email or password (account does not exist)." else "Nieprawidłowy e-mail lub hasło (konto nie istnieje)."
         }
         if (msg.contains("has not been used", ignoreCase = true) || msg.contains("identitytoolkit", ignoreCase = true)) {
-            return if (en) "Enable service: In Firebase Console go to Authentication, click Get Started and enable Email/Password." else "Włącz usługę: W konsoli Firebase przejdź do Authentication i kliknij 'Rozpocznij' oraz włącz 'Adres e-mail/hasło'."
+            return if (en) "Authentication service is currently unavailable. Please try again later." else "Usługa logowania jest chwilowo niedostępna. Spróbuj ponownie później."
         }
         if (msg.contains("blocked", ignoreCase = true) || msg.contains("API_KEY_SERVICE_BLOCKED", ignoreCase = true)) {
-            return if (en) "API key in Google Cloud blocks Identity Toolkit. Unblock 'Identity Toolkit API' in Google Cloud Console." else "Klucz API w Google Cloud blokuje Identity Toolkit. Odblokuj 'Identity Toolkit API' w Google Cloud Console dla klucza API projektu voltup-21c34."
+            return if (en) "Authentication service configuration error. Please contact support." else "Błąd konfiguracji usługi uwierzytelniania. Skontaktuj się z pomocą techniczną."
         }
         return when (e.errorCode) {
             "ERROR_INVALID_EMAIL", "invalid-email" -> if (en) "Invalid email address format." else "Niepoprawny format adresu e-mail."
@@ -386,12 +446,12 @@ class AndroidFirebaseAuthService : HealthUpAuthService {
             "ERROR_TOO_MANY_REQUESTS", "too-many-requests" -> if (en) "Too many attempts. Please try again later." else "Zbyt wiele prób. Spróbuj ponownie za chwilę."
             "ERROR_EMAIL_ALREADY_IN_USE", "email-already-in-use" -> if (en) "An account with this email already exists. Please log in." else "Konto z tym adresem e-mail już istnieje. Zaloguj się."
             "ERROR_WEAK_PASSWORD", "weak-password" -> if (en) "Password is too weak. Minimum 6 characters required." else "Hasło jest za słabe. Wymagane min. 6 znaków."
-            "ERROR_OPERATION_NOT_ALLOWED", "operation-not-allowed" -> if (en) "Email/Password sign-in is not enabled in Firebase Console." else "Logowanie e-mail/hasło nie jest włączone w Firebase Console."
+            "ERROR_OPERATION_NOT_ALLOWED", "operation-not-allowed" -> if (en) "Email/Password sign-in is currently disabled." else "Logowanie e-mail/hasło jest obecnie wyłączone."
             else -> {
                 if (e.errorCode.contains("INVALID_CREDENTIAL", ignoreCase = true)) {
                     if (en) "Invalid email or password (account does not exist)." else "Nieprawidłowy e-mail lub hasło (konto nie istnieje)."
                 } else {
-                    e.localizedMessage ?: if (en) "Authentication error occurred (${e.errorCode})." else "Wystąpił błąd autoryzacji (${e.errorCode})."
+                    if (en) "Authentication error occurred." else "Wystąpił błąd autoryzacji."
                 }
             }
         }
@@ -408,14 +468,14 @@ class AndroidFirebaseAuthService : HealthUpAuthService {
             msg.contains("EMAIL_ALREADY_IN_USE", ignoreCase = true) || msg.contains("email-already-in-use", ignoreCase = true) ->
                 if (en) "An account with this email already exists. Please log in." else "Konto z tym adresem e-mail już istnieje. Zaloguj się."
             msg.contains("has not been used", ignoreCase = true) || msg.contains("identitytoolkit", ignoreCase = true) ->
-                if (en) "Enable service: In Firebase Console go to Authentication and enable Email/Password." else "Włącz usługę: W konsoli Firebase przejdź do Authentication i kliknij 'Rozpocznij' oraz włącz 'Adres e-mail/hasło'."
+                if (en) "Authentication service is currently unavailable. Please try again later." else "Usługa logowania jest chwilowo niedostępna. Spróbuj ponownie później."
             msg.contains("API_KEY_SERVICE_BLOCKED", ignoreCase = true) || msg.contains("blocked", ignoreCase = true) ->
-                if (en) "API key in Google Cloud blocks Identity Toolkit. Unblock the key in Google Cloud Console." else "Klucz API w Google Cloud blokuje Identity Toolkit. Odblokuj klucz w Google Cloud Console."
+                if (en) "Authentication service configuration error. Please contact support." else "Błąd konfiguracji usługi uwierzytelniania. Skontaktuj się z pomocą techniczną."
             msg.contains("PERMISSION_DENIED", ignoreCase = true) ->
-                if (en) "Database permission denied. Check Firestore rules in Firebase console." else "Brak uprawnień bazy danych. Sprawdź reguły Firestore w konsoli Firebase."
+                if (en) "Permission denied for database operation." else "Brak uprawnień do wykonania operacji w bazie danych."
             msg.contains("network", ignoreCase = true) || msg.contains("timeout", ignoreCase = true) ->
                 if (en) "Network error. Please check your internet connection." else "Błąd połączenia z siecią. Sprawdź dostęp do internetu."
-            else -> msg.ifBlank { if (en) "An unexpected error occurred. Please try again." else "Wystąpił nieoczekiwany błąd. Spróbuj ponownie." }
+            else -> if (en) "An unexpected error occurred. Please try again." else "Wystąpił nieoczekiwany błąd. Spróbuj ponownie."
         }
     }
 
@@ -473,6 +533,7 @@ class AndroidFirestoreService : HealthUpDatabaseService {
 
     override suspend fun saveUser(user: HealthUpUser): Boolean {
         memoryUsers[user.userId] = user
+        if (!isFirebaseReady()) return true
         return try {
             firestore.collection("users")
                 .document(user.userId)
@@ -480,12 +541,13 @@ class AndroidFirestoreService : HealthUpDatabaseService {
                 .await()
             true
         } catch (e: Exception) {
-            Log.w(TAG, "Zapis users w chmurze nie powiódł się (zapisano lokalnie): ${e.message}")
+            logDebugWarning("Zapis users w chmurze nie powiódł się (zapisano lokalnie)", e)
             true
         }
     }
 
     override suspend fun getUser(userId: String): HealthUpUser? {
+        if (!isFirebaseReady()) return memoryUsers[userId]
         return try {
             val doc = firestore.collection("users").document(userId).get().await()
             val data = doc.data
@@ -497,7 +559,7 @@ class AndroidFirestoreService : HealthUpDatabaseService {
                 memoryUsers[userId]
             }
         } catch (e: Exception) {
-            Log.w(TAG, "Pobieranie users z chmury nie powiodło się: ${e.message}")
+            logDebugWarning("Pobieranie users z chmury nie powiodło się", e)
             memoryUsers[userId]
         }
     }
@@ -506,6 +568,7 @@ class AndroidFirestoreService : HealthUpDatabaseService {
         val clean = email.trim()
         val local = memoryUsers.values.firstOrNull { it.email.equals(clean, ignoreCase = true) }
         if (local != null) return local
+        if (!isFirebaseReady()) return null
 
         return try {
             val snapshot = firestore.collection("users")
@@ -521,7 +584,7 @@ class AndroidFirestoreService : HealthUpDatabaseService {
                 user
             } else null
         } catch (e: Exception) {
-            Log.w(TAG, "Pobieranie users po email: ${e.message}")
+            logDebugWarning("Pobieranie users po email nie powiodło się", e)
             null
         }
     }
@@ -546,6 +609,7 @@ class AndroidFirestoreService : HealthUpDatabaseService {
             )
             memoryUsers[userId] = updated
         }
+        if (!isFirebaseReady()) return true
 
         return try {
             val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
@@ -562,7 +626,7 @@ class AndroidFirestoreService : HealthUpDatabaseService {
             firestore.collection("users").document(userId).update(updateMap).await()
             true
         } catch (e: Exception) {
-            Log.w(TAG, "Aktualizacja statystyk w chmurze nie powiodła się: ${e.message}")
+            logDebugWarning("Aktualizacja statystyk w chmurze nie powiodła się", e)
             true
         }
     }
@@ -571,6 +635,7 @@ class AndroidFirestoreService : HealthUpDatabaseService {
         val realSessionId = if (session.sessionId.isNotBlank()) session.sessionId else UUID.randomUUID().toString()
         val toSave = session.copy(sessionId = realSessionId)
         memoryWorkouts.add(0, toSave)
+        if (!isFirebaseReady()) return true
 
         return try {
             firestore.collection("users")
@@ -581,12 +646,13 @@ class AndroidFirestoreService : HealthUpDatabaseService {
                 .await()
             true
         } catch (e: Exception) {
-            Log.w(TAG, "Zapis sesji treningowej w chmurze nie powiódł się: ${e.message}")
+            logDebugWarning("Zapis sesji treningowej w chmurze nie powiódł się", e)
             true
         }
     }
 
     override suspend fun getWorkoutSessions(userId: String): List<WorkoutSessionDto> {
+        if (!isFirebaseReady()) return memoryWorkouts.filter { it.userId == userId }
         return try {
             val snapshot = firestore.collection("users")
                 .document(userId)
@@ -605,7 +671,7 @@ class AndroidFirestoreService : HealthUpDatabaseService {
                 memoryWorkouts.filter { it.userId == userId }
             }
         } catch (e: Exception) {
-            Log.w(TAG, "Pobieranie sesji z chmury nie powiodło się: ${e.message}")
+            logDebugWarning("Pobieranie sesji z chmury nie powiodło się", e)
             memoryWorkouts.filter { it.userId == userId }
         }
     }
@@ -613,6 +679,7 @@ class AndroidFirestoreService : HealthUpDatabaseService {
     override suspend fun saveAchievement(achievement: UserAchievementDto): Boolean {
         val key = "${achievement.userId}_${achievement.achievementId}"
         memoryAchievements[key] = achievement
+        if (!isFirebaseReady()) return true
         return try {
             firestore.collection("users")
                 .document(achievement.userId)
@@ -622,12 +689,13 @@ class AndroidFirestoreService : HealthUpDatabaseService {
                 .await()
             true
         } catch (e: Exception) {
-            Log.w(TAG, "Zapis osiągnięcia w chmurze: ${e.message}")
+            logDebugWarning("Zapis osiągnięcia w chmurze nie powiódł się", e)
             true
         }
     }
 
     override suspend fun getUserAchievements(userId: String): List<UserAchievementDto> {
+        if (!isFirebaseReady()) return memoryAchievements.values.filter { it.userId == userId }
         return try {
             val snapshot = firestore.collection("users")
                 .document(userId)
@@ -645,7 +713,7 @@ class AndroidFirestoreService : HealthUpDatabaseService {
                 memoryAchievements.values.filter { it.userId == userId }
             }
         } catch (e: Exception) {
-            Log.w(TAG, "Pobieranie osiągnięć: ${e.message}")
+            logDebugWarning("Pobieranie osiągnięć nie powiodło się", e)
             memoryAchievements.values.filter { it.userId == userId }
         }
     }
@@ -656,6 +724,7 @@ class AndroidFirestoreService : HealthUpDatabaseService {
         val toSave = challenge.copy(id = id, challengeId = cleanChallengeId)
         val key = "${challenge.userId}_$cleanChallengeId"
         memoryChallenges[key] = toSave
+        if (!isFirebaseReady()) return true
 
         return try {
             firestore.collection("users")
@@ -666,12 +735,13 @@ class AndroidFirestoreService : HealthUpDatabaseService {
                 .await()
             true
         } catch (e: Exception) {
-            Log.w(TAG, "Zapis wyzwania w chmurze: ${e.message}")
+            logDebugWarning("Zapis wyzwania w chmurze nie powiódł się", e)
             true
         }
     }
 
     override suspend fun getUserChallenges(userId: String): List<UserChallengeDto> {
+        if (!isFirebaseReady()) return memoryChallenges.values.filter { it.userId == userId }
         return try {
             val snapshot = firestore.collection("users")
                 .document(userId)
@@ -692,7 +762,7 @@ class AndroidFirestoreService : HealthUpDatabaseService {
                 memoryChallenges.values.filter { it.userId == userId }
             }
         } catch (e: Exception) {
-            Log.w(TAG, "Pobieranie wyzwań: ${e.message}")
+            logDebugWarning("Pobieranie wyzwań nie powiodło się", e)
             memoryChallenges.values.filter { it.userId == userId }
         }
     }
@@ -704,6 +774,7 @@ class AndroidFirestoreService : HealthUpDatabaseService {
         if (existing != null) {
             memoryChallenges[key] = existing.copy(isClaimed = true, isCompleted = true)
         }
+        if (!isFirebaseReady()) return true
 
         return try {
             firestore.collection("users")
@@ -718,7 +789,7 @@ class AndroidFirestoreService : HealthUpDatabaseService {
                 ).await()
             true
         } catch (e: Exception) {
-            Log.w(TAG, "Odbieranie wyzwania w chmurze: ${e.message}")
+            logDebugWarning("Odbieranie wyzwania w chmurze nie powiodło się", e)
             true
         }
     }
@@ -727,6 +798,7 @@ class AndroidFirestoreService : HealthUpDatabaseService {
         val realId = if (coupon.couponId.isNotBlank()) coupon.couponId else UUID.randomUUID().toString()
         val toSave = coupon.copy(couponId = realId)
         memoryCoupons.add(0, toSave)
+        if (!isFirebaseReady()) return true
 
         return try {
             firestore.collection("users")
@@ -737,7 +809,7 @@ class AndroidFirestoreService : HealthUpDatabaseService {
                 .await()
             true
         } catch (e: Exception) {
-            Log.w(TAG, "Zapis kuponu: ${e.message}")
+            logDebugWarning("Zapis kuponu w chmurze nie powiódł się", e)
             true
         }
     }
@@ -745,6 +817,9 @@ class AndroidFirestoreService : HealthUpDatabaseService {
     override suspend fun getUserCoupons(userId: String): List<UserCouponDto> {
         val thirtyDaysMs = 30L * 24 * 60 * 60 * 1000L
         val cutoff = currentTimeMillis() - thirtyDaysMs
+        if (!isFirebaseReady()) {
+            return memoryCoupons.filter { it.userId == userId && (it.redeemedAt == 0L || it.redeemedAt >= cutoff) }
+        }
         return try {
             val snapshot = firestore.collection("users")
                 .document(userId)
@@ -768,7 +843,7 @@ class AndroidFirestoreService : HealthUpDatabaseService {
                 memoryCoupons.filter { it.userId == userId && (it.redeemedAt == 0L || it.redeemedAt >= cutoff) }
             }
         } catch (e: Exception) {
-            Log.w(TAG, "Pobieranie kuponów: ${e.message}")
+            logDebugWarning("Pobieranie kuponów nie powiodło się", e)
             memoryCoupons.filter { it.userId == userId && (it.redeemedAt == 0L || it.redeemedAt >= cutoff) }
         }
     }
@@ -779,6 +854,7 @@ class AndroidFirestoreService : HealthUpDatabaseService {
             memoryCoupons[idx] = memoryCoupons[idx].copy(isActivated = isActivated, activatedAt = activatedAtMs)
             memoryCoupons[idx].userId
         } else ""
+        if (!isFirebaseReady()) return true
 
         return try {
             if (userId.isNotBlank()) {
@@ -796,13 +872,14 @@ class AndroidFirestoreService : HealthUpDatabaseService {
             }
             true
         } catch (e: Exception) {
-            Log.w(TAG, "Aktualizacja aktywacji kuponu: ${e.message}")
+            logDebugWarning("Aktualizacja aktywacji kuponu nie powiodła się", e)
             true
         }
     }
 
     override suspend fun deleteCoupon(userId: String, couponId: String): Boolean {
         memoryCoupons.removeAll { it.couponId == couponId || (it.userId == userId && it.discountCode == couponId) }
+        if (!isFirebaseReady()) return true
         return try {
             firestore.collection("users")
                 .document(userId)
@@ -812,13 +889,14 @@ class AndroidFirestoreService : HealthUpDatabaseService {
                 .await()
             true
         } catch (e: Exception) {
-            Log.w(TAG, "Usunięcie kuponu: ${e.message}")
+            logDebugWarning("Usunięcie kuponu nie powiodło się", e)
             true
         }
     }
 
     override suspend fun saveUserSettings(settings: UserSettingsDto): Boolean {
         memorySettings[settings.userId] = settings
+        if (!isFirebaseReady()) return true
         return try {
             firestore.collection("users")
                 .document(settings.userId)
@@ -834,12 +912,13 @@ class AndroidFirestoreService : HealthUpDatabaseService {
                 .await()
             true
         } catch (e: Exception) {
-            Log.w(TAG, "Zapis ustawień w dokumencie użytkownika: ${e.message}")
+            logDebugWarning("Zapis ustawień w chmurze nie powiódł się", e)
             true
         }
     }
 
     override suspend fun getUserSettings(userId: String): UserSettingsDto? {
+        if (!isFirebaseReady()) return memorySettings[userId]
         return try {
             val doc = firestore.collection("users").document(userId).get().await()
             val data = doc.data
@@ -857,13 +936,27 @@ class AndroidFirestoreService : HealthUpDatabaseService {
                 memorySettings[userId]
             }
         } catch (e: Exception) {
-            Log.w(TAG, "Pobieranie ustawień z users/$userId: ${e.message}")
+            logDebugWarning("Pobieranie ustawień użytkownika nie powiodło się", e)
             memorySettings[userId]
         }
     }
 
     override suspend fun getLeaderboard(limit: Int): List<LeaderboardUser> {
-        val currentUid = try { FirebaseAuth.getInstance().currentUser?.uid } catch (_: Exception) { null }
+        val currentUid = if (isFirebaseReady()) {
+            try { FirebaseAuth.getInstance().currentUser?.uid } catch (_: Exception) { null }
+        } else null
+
+        if (!isFirebaseReady()) {
+            return memoryUsers.values.map { u ->
+                LeaderboardUser(
+                    id = u.userId,
+                    name = u.userName.ifBlank { "Użytkownik HealthUp" },
+                    points = u.rankingPoints,
+                    level = u.userLevel,
+                    isCurrentUser = (u.userId == currentUid)
+                )
+            }.sortedByDescending { it.points }.take(limit)
+        }
 
         return try {
             val snapshot = firestore.collection("users").get().await()
@@ -876,7 +969,7 @@ class AndroidFirestoreService : HealthUpDatabaseService {
                 val userPts = u.rankingPoints
                 LeaderboardUser(
                     id = u.userId,
-                    name = u.userName.ifBlank { u.email.substringBefore("@") },
+                    name = u.userName.ifBlank { "Użytkownik HealthUp" },
                     points = userPts,
                     level = u.userLevel,
                     isCurrentUser = (u.userId == currentUid)
@@ -885,12 +978,12 @@ class AndroidFirestoreService : HealthUpDatabaseService {
 
             realLeaderboardUsers.take(limit)
         } catch (e: Exception) {
-            Log.w(TAG, "Błąd pobierania rankingu: ${e.message}")
+            if (isDebugBuild) Log.w(TAG, "Błąd pobierania rankingu: ${e.message}")
             val localUsers = memoryUsers.values.map { u ->
                 val userPts = u.rankingPoints
                 LeaderboardUser(
                     id = u.userId,
-                    name = u.userName.ifBlank { u.email.substringBefore("@") },
+                    name = u.userName.ifBlank { "Użytkownik HealthUp" },
                     points = userPts,
                     level = u.userLevel,
                     isCurrentUser = (u.userId == currentUid)
@@ -908,6 +1001,8 @@ class AndroidFirestoreService : HealthUpDatabaseService {
         memoryChallenges.keys.filter { it.startsWith("${userId}_") }.forEach { memoryChallenges.remove(it) }
         memoryCoupons.removeAll { it.userId == userId }
 
+        if (!isFirebaseReady()) return true
+
         return try {
             val userDoc = firestore.collection("users").document(userId)
             val subcollections = listOf("workout_sessions", "user_achievements", "user_challenges", "user_coupons")
@@ -918,15 +1013,15 @@ class AndroidFirestoreService : HealthUpDatabaseService {
                         d.reference.delete().await()
                     }
                 } catch (e: Exception) {
-                    Log.w(TAG, "Błąd usuwania podkolekcji $sub dla $userId: ${e.message}")
+                    if (isDebugBuild) Log.w(TAG, "Błąd usuwania podkolekcji $sub: ${e.message}")
                 }
             }
 
             userDoc.delete().await()
-            Log.d(TAG, "Pomyślnie usunięto dokument użytkownika $userId z Firestore.")
+            if (isDebugBuild) Log.d(TAG, "Pomyślnie usunięto dokument użytkownika z Firestore.")
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Błąd usuwania użytkownika z chmury: ${e.message}", e)
+            logDebugError("Błąd usuwania użytkownika z chmury", e)
             false
         }
     }
@@ -1071,6 +1166,9 @@ class AndroidFirestoreService : HealthUpDatabaseService {
     }
 
     override suspend fun getDevices(): List<KineticStation> {
+        if (!isFirebaseReady()) {
+            return if (memoryDevices.isNotEmpty()) memoryDevices.values.toList() else defaultDevices
+        }
         return try {
             val snapshot = firestore.collection("devices").get().await()
             val existingList = snapshot.documents.mapNotNull { doc ->
@@ -1088,14 +1186,14 @@ class AndroidFirestoreService : HealthUpDatabaseService {
                         val dto = KineticDeviceDto.fromStation(defaultDev)
                         firestore.collection("devices").document(defaultDev.id).set(dto.toMap()).await()
                     } catch (e: Exception) {
-                        Log.w(TAG, "Błąd inicjalizacji stacji ${defaultDev.id}: ${e.message}")
+                        logDebugWarning("Błąd inicjalizacji stacji ${defaultDev.id}", e)
                     }
                 }
                 defaultDevices.forEach { memoryDevices[it.id] = it }
                 defaultDevices
             }
         } catch (e: Exception) {
-            Log.w(TAG, "Pobieranie urządzeń z Firestore: ${e.message}")
+            logDebugWarning("Pobieranie urządzeń z Firestore nie powiodło się", e)
             val fallback = if (memoryDevices.isNotEmpty()) memoryDevices.values.toList() else defaultDevices
             fallback
         }
@@ -1103,12 +1201,13 @@ class AndroidFirestoreService : HealthUpDatabaseService {
 
     override suspend fun saveDevice(device: KineticStation): Boolean {
         memoryDevices[device.id] = device
+        if (!isFirebaseReady()) return true
         return try {
             val dto = KineticDeviceDto.fromStation(device)
             firestore.collection("devices").document(device.id).set(dto.toMap()).await()
             true
         } catch (e: Exception) {
-            Log.w(TAG, "Zapis urządzenia w Firestore: ${e.message}")
+            logDebugWarning("Zapis urządzenia w Firestore nie powiódł się", e)
             true
         }
     }

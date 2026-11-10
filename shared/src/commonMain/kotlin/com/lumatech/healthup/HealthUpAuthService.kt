@@ -11,6 +11,7 @@ data class AuthResult(
 interface HealthUpAuthService {
     val currentUser: StateFlow<HealthUpUser?>
 
+    fun hasActiveSession(): Boolean = currentUser.value != null
     suspend fun signIn(email: String, password: String): AuthResult
     suspend fun signUp(email: String, password: String, userName: String, avatarId: Int): AuthResult
     suspend fun sendPasswordReset(email: String): AuthResult

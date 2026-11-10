@@ -46,6 +46,10 @@ actual object HealthUpStorage {
     actual fun setBoolean(key: String, value: Boolean) {
         NSUserDefaults.standardUserDefaults.setBool(value, forKey = key)
     }
+
+    actual fun remove(key: String) {
+        NSUserDefaults.standardUserDefaults.removeObjectForKey(key)
+    }
 }
 
 

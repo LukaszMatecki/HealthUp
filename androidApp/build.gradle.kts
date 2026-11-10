@@ -1,4 +1,20 @@
+import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
+val secretProperties = Properties().apply {
+    listOf("local.properties", "secrets.properties").forEach { fileName ->
+        val propFile = rootProject.file(fileName)
+        if (propFile.exists()) {
+            propFile.inputStream().use { load(it) }
+        }
+    }
+}
+
+fun resolveSecret(name: String): String {
+    val fromProps = secretProperties.getProperty(name)
+    if (!fromProps.isNullOrBlank()) return fromProps.trim()
+    return providers.environmentVariable(name).orNull?.trim().orEmpty()
+}
 
 plugins {
     alias(libs.plugins.androidApplication)
@@ -29,6 +45,28 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 2
         versionName = "1.1.0"
+        manifestPlaceholders["MAPS_API_KEY"] = resolveSecret("MAPS_API_KEY")
+    }
+    val keystorePath = resolveSecret("KEYSTORE_FILE")
+    val keystorePassword = resolveSecret("KEYSTORE_PASSWORD")
+    val releaseKeyAlias = resolveSecret("KEY_ALIAS")
+    val releaseKeyPassword = resolveSecret("KEY_PASSWORD")
+    val resolvedKeystoreFile = if (keystorePath.isNotEmpty()) rootProject.file(keystorePath) else null
+    val hasReleaseSigning = resolvedKeystoreFile != null &&
+        resolvedKeystoreFile.exists() &&
+        keystorePassword.isNotEmpty() &&
+        releaseKeyAlias.isNotEmpty() &&
+        releaseKeyPassword.isNotEmpty()
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = resolvedKeystoreFile
+                storePassword = keystorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
     }
     packaging {
         resources {
@@ -38,7 +76,9 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("debug")
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

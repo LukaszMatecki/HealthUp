@@ -64,6 +64,26 @@ private const val DARK_MAP_STYLE_JSON = """[
   {"featureType": "water", "elementType": "labels.text.fill", "stylers": [{"color": "#475569"}]}
 ]"""
 
+private fun getMapsApiKeyFromManifest(context: android.content.Context): String {
+    return try {
+        val appInfo = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            context.packageManager.getApplicationInfo(
+                context.packageName,
+                android.content.pm.PackageManager.ApplicationInfoFlags.of(android.content.pm.PackageManager.GET_META_DATA.toLong())
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            context.packageManager.getApplicationInfo(
+                context.packageName,
+                android.content.pm.PackageManager.GET_META_DATA
+            )
+        }
+        appInfo.metaData?.getString("com.google.android.geo.API_KEY").orEmpty().trim()
+    } catch (_: Exception) {
+        ""
+    }
+}
+
 @Composable
 actual fun GoogleMapView(
     modifier: Modifier,
@@ -72,9 +92,13 @@ actual fun GoogleMapView(
     onStationSelected: (KineticStation) -> Unit
 ) {
     val isDark = isAppInDarkTheme()
-    val hasApiKey = GOOGLE_MAPS_API_KEY.isNotBlank() && GOOGLE_MAPS_API_KEY != "YOUR_GOOGLE_MAPS_API_KEY_HERE"
-
     val context = androidx.compose.ui.platform.LocalContext.current
+    val hasApiKey = remember(context) {
+        val key = getMapsApiKeyFromManifest(context)
+        key.isNotBlank() &&
+            !key.startsWith("YOUR_", ignoreCase = true) &&
+            !key.contains("\${")
+    }
 
     var isMapInitialized by remember { mutableStateOf(false) }
 

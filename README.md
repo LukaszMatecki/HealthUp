@@ -203,15 +203,20 @@ Wszystkie ekrany zostały zaprojektowane zgodnie z wytycznymi Material Design 3 
 HealthUp/
 ├── androidApp/
 │   ├── src/main/
+│   │   ├── assets/
+│   │   │   └── google-services.json.example
 │   │   ├── AndroidManifest.xml
 │   │   └── res/
-│   └── google-services.json
+│   └── google-services.json.example
 │
 ├── iosApp/
 │   ├── iosApp/
+│   │   ├── GoogleService-Info.plist.example
 │   │   ├── iOSApp.swift
 │   │   └── ContentView.swift
 │   └── iosApp.xcodeproj/
+│
+├── secrets.properties.example
 │
 ├── healthup_screens/
 │   ├── bez_ramki/
@@ -344,8 +349,13 @@ Repozytorium posiada w pełni zautomatyzowany potok CI/CD oparty na GitHub Actio
 * `workouts`: archiwum zakończonych treningów (czas trwania, średnia moc, watogodziny, ekwiwalent CO2).
 * `user_achievements`: stany postępu oraz odblokowane odznaki powiązane z identyfikatorem użytkownika.
 
-### Konfiguracja Google Maps API
-Klucz Google Maps API jest zdefiniowany w konfiguracji manifestu oraz modułu mapowego. Wymaga włączonej usługi Maps SDK for Android w konsoli Google Cloud Platform.
+### Konfiguracja Google Maps API i kluczy lokalnych
+Klucze API oraz konfiguracja Firebase nie są przechowywane w repozytorium. Przed lokalną kompilacją skopiuj pliki szablonowe (`.example`) i uzupełnij je własnymi danymi (pliki docelowe są ignorowane przez `.gitignore`):
+* `secrets.properties.example` → `secrets.properties` (`MAPS_API_KEY` oraz opcjonalna konfiguracja podpisywania release `KEYSTORE_FILE`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`)
+* `androidApp/google-services.json.example` → `androidApp/google-services.json` oraz `androidApp/src/main/assets/google-services.json`
+* `iosApp/iosApp/GoogleService-Info.plist.example` → `iosApp/iosApp/GoogleService-Info.plist`
+
+Klucz Google Maps API wymaga włączonej usługi **Maps SDK for Android** oraz ograniczeń na pakiet (`com.lumatech.healthup`) i odcisk SHA-1 w Google Cloud Console.
 
 ---
 
@@ -411,6 +421,12 @@ All high-resolution screenshots are organized in the `healthup_screens/` directo
 ---
 
 ## Quick Start (Building and Testing)
+
+### Local Secrets & Firebase Configuration
+Before building locally, copy the provided template files (target files are gitignored):
+* `secrets.properties.example` → `secrets.properties` (`MAPS_API_KEY` and optional release signing credentials)
+* `androidApp/google-services.json.example` → `androidApp/google-services.json` and `androidApp/src/main/assets/google-services.json`
+* `iosApp/iosApp/GoogleService-Info.plist.example` → `iosApp/iosApp/GoogleService-Info.plist`
 
 ### Android Build
 ```bash

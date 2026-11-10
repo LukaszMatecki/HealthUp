@@ -8,6 +8,8 @@ class IosMockAuthService : HealthUpAuthService {
     private val _currentUser = MutableStateFlow<HealthUpUser?>(null)
     override val currentUser: StateFlow<HealthUpUser?> = _currentUser.asStateFlow()
 
+    override fun hasActiveSession(): Boolean = _currentUser.value != null
+
     override suspend fun signIn(email: String, password: String): AuthResult {
         val user = HealthUpUser(
             userId = "ios-mock-uid",
