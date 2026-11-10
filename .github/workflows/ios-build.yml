@@ -67,7 +67,6 @@ jobs:
             JAVA_HOME="$JAVA_HOME" \
             PATH="$JAVA_HOME/bin:$PATH"
 
-          # Package .app bundle into standard IPA structure dynamically
           APP_PATH=$(find build/device/Build/Products -name "*.app" -type d | head -n 1)
           echo "Found app at: $APP_PATH"
           mkdir -p build/ipa/Payload
@@ -89,7 +88,6 @@ jobs:
             JAVA_HOME="$JAVA_HOME" \
             PATH="$JAVA_HOME/bin:$PATH"
 
-          # Compress simulator app bundle for drag-and-drop testing
           SIM_APP_PATH=$(find build/simulator/Build/Products -name "*.app" -type d | head -n 1)
           echo "Found simulator app at: $SIM_APP_PATH"
           APP_DIR=$(dirname "$SIM_APP_PATH")

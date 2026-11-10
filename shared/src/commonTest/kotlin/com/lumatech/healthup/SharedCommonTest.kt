@@ -30,11 +30,9 @@ class SharedCommonTest {
             unit = "kcal"
         )
 
-        // Polish localization
         assertEquals("Serce w Ruchu", challengeC1.getLocalizedTitle(isEnglish = false))
         assertTrue(challengeC1.getLocalizedDescription(isEnglish = false).contains("250 kcal"))
 
-        // English localization
         assertEquals("Heart in Motion", challengeC1.getLocalizedTitle(isEnglish = true))
         assertTrue(challengeC1.getLocalizedDescription(isEnglish = true).contains("250 kcal"))
         assertTrue(challengeC1.getLocalizedDetails(isEnglish = true).contains("heart"))
@@ -82,7 +80,6 @@ class SharedCommonTest {
                 userName = payload,
                 points = 100
             )
-            // Verify immutability and exact character preservation without SQL side-effects
             assertEquals(payload, user.userName)
             assertEquals(100, user.points)
 
@@ -103,14 +100,12 @@ class SharedCommonTest {
 
     @Test
     fun testWorkoutPhysicsAndBoundaryValidation() {
-        val duration = 1200 // 20 minutes (0.333 h)
-        val powerWatts = 75.0 // Realistic average power for outdoor human effort
+        val duration = 1200
+        val powerWatts = 75.0
 
-        // Physical energy formula: E = P * t = 75W * (1200 / 3600 h) = 25.0 Wh
         val generatedWh = powerWatts * (duration / 3600.0)
         assertEquals(25.0, generatedWh)
 
-        // Calories estimate for 20 mins light/moderate cardio (~120 kcal)
         val estimatedCalories = (generatedWh * 4.8).toInt()
         assertTrue(estimatedCalories in 100..150)
     }

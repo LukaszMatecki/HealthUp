@@ -239,7 +239,7 @@ data class KineticDeviceDto(
     val name: String = "",
     val locationName: String = "",
     val district: String = "",
-    val status: String = "online", // "online" lub "offline"
+    val status: String = "online",
     val maxPowerW: Int = 150,
     val latitude: Double = 51.7592,
     val longitude: Double = 19.4560,

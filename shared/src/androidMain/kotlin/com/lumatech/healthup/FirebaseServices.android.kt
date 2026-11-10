@@ -397,13 +397,11 @@ class AndroidFirebaseAuthService : HealthUpAuthService {
             val user = auth.currentUser ?: return AuthResult(false, null, if (isEnglish()) "No active user session." else "Brak aktywnej sesji użytkownika.")
             val uid = user.uid
 
-            // 1. Najpierw usuwamy dane użytkownika z Firestore, póki sesja jest aktywna i posiada uprawnienia
             val dbDeleted = dbService.deleteUser(uid)
             if (!dbDeleted && isDebugBuild) {
                 Log.w(TAG, "Ostrzeżenie: Nie wszystkie dane Firestore zostały usunięte.")
             }
 
-            // 2. Następnie usuwamy konto z Firebase Authentication
             user.delete().await()
 
             authListenerJob?.cancel()

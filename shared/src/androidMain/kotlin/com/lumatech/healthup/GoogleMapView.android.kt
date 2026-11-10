@@ -620,7 +620,6 @@ private fun InteractiveSchematicMap(
                     },
                 contentAlignment = Alignment.Center
             ) {
-                // Drop shadow underneath pin
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -744,7 +743,6 @@ private fun createStationMarkerBitmap(
         val canvas = android.graphics.Canvas(bitmap)
         val centerX = widthPx / 2f
 
-        // Shadow at bottom
         val shadowPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
             color = android.graphics.Color.argb(85, 0, 0, 0)
             style = android.graphics.Paint.Style.FILL
@@ -760,7 +758,6 @@ private fun createStationMarkerBitmap(
         )
         canvas.drawOval(shadowRect, shadowPaint)
 
-        // Pin Teardrop/Marker Path
         val headRadius = (if (isSelected) 17f else 14f) * density
         val headCenterY = headRadius + (2.5f * density)
         val tipY = heightPx - (5.5f * density)
@@ -792,14 +789,12 @@ private fun createStationMarkerBitmap(
             close()
         }
 
-        // Fill for pin
         val fillPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
             color = android.graphics.Color.parseColor(if (isSelected) "#00A35B" else "#1E824C")
             style = android.graphics.Paint.Style.FILL
         }
         canvas.drawPath(pinPath, fillPaint)
 
-        // White border for pin
         val borderPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
             color = android.graphics.Color.WHITE
             style = android.graphics.Paint.Style.STROKE
@@ -807,7 +802,6 @@ private fun createStationMarkerBitmap(
         }
         canvas.drawPath(pinPath, borderPaint)
 
-        // Inner white circle
         val innerCirclePaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
             color = android.graphics.Color.WHITE
             style = android.graphics.Paint.Style.FILL
@@ -815,7 +809,6 @@ private fun createStationMarkerBitmap(
         val innerRadius = (if (isSelected) 8f else 6.5f) * density
         canvas.drawCircle(centerX, headCenterY, innerRadius, innerCirclePaint)
 
-        // Inner green dot
         val dotPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
             color = android.graphics.Color.parseColor(if (isSelected) "#00A35B" else "#1E824C")
             style = android.graphics.Paint.Style.FILL

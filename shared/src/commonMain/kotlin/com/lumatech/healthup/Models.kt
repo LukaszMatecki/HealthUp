@@ -182,7 +182,7 @@ data class Challenge(
     val unit: String = "Wh",
     val rankingPointsReward: Int = 100,
     val voltPointsReward: Int = 5,
-    val currentProgress: Float = 0.0f, // 0.0f .. 1.0f
+    val currentProgress: Float = 0.0f,
     val isCompleted: Boolean = false,
     val isClaimed: Boolean = false,
 ) {
