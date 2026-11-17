@@ -323,22 +323,6 @@ Każde wydanie zawiera kompletny zestaw gotowych pakietów instalacyjnych:
 | **`HealthUp-iOS-Device.ipa`** | iOS | IPA | Paczka instalacyjna dla fizycznych urządzeń iPhone (instalacja przez AltStore, Sideloadly lub Apple Configurator). |
 | **`HealthUp-iOS-Simulator.app.zip`** | iOS Simulator | ZIP / .app | Paczka dla symulatorów Xcode (instalacja metodą drag-and-drop na okno symulatora). |
 
-### Jak publikować nowe wydania?
-Repozytorium posiada w pełni zautomatyzowany potok CI/CD oparty na GitHub Actions ([`.github/workflows/release.yml`](.github/workflows/release.yml)):
-
-* **Opcja 1 (Automatyczna przez Git Tag):**
-  Utwórz i wyślij tag wersji (np. `v1.0.0`):
-  ```bash
-  git tag -a v1.0.0 -m "Release v1.0.0"
-  git push origin v1.0.0
-  ```
-  GitHub Actions automatycznie skompiluje pakiety dla Androida (APK, AAB) oraz iOS (IPA, Simulator), wygeneruje changelog na podstawie commitów i utworzy oficjalny GitHub Release z załączonymi plikami.
-
-* **Opcja 2 (Ręczna przez interfejs GitHub Actions):**
-  1. Przejdź do zakładki **Actions** w repozytorium na GitHubie.
-  2. Z menu bocznego wybierz workflow **Publish Release**.
-  3. Kliknij przycisk **Run workflow**, podaj numer wersji (np. `v1.0.0`) i zatwierdź.
-
 ---
 
 ## Usługi chmurowe Firebase
@@ -458,14 +442,6 @@ Binary packages for Android and iOS are automatically compiled and published wit
 | **`HealthUp-Android-release.aab`** | Android | AAB | Official Android App Bundle ready for Google Play Store upload. |
 | **`HealthUp-iOS-Device.ipa`** | iOS | IPA | Packaged application for physical iOS devices (AltStore / Sideloadly / TestFlight). |
 | **`HealthUp-iOS-Simulator.app.zip`** | iOS Simulator | ZIP / .app | Packaged application for Xcode Simulator drag-and-drop installation. |
-
-### Publishing New Releases
-1. **Via Git Tag:**
-   ```bash
-   git tag -a v1.0.0 -m "Release v1.0.0"
-   git push origin v1.0.0
-   ```
-2. **Via GitHub Actions UI:** Navigate to **Actions** -> **Publish Release** -> **Run workflow** and specify the tag version.
 
 ---
 
