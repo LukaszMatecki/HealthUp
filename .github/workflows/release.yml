@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'Wersja tagu wydania (np. v1.0.0)'
+        description: 'Wersja tagu wydania (np. v2.0.0)'
         required: true
-        default: 'v1.0.0'
+        default: 'v2.0.0'
       release_name:
         description: 'Tytuł wydania (opcjonalnie, np. HealthUp v1.0.0)'
         required: false
@@ -83,7 +83,11 @@ jobs:
           elif [ -f androidApp/build/outputs/apk/release/androidApp-release-unsigned.apk ]; then
             cp androidApp/build/outputs/apk/release/androidApp-release-unsigned.apk build/release-assets/HealthUp-Android-release-unsigned.apk
           fi
-          cp androidApp/build/outputs/bundle/release/androidApp-release.aab build/release-assets/HealthUp-Android-release.aab
+          if [ -f androidApp/build/outputs/bundle/release/androidApp-release.aab ]; then
+            cp androidApp/build/outputs/bundle/release/androidApp-release.aab build/release-assets/HealthUp-Android-release.aab
+          elif [ -f androidApp/build/outputs/bundle/release/androidApp-release-unsigned.aab ]; then
+            cp androidApp/build/outputs/bundle/release/androidApp-release-unsigned.aab build/release-assets/HealthUp-Android-release-unsigned.aab
+          fi
 
       - name: Upload Android Artifacts
         uses: actions/upload-artifact@v4
@@ -244,7 +248,7 @@ jobs:
           elif [ -n "$INPUT_TAG_NAME" ]; then
             TAG_NAME="$INPUT_TAG_NAME"
           else
-            TAG_NAME="v1.0.0"
+            TAG_NAME="v2.0.0"
           fi
 
           if [ -n "$INPUT_RELEASE_NAME" ]; then
